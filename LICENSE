@@ -631,7 +631,7 @@ to attach them to the start of each source file to most effectively
 state the exclusion of warranty; and each file should have at least
 the "copyright" line and a pointer to where the full notice is found.
 
-    Cekirdekler API: a C# Multi-device GPGPU loadbalancing compute api for custom kernels.
+    Cekirdekler API: a C# Multi-device GPGPU(OpenCL) iterative interdevice-loadbalancing compute API for custom kernels.
     Copyright (C) 2017  Hüseyin Tuğrul BÜYÜKIŞIK
 
     This program is free software: you can redistribute it and/or modify
