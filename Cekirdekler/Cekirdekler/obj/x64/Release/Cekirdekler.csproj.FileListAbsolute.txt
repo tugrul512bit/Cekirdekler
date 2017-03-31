@@ -1,0 +1,23 @@
+E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\bin\x64\Release\Cekirdekler.dll
+E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\bin\x64\Release\Cekirdekler.pdb
+E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\bin\x64\Release\System.Threading.dll
+E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\bin\x64\Release\System.Threading.xml
+E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\obj\x64\Release\Cekirdekler.dll
+E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\obj\x64\Release\Cekirdekler.pdb
+E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\obj\x64\Release\Cekirdekler.csprojResolveAssemblyReference.cache
+C:\Users\pc\Desktop\projeler\Cekirdekler\Cekirdekler\bin\x64\Release\Cekirdekler.dll
+C:\Users\pc\Desktop\projeler\Cekirdekler\Cekirdekler\bin\x64\Release\Cekirdekler.pdb
+C:\Users\pc\Desktop\projeler\Cekirdekler\Cekirdekler\bin\x64\Release\System.Threading.dll
+C:\Users\pc\Desktop\projeler\Cekirdekler\Cekirdekler\bin\x64\Release\System.Threading.xml
+C:\Users\pc\Desktop\projeler\Cekirdekler\Cekirdekler\obj\x64\Release\Cekirdekler.csprojResolveAssemblyReference.cache
+C:\Users\pc\Desktop\projeler\Cekirdekler\Cekirdekler\obj\x64\Release\Cekirdekler.dll
+C:\Users\pc\Desktop\projeler\Cekirdekler\Cekirdekler\obj\x64\Release\Cekirdekler.pdb
+C:\Users\pc\Desktop\projeler\Cekirdekler\Cekirdekler\bin\x64\Release\Cekirdekler.XML
+C:\Users\pc\Desktop\projeler_ingilizce\Cekirdekler\Cekirdekler\bin\x64\Release\Cekirdekler.XML
+C:\Users\pc\Desktop\projeler_ingilizce\Cekirdekler\Cekirdekler\bin\x64\Release\Cekirdekler.dll
+C:\Users\pc\Desktop\projeler_ingilizce\Cekirdekler\Cekirdekler\bin\x64\Release\Cekirdekler.pdb
+C:\Users\pc\Desktop\projeler_ingilizce\Cekirdekler\Cekirdekler\bin\x64\Release\System.Threading.dll
+C:\Users\pc\Desktop\projeler_ingilizce\Cekirdekler\Cekirdekler\bin\x64\Release\System.Threading.xml
+C:\Users\pc\Desktop\projeler_ingilizce\Cekirdekler\Cekirdekler\obj\x64\Release\Cekirdekler.csprojResolveAssemblyReference.cache
+C:\Users\pc\Desktop\projeler_ingilizce\Cekirdekler\Cekirdekler\obj\x64\Release\Cekirdekler.dll
+C:\Users\pc\Desktop\projeler_ingilizce\Cekirdekler\Cekirdekler\obj\x64\Release\Cekirdekler.pdb

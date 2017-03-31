@@ -1,0 +1,2418 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Cekirdekler</name>
+    </assembly>
+    <members>
+        <member name="T:Cekirdekler.CekirdekClient">
+            <summary>
+            prealpha cluster feature
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.Cores">
+            <summary>
+            <para>main part of the API. Binds devices to platforms, buffers to arrays, commandqueues to commands</para>
+            <para>can pipeline kernel as many sub works that are issued concurrently</para>
+            <para>can load-balance between gpus, cpus and accelerators</para>
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Cores.globalRanges">
+            <summary>
+            global range values for opencl per device per compute id
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Cores.globalReferences">
+            <summary>
+            global reference points for ranges for opencl per device per compute id
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.Cores.allErrorsString">
+            <summary>
+            contains C99 kernel compiler errors returned from all devices
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Cores.#ctor(System.String,System.String,System.String[],System.Int32,System.Int32,System.Boolean,System.Int32)">
+            <summary>
+            Main class for scheduling device queues and controlling work distributions
+            </summary>
+            <param name="deviceTypes__">"cpu" "gpu" "cpu gpu" "gpu acc" ...</param>
+            <param name="kernels__"></param>
+            <param name="kernelNames__"></param>
+            <param name="localRangeDeprecated"></param>
+            <param name="numGPUToUse">if pc has 4 gpu, can set this to 4</param>
+            <param name="MAX_CPU">-1 = MAX - 1, max( min(MAX_CPU,MAX-1),1) </param>
+            <param name="GPU_STREAM">default is true: map - unmap instead of extra read-write for all devices</param>
+        </member>
+        <member name="M:Cekirdekler.Cores.numberOfDevices">
+            <summary>
+            1 worker per device (each worker can have concurrent pipelining if enabled)
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Cores.errorMessage">
+            <summary>
+            error description from compiler
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Cores.errorCode">
+            <summary>
+            different from zero means error
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Cores.pinArray(System.Object)">
+            <summary>
+            pin C# arrays in place for compute so they don't move while computing, doesn't touch C++ arrays 
+            </summary>
+            <param name="arr"></param>
+            <returns></returns>
+        </member>
+        <member name="F:Cekirdekler.Cores.PIPELINE_EVENT">
+            <summary>
+            <para>a network of opencl events controls multiple commandqueues so read is done concurrently with compute and write</para>
+            <para>hides the least time consuming part(read or compute or write) latency behind the most time consuming part(read or compute or write)</para>
+            <para>2 command queues issue read(from array) operations</para>
+            <para>2 command queues issue compute operations</para>
+            <para>2 command queues issue write(to array) operations</para>
+            <para>pipeline parts mush be minimum 4 and be multiple of 4</para>
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Cores.PIPELINE_DRIVER">
+            <summary>
+            <para>no opencl event is used. the driver controls scheduling for the optimum multi-commandqueue work overlapping</para>
+            <para>16 command queues are used, each one has (read + compute + write) of a small portion of whole work</para>
+            <para>pipeline parts mush be minimum 4 and be multiple of 4</para>
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Cores.compute(System.String[],System.Int32,System.String,System.Object[],System.String[],System.Int32[],System.Int32,System.Int32,System.Int32,System.Boolean,System.Int32,System.Boolean,System.Int32)">
+            <summary>
+            
+            </summary>
+            <param name="kernelNames">names of kernels to be executed consecutively</param>
+            <param name="numRepeats">repeats(0=no repeat, 1=once, n=n times) kernels with a sync kernel at the end of each repeat step</param>
+            <param name="syncKernelName">after n different kernels, a sync kernel is executed if numRepeats>0 </param>
+            <param name="arrs">C#(float[],int[],...) or C++ arrays(FastArr, ClArray)</param>
+            <param name="readWrite">"partial read": each device reads its own territory(possibly pipelined), "read": all devices read all at once,"write": all devices write their own results(possibly pipelined)</param>
+            <param name="elementsPerWorkItem">number of array elements that each workitem alters,reads or writes(if kernel alters randomly,using "partial" (in readWrite) is undefined behaviour)</param>
+            <param name="globalRange">total workitems to be distributed to all selected devices</param>
+            <param name="computeId">compute id value, determines that this operation is similar to or different than any other compute(to distribute workitems better iteratively)</param>
+            <param name="globalOffset">(shifts all workitem right by this number(for cluster extension))first device in load-balance always starts from zero unless this variable is set to x>0 </param>
+            <param name="pipelineEnabled">enables multi-commandqueue compute to hide latencies. example: if read takes %33, compute takes %33, write takes %33 of time, then pipelining makes it 3x as fast</param>
+            <param name="numberOfPipelineStages">minimum 4, multiple of 4</param>
+            <param name="pipelineType">PIPELINE_EVENT(6 queues, read-write-compute separated) or PIPELINE_DRIVER(16 queues, read-compute-write together)</param>
+            <param name="localRange">local range value (number of workitems per group) for all devices</param>
+        </member>
+        <member name="M:Cekirdekler.Cores.performanceReport(System.Int32)">
+            <summary>
+            outputs to console: execution times per device and devices' target memory types(dedicated or RAM)
+            </summary>
+            <param name="computeId">compute id of compute action to be profiled. a compute action may behave differently than others because of data difference, kernel difference, read-write difference</param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Cores.benchmarks(System.Int32)">
+            <summary>
+            execution timings of all devices for all compute id values
+            </summary>
+            <param name="computeId"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Cores.deviceNames">
+            <summary>
+            returns device names such as 8-core desktop cpu or pitcairn or oland or Intel HD 400
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Cores.Finalize">
+            <summary>
+            releases C++ resources
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Cores.dispose">
+            <summary>
+            release C++ resources
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.CekirdekServer">
+            <summary>
+            prealpha cluster feature
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.CekirdekServerThread">
+            <summary>
+            prealpha cluster feature
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClBuffer">
+            <summary>
+            wrapper for cl::buffer and read-write-map-unmap functions
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClBuffer.SizeOf">
+            <summary>
+            opencl buffer type
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClBuffer.#ctor(Cekirdekler.ClContext,System.Int32,Cekirdekler.ClBuffer.SizeOf,System.Boolean,System.Int32,System.IntPtr)">
+            <summary>
+            create opencl buffer 
+            </summary>
+            <param name="context"></param>
+            <param name="numberOfElements_"></param>
+            <param name="clType_"></param>
+            <param name="GDDR_BUFFER"></param>
+            <param name="isCSharpArray_"></param>
+            <param name="arrPointer"></param>
+        </member>
+        <member name="M:Cekirdekler.ClBuffer.h">
+            <summary>
+            handle to buffer object 
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClBuffer.write(Cekirdekler.ClCommandQueue,System.Object)">
+            <summary>
+            write to buffer from array
+            </summary>
+            <param name="cq">command queue to enqueue this write command</param>
+            <param name="arr">array to read (to write on buffer)</param>
+        </member>
+        <member name="M:Cekirdekler.ClBuffer.writeRanged(Cekirdekler.ClCommandQueue,System.Int32,System.Int32,System.Object)">
+            <summary>
+            write to buffer from array but with constraints
+            </summary>
+            <param name="cq"></param>
+            <param name="reference"></param>
+            <param name="range"></param>
+            <param name="arr"></param>
+        </member>
+        <member name="M:Cekirdekler.ClBuffer.writeRangedEvent(Cekirdekler.ClCommandQueue,System.Int32,System.Int32,System.Object,Cekirdekler.ClEventArray,Cekirdekler.ClEvent)">
+            <summary>
+            write to buffer from array but with constraints and events
+            </summary>
+            <param name="cq"></param>
+            <param name="reference"></param>
+            <param name="range"></param>
+            <param name="arr"></param>
+            <param name="eArr"></param>
+            <param name="e"></param>
+        </member>
+        <member name="M:Cekirdekler.ClBuffer.read(Cekirdekler.ClCommandQueue,System.Int32,System.Int32,System.Object)">
+            <summary>
+            read from buffer and write to array
+            </summary>
+            <param name="cq"></param>
+            <param name="reference"></param>
+            <param name="range"></param>
+            <param name="arr"></param>
+        </member>
+        <member name="M:Cekirdekler.ClBuffer.readEvent(Cekirdekler.ClCommandQueue,System.Int32,System.Int32,System.Object,Cekirdekler.ClEventArray,Cekirdekler.ClEvent)">
+            <summary>
+            read from buffer and write to array but with events
+            </summary>
+            <param name="cq"></param>
+            <param name="reference"></param>
+            <param name="range"></param>
+            <param name="arr"></param>
+            <param name="eArr"></param>
+            <param name="e"></param>
+        </member>
+        <member name="M:Cekirdekler.ClBuffer.dispose">
+            <summary>
+            release C++ resources
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClCommandQueue">
+            <summary>
+            wrapper for opencl command queue
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClCommandQueue.#ctor(Cekirdekler.ClContext,System.Int32)">
+            <summary>
+            creates a command queue in a context
+            </summary>
+            <param name="context"></param>
+            <param name="async">async!=0 means out-of-order command queue</param>
+        </member>
+        <member name="M:Cekirdekler.ClCommandQueue.h">
+            <summary>
+            handle to command queue object in C++
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClCommandQueue.hc">
+            <summary>
+            handle to context object in C++ which holds this command queue
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClCommandQueue.hd">
+            <summary>
+            handle to device in C++ which is used for this command queue
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClCommandQueue.dispose">
+            <summary>
+            releases C++ resources for this commmand queue
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClContext">
+            <summary>
+            wrapper for opencl context
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClContext.#ctor(Cekirdekler.ClDevice)">
+            <summary>
+            creates a context for a device, this library makes use of explicit multi device control for compute
+            </summary>
+            <param name="device">device to use for context</param>
+        </member>
+        <member name="M:Cekirdekler.ClContext.h">
+            <summary>
+            handle to context object in C++
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClContext.hd">
+            <summary>
+            handle to device object in C++ which is used in this context
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClContext.hp">
+            <summary>
+            handle to platform object in C++ which holds the device for this context
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClContext.dispose">
+            <summary>
+            release C++ resources
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.AcceleratorType">
+            <summary>
+            CPU|GPU means all GPUs and all CPUs
+            GPU|ACC means all GPUs and all ACCs
+            GPU means only GPUs are used
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.AcceleratorType.CPU">
+            <summary>
+            sadece işlemcileri kullanır
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.AcceleratorType.GPU">
+            <summary>
+            sadece ekran kartlarını ve entegre grafik çiplerini kullanır
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.AcceleratorType.ACC">
+            <summary>
+            sadece özel hızlandırıcıları kullanır
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClNumberCruncher">
+            <summary>
+            compiles kernel strings for the selected devices then computes with array(C#,C++) parameters later 
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClNumberCruncher.performanceFeed">
+            <summary>
+            outputs to console: each device's performance(and memory target type) results per compute() operation
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClNumberCruncher.#ctor(Cekirdekler.AcceleratorType,System.String,System.Int32,System.Int32,System.Boolean)">
+            <summary>
+            <para>prepares devices and compiles kernels in the kernel string</para>
+            <para>does optionally pipelined kernel execution load balancing between multiple devices</para>
+            </summary>
+            <param name="cpuGpu">AcceleratorType.CPU|AcceleratorType.GPU or similar</param>
+            <param name="kernelString">something like: @"multi-line C# string that has multiple kernel definitions"</param>
+            <param name="numberofCPUCoresToUseAsDeviceFission">AcceleratorType.CPU uses number of threads for an N-core CPU(between 1 and N-1)(-1 means N-1)</param>
+            <param name="numberOfGPUsToUse">AcceleratorType.GPU uses number of GPUs equal to this parameter. Between 1 and N(-1 means N)</param>
+            <param name="stream">devices that share RAM with CPU will not do extra copies. Devices that don't share RAM will directly access RAM and reduce number of copies</param>
+        </member>
+        <member name="M:Cekirdekler.ClNumberCruncher.errorMessage">
+            <summary>
+            kernel compile error
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClNumberCruncher.errorCode">
+            <summary>
+            not zero means error
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClNumberCruncher.dispose">
+            <summary>
+            releases C++ resources
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClNumberCruncher.Finalize">
+            <summary>
+            releases C++ resources
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClDevice">
+            <summary>
+            wrapper for opencl device objects
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClDevice.isGddr">
+            <summary>
+            if device has dedicated memory, returns true
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClDevice.type">
+            <summary>
+            type of device
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClDevice.name">
+            <summary>
+            device name
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClDevice.h">
+            <summary>
+            handle for device object in C space
+            </summary>
+            <returns>address</returns>
+        </member>
+        <member name="M:Cekirdekler.ClDevice.hp">
+            <summary>
+            handle for platform object (that contains this device object) in C space
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClDevice.dispose">
+            <summary>
+            releases resources taken in C++ C space functions
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ICanCompute">
+            <summary>
+            Parameter group to be crunched in kernel execution
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ICanCompute.compute(Cekirdekler.ClNumberCruncher,System.Int32,System.String,System.Int32,System.Int32,System.Int32,System.Boolean,System.Boolean,System.Int32)">
+            <summary>
+            <para>blocking compute operation that does read + compute + write </para>
+            </summary>
+            <param name="cruncher"></param>
+            <param name="computeId"></param>
+            <param name="kernelNamesString">string that contains all kernel names(to be executed) separated by space or by , or by ;</param>
+            <param name="globalRange">total workitems to be distributed to devices</param>
+            <param name="localRange">workitems per local workgroup. default value is 256</param>
+            <param name="ofsetGlobalRange">starting id for workitems.(for cluster add-on)</param>
+            <param name="pipeline">true: pipeline is on</param>
+            <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
+            <param name="pipelineBlobs">minimum 4, multiple of 4</param>
+        </member>
+        <member name="T:Cekirdekler.IBufferOptimization">
+            <summary>
+            can optimize the buffer copies 
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.IBufferOptimization.array">
+            <summary>
+            array to be used in computations. could be a C# array or FastArr{T} as a wrapper for C++ array 
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.IBufferOptimization.read">
+            <summary>
+            read whole array before compute
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.IBufferOptimization.partialRead">
+            <summary>
+            <para>change the read into a partial type so it can be pipelined to hide latency to make compute() faster</para>
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.IBufferOptimization.write">
+            <summary>
+            write results after kernel execution (possibly pipelined)
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.IBufferOptimization.numberOfElementsPerWorkItem">
+            <summary>
+            <para>number of array elements per workitem to be computed, to be buffer-copied. default=1</para>
+            <para>also default=1 for C# arrays(without ClArray nor FastArr )</para>
+            <para>number of global workitems * elements per work item must not be greater than buffer size </para>
+            <para>number of local workitems * elements per work item * number of pipeline blob must not be greater than buffer size  </para>
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClParameterGroup">
+            <summary>
+            Holds ClArray instances, C# arrays and FastArr instances to be computed later
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClParameterGroup.array">
+            <summary>
+            not used, comes from interface
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClParameterGroup.selectedArrays">
+            <summary>
+            linked list to array conversion for all arrays
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClParameterGroup.nextParam(System.Array[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="arrays_">C# arrays to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ClParameterGroup.nextParam(Cekirdekler.IMemoryHandle[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="arrays_">FastArr type(ClFloatArray,ClUIntArray,...) arrays to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ClParameterGroup.nextParam(Cekirdekler.IBufferOptimization[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="arrays_">ClArray type arrays(which can wrap C# or C++ arrays) to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ClParameterGroup.nextParam(Cekirdekler.ClParameterGroup[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="parameterGroups_">Other parameter groups to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ClParameterGroup.compute(Cekirdekler.ClNumberCruncher,System.Int32,System.String,System.Int32,System.Int32,System.Int32,System.Boolean,System.Boolean,System.Int32)">
+            <summary>
+            <para>blocking compute operation that does read + compute + write </para>
+            </summary>
+            <param name="cruncher"></param>
+            <param name="computeId"></param>
+            <param name="kernelNamesString">string that contains all kernel names(to be executed) separated by space or by , or by ;</param>
+            <param name="globalRange">total workitems to be distributed to devices</param>
+            <param name="localRange">workitems per local workgroup. default value is 256</param>
+            <param name="ofsetGlobalRange">starting id for workitems.(for cluster add-on)</param>
+            <param name="pipeline">true: pipeline is on</param>
+            <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
+            <param name="pipelineBlobs">minimum 4, multiple of 4</param>
+        </member>
+        <member name="T:Cekirdekler.ICanBind">
+            <summary>
+            binds new parameters to earlier ones to be used in kernel executions
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ICanBind.nextParam(Cekirdekler.ClParameterGroup[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="parameterGroups_">Other parameter groups to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ICanBind.nextParam(Cekirdekler.IBufferOptimization[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="arrays_">ClArray type arrays(which can wrap C# or C++ arrays) to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ICanBind.nextParam(Cekirdekler.IMemoryHandle[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="arrays_">FastArr type(ClFloatArray,ClUIntArray,...) arrays to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ICanBind.nextParam(System.Array[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="arrays_">C# arrays to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="P:Cekirdekler.ICanBind.array">
+            <summary>
+            C++ or C# array of current object
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClArray`1">
+            <summary>
+            <para>float,byte,...</para>
+            <para>double,long</para>
+            <para>int,uint</para>
+            </summary>
+            <typeparam name="T"></typeparam>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.N">
+            <summary>
+            <para>number of elements of this array(C++ or C# side)</para>
+            <para>when set to a different value, a new array is allocated(or created), old data is copied, remaining elements are defaulted</para>
+            <para>if new value is smaller, elements at the end of array are lost</para>
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.#ctor(System.Int32,System.Int32)">
+            <summary>
+            <para>Wrapper for C++ and C# arrays, can optimize their copies to devices(or devices' access to them)</para>
+            </summary>
+            <param name="n_">number of elements(not bytes), default=-1 (no array allocated)</param>
+            <param name="a_">alignment value(in bytes), default=4096</param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.dispose">
+            <summary>
+            release C++ resources, callable multiple times
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.Finalize">
+            <summary>
+            release C++ resources
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.fastArr">
+            <summary>
+            <para>if given true, allocates a C++ array(if C# array exists, copies from it)</para>
+            <para>if given false, creates a C# array (if C++ array exists, copies from it)</para>
+            <para>if array property is set from client code, this is changed accordingly with that array type</para>
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.ClArray`1.array_">
+            <summary>
+            <para>float[], byte[], FastArr{T} ... </para>
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.array">
+            <summary>
+            C++(FastArr{T}) or C# (T[]) arrays
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.op_Implicit(`0[])~Cekirdekler.ClArray{`0}">
+            <summary>
+            <para>initialize this wrapper from T[] or FastArr{T}</para> 
+            </summary>
+            <param name="b"></param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.op_Implicit(Cekirdekler.FastArr{`0})~Cekirdekler.ClArray{`0}">
+            <summary>
+            <para>initialize this wrapper from T[] or FastArr{T}</para> 
+            </summary>
+            <param name="b"></param>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.Count">
+            <summary>
+            IList{T} compatibility, gives number of elements of C# or C++ arrays
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.Length">
+            <summary>
+            IList{T} compatibility, gives number of elements of C# or C++ arrays
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.IsReadOnly">
+            <summary>
+            not implemented
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.isCSharpArr">
+            <summary>
+            true = C# array
+            false = C++ array (wrapper)
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.IndexOf(`0)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="item"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.Insert(System.Int32,`0)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="index"></param>
+            <param name="item"></param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.RemoveAt(System.Int32)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="index"></param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.Add(`0)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="item"></param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.Clear">
+            <summary>
+            not implemented
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.Contains(`0)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="item"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.CopyTo(`0[],System.Int32)">
+            <summary>
+            copies to C# array (from its C++ or C# array)  
+            </summary>
+            <param name="array">C# array</param>
+            <param name="arrayIndex">element index</param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.CopyTo(Cekirdekler.ClArray{`0},System.Int32)">
+            <summary>
+            copies to other ClArray objects' arrays
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.CopyTo(Cekirdekler.FastArr{`0},System.Int32)">
+            <summary>
+            copy to C++ array (FastArr)
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.CopyFrom(`0[],System.Int32)">
+            <summary>
+            copies from C# array(to C++ or C# array of itself)
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.CopyFrom(Cekirdekler.ClArray{`0},System.Int32)">
+            <summary>
+            copies from other ClArray objects
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.CopyFrom(Cekirdekler.FastArr{`0},System.Int32)">
+            <summary>
+            copies from C++ array(to its own C++ or C# array)
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.Remove(`0)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="item"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.GetEnumerator">
+            <summary>
+            not implemented
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.System#Collections#IEnumerable#GetEnumerator">
+            <summary>
+            not implemented
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.nextParam(System.Array[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="arrays_">C# arrays to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.nextParam(Cekirdekler.IMemoryHandle[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="arrays_">FastArr type(ClFloatArray,ClUIntArray,...) arrays to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.nextParam(Cekirdekler.IBufferOptimization[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="arrays_">ClArray type arrays(which can wrap C# or C++ arrays) to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.nextParam(Cekirdekler.ClParameterGroup[])">
+            <summary>
+            <para>adds arrays as more parameters for kernel execution</para>
+            <para>arrays order as parameters:</para>
+            <para>this object - then - other params added to this object - then - parameters from .nextParam()</para>
+            </summary>
+            <param name="parameterGroups_">Other parameter groups to add as kernel parameters</param>
+            <returns>a ClParameterGroup that can crunch numbers or bind more parameters</returns>
+        </member>
+        <member name="M:Cekirdekler.ClArray`1.compute(Cekirdekler.ClNumberCruncher,System.Int32,System.String,System.Int32,System.Int32,System.Int32,System.Boolean,System.Boolean,System.Int32)">
+            <summary>
+            <para>blocking compute operation that does read + compute + write </para>
+            </summary>
+            <param name="cruncher"></param>
+            <param name="computeId"></param>
+            <param name="kernelNamesString">string that contains all kernel names(to be executed) separated by space or by , or by ;</param>
+            <param name="globalRange">total workitems to be distributed to devices</param>
+            <param name="localRange">workitems per local workgroup. default value is 256</param>
+            <param name="ofsetGlobalRange">starting id for workitems.(for cluster add-on)</param>
+            <param name="pipeline">true: pipeline is on</param>
+            <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
+            <param name="pipelineBlobs">minimum 4, multiple of 4</param>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.read">
+            <summary>
+            reads whole array before compute (no pipelining)
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.partialRead">
+            <summary>
+            <para>partial reads(possibly pipelined)</para>
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.write">
+            <summary>
+            partial writes (possibly pipelined)
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.numberOfElementsPerWorkItem">
+            <summary>
+            <para>gnumber of array elements per workitem, default=1</para>
+            <para>global range * this number must be smaller than or equal to array size </para>
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.ClArray`1.Item(System.Int32)">
+            <summary>
+            <para>direct access to C++ array elements just like C# arrays</para>
+            <para>don't cross boundaries, don't use after dispose()</para>
+            </summary>
+            <param name="i"></param>
+            <returns></returns>
+        </member>
+        <member name="T:Cekirdekler.ClEvent">
+            <summary>
+            wrapper for opencl event objects
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClEvent.#ctor">
+            <summary>
+            creates an event to be used in commands
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClEvent.h">
+            <summary>
+            handle to event object
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClEvent.dispose">
+            <summary>
+            releases C++ resources
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClEventArray">
+            <summary>
+            wrapper for event array in C++
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClEventArray.#ctor(System.Boolean)">
+            <summary>
+            creates event array for opencl commands
+            </summary>
+            <param name="isCopy"></param>
+        </member>
+        <member name="M:Cekirdekler.ClEventArray.add(Cekirdekler.ClEvent,System.Boolean)">
+            <summary>
+            adds event to event array
+            </summary>
+            <param name="e"></param>
+            <param name="isCopy"></param>
+        </member>
+        <member name="M:Cekirdekler.ClEventArray.h">
+            <summary>
+            handle to event array object
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClEventArray.dispose">
+            <summary>
+            releases C++ resources
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClKernel">
+            <summary>
+            wrapper for opencl kernel object
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClKernel.#ctor(Cekirdekler.ClProgram,Cekirdekler.ClString)">
+            <summary>
+            takes program and a kernel name and prepares a kernel to be used.
+            </summary>
+            <param name="program">opencl wrapper of cl::program</param>
+            <param name="kernelName">string wrapper of kernel name</param>
+        </member>
+        <member name="M:Cekirdekler.ClKernel.h">
+            <summary>
+            handle for kernel object in "C" space
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClKernel.hs">
+            <summary>
+            kernel name string pointer
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClKernel.dispose">
+            <summary>
+            releases resources that are allocated in "C" space
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClNdRange">
+            <summary>
+            wrapper for opencl ndrange
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClNdRange.#ctor(System.Int32)">
+            <summary>
+            creates a ndrange object in "C" space
+            </summary>
+            <param name="range_"></param>
+        </member>
+        <member name="M:Cekirdekler.ClNdRange.h">
+            <summary>
+            handle to ndrange object in C++
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClNdRange.dispose">
+            <summary>
+            release C++ resources
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClPlatform">
+            <summary>
+            cl::platform wrapper with simple methods
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.CODE_CPU">
+            <summary>
+            takes cpu flag to be used later in other wrappers
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.CODE_GPU">
+            <summary>
+            takes gpu flag to be used later in other wrappers
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.CODE_ACC">
+            <summary>
+            takes accelerator flag to be used in other wrappers
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.numberOfCpusInPlatform(System.IntPtr)">
+            <summary>
+            number of cpus in a platform
+            </summary>
+            <param name="hPlatform"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.numberOfGpusInPlatform(System.IntPtr)">
+            <summary>
+            number of gpus in a platform
+            </summary>
+            <param name="hPlatform"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.numberOfAcceleratorsInPlatform(System.IntPtr)">
+            <summary>
+            number of accelerators in platorm
+            </summary>
+            <param name="hPlatform"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.#ctor(System.IntPtr,System.Int32)">
+            <summary>
+            gets a platform from a list of platforms in "C" space using an index
+            </summary>
+            <param name="hPlatformList_">C space array with N platforms</param>
+            <param name="index_">0 to N-1</param>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.numberOfGpus">
+            <summary>
+            number of gpus in this platform
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.numberOfCpus">
+            <summary>
+            number of cpus in this platform
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.numberOfAccelerators">
+            <summary>
+            number of accelerators in this platform
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.h">
+            <summary>
+            handle to this platform in C space
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClPlatform.dispose">
+            <summary>
+            disposes C space platform objects
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClProgram">
+            <summary>
+            wrapper for cl::program
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.ClProgram.errorCode_______">
+            <summary>
+            error code that tells something wrong if not zero
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClProgram.#ctor(Cekirdekler.ClContext,Cekirdekler.ClString)">
+            <summary>
+            creates a program from kernel string and context
+            </summary>
+            <param name="context"></param>
+            <param name="clKernelString">kernel string to compile</param>
+        </member>
+        <member name="M:Cekirdekler.ClProgram.errMsg">
+            <summary>
+            error message from compiler
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClProgram.h">
+            <summary>
+            handle to program object in "C" space
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClProgram.hc">
+            <summary>
+            handle to context of program (in C space)
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClProgram.hd">
+            <summary>
+            handle to device that was chosen to be compiled for 
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClProgram.hs">
+            <summary>
+            string pointer
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClProgram.dispose">
+            <summary>
+            release C++ resources
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClString">
+            <summary>
+            wrapper for C++ strings 
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClString.#ctor(System.String)">
+            <summary>
+            creates a string(C++) from a string(C#) 
+            </summary>
+            <param name="strg"></param>
+        </member>
+        <member name="M:Cekirdekler.ClString.write(System.String)">
+            <summary>
+            writes to C++ string
+            </summary>
+            <param name="strg"></param>
+        </member>
+        <member name="M:Cekirdekler.ClString.h">
+            <summary>
+            handle to C++ string
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClString.read">
+            <summary>
+            not changed in C++ side so simply returns
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClString.dispose">
+            <summary>
+            release resources in C++ side
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClUserEvent">
+            <summary>
+            wrapper for opencl user event
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClUserEvent.#ctor(Cekirdekler.ClContext)">
+            <summary>
+            creates user event for fine grained synchronization
+            </summary>
+            <param name="ct"></param>
+        </member>
+        <member name="M:Cekirdekler.ClUserEvent.dec">
+            <summary>
+            decrement user event counter
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClUserEvent.inc">
+            <summary>
+            increment user event counter
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClUserEvent.dispose">
+            <summary>
+            release C++ resources
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClUserEvent.trigger">
+            <summary>
+            trigger user event
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClUserEvent.addCommandQueue(Cekirdekler.ClCommandQueue)">
+            <summary>
+            add command queue to user event
+            </summary>
+            <param name="cq"></param>
+        </member>
+        <member name="T:Cekirdekler.CSpaceArrays">
+            <summary>
+            C++ "C" space array functions for fast GPGPU
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.CSpaceArrays.ARR_FLOAT">
+            <summary>
+            32-bit precision floats in C# 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.CSpaceArrays.ARR_DOUBLE">
+            <summary>
+            64-bit precision floats in C#
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.CSpaceArrays.ARR_LONG">
+            <summary>
+            64-bit integer in C#
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.CSpaceArrays.ARR_INT">
+            <summary>
+            32-bit integer in C#
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.CSpaceArrays.ARR_UINT">
+            <summary>
+            32-bit unsigned integer in C#
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.CSpaceArrays.ARR_BYTE">
+            <summary>
+            8bit integer
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.CSpaceArrays.ARR_CHAR">
+            <summary>
+            2-byte or 16-bit container for integers in C#
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.CSpaceArrays.sizeOf_">
+            <summary>
+            table of number of bytes per type of element
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.CSpaceArrays.#cctor">
+            <summary>
+            loading type sizes from "C" space opencl
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.CSpaceArrays.sizeOf(System.Int32)">
+            <summary>
+            query array element size from table
+            </summary>
+            <param name="type">example: ARR_BYTE = 5</param>
+            <returns>for ARR_BYTE returns 1</returns>
+        </member>
+        <member name="M:Cekirdekler.CSpaceArrays.sizeOf(System.Int32[])">
+            <summary>
+            just to get cl_float cl_int sizes from "C" space
+            </summary>
+            <param name="definitionArr"></param>
+        </member>
+        <member name="M:Cekirdekler.CSpaceArrays.createArray(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            create "C" space arrays
+            </summary>
+            <param name="numberOfElements"></param>
+            <param name="alignment"></param>
+            <param name="typeOfArray"></param>
+            <returns>returns pointer to augmented array</returns>
+        </member>
+        <member name="M:Cekirdekler.CSpaceArrays.alignedArrHead(System.IntPtr)">
+            <summary>
+            get the first N-aligned element address from "C" space array
+            </summary>
+            <param name="hArr">handle for "C" space array</param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.CSpaceArrays.deleteArray(System.IntPtr)">
+            <summary>
+            delete "C" space array
+            </summary>
+            <param name="hArr">handle for augmented array in "C" space</param>
+        </member>
+        <member name="M:Cekirdekler.CSpaceArrays.CopyMemory(System.IntPtr,System.IntPtr,System.UInt32)">
+            <summary>
+            IntPtr to IntPtr copy in bytes count
+            </summary>
+            <param name="dest"></param>
+            <param name="src"></param>
+            <param name="count">byte number</param>
+        </member>
+        <member name="T:Cekirdekler.IMemoryOperations`1">
+            <summary>
+            C++ dizileri ile C# veya C++ dizileri arasında kopyalama işlemleri için
+            </summary>
+            <typeparam name="T"></typeparam>
+        </member>
+        <member name="M:Cekirdekler.IMemoryOperations`1.CopyFrom(`0[],System.Int32)">
+            <summary>
+            C# array to C++ array copy
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.IMemoryOperations`1.CopyFrom_(Cekirdekler.FastArr{`0},System.Int32)">
+            <summary>
+            C++ array to C++ array copy
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.IMemoryOperations`1.CopyTo_(Cekirdekler.FastArr{`0},System.Int32)">
+            <summary>
+            C++ array to C++ array copy
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="T:Cekirdekler.IMemoryHandle">
+            <summary>
+            C++ - C# array communication-compatibility interface
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.IMemoryHandle.ha">
+            <summary>
+            first (4096 default)aligned element address of array
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="P:Cekirdekler.IMemoryHandle.Length">
+            <summary>
+            C++ array's number of elements (for compatibility with C# arrays)
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.IMemoryHandle.sizeOf">
+            <summary>
+            C++ array element size
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.IMemoryHandle.sizeOfEnum">
+            <summary>
+            cl_float, cl_int definitions for compatibility with "C" space opencl
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.IMemoryHandle.dispose">
+            <summary>
+            C++ dizisini siler
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.FastArr`1">
+            <summary>
+            <para>C++ array in "C" space for fast GPGPU buffer access/map/read/write</para>
+            <para>switchabe from C#'s float,double,int,long</para>
+            <para>and byte,uint,char</para>
+            </summary>
+            <typeparam name="T"></typeparam>
+        </member>
+        <member name="F:Cekirdekler.FastArr`1.hArr">
+            <summary>
+            C++ array start(non-aligned)
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.FastArr`1.hAArr">
+            <summary>
+            C++ array first (4096 default)aligned element address
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.FastArr`1.n_">
+            <summary>
+            number of elements in array
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.FastArr`1.arrType">
+            <summary>
+            <para>C++ array type compatible to C# side as</para>
+            <para>CSpaceArrays.Arr_FLOAT</para>
+            <para>CSpaceArrays.Arr_INT</para>
+            <para>CSpaceArrays.Arr_BYTE</para>
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.FastArr`1.sizeOf">
+            <summary> 
+            size of each array element
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.FastArr`1.sizeOfEnum">
+            <summary>
+            ClBuffer connection compatibility variable
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.Finalize">
+            <summary>
+            delete C++ "C" space array
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.FastArr`1.Length">
+            <summary>
+            C++ array's number of elements (just like C# array) 
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.FastArr`1.Item(System.Int32)">
+            <summary>
+            overriden by derived classes and not be used by client codes for now
+            </summary>
+            <param name="i"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.ha">
+            <summary>
+            first properly aligned element of C++ array
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.dispose">
+            <summary>
+            deletes C++ array, can be called multiple times
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.toArray">
+            <summary>
+            return a copy of C++ array as a C# array
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="P:Cekirdekler.FastArr`1.Count">
+            <summary>
+            for compatibility with IList{T} 
+            </summary>
+        </member>
+        <member name="P:Cekirdekler.FastArr`1.IsReadOnly">
+            <summary>
+            not implemented
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.Add(`0)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="item"></param>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.Clear">
+            <summary>
+            not implemented
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.Contains(`0)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="item"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.CopyTo(`0[],System.Int32)">
+            <summary>
+            overridden by derived classes
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.GetEnumerator">
+            <summary>
+            not implemented
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.IndexOf(`0)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="item"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.Insert(System.Int32,`0)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="index"></param>
+            <param name="item"></param>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.Remove(`0)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="item"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.RemoveAt(System.Int32)">
+            <summary>
+            not implemented
+            </summary>
+            <param name="index"></param>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.System#Collections#IEnumerable#GetEnumerator">
+            <summary>
+            not implemented
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.CopyFrom(`0[],System.Int32)">
+            <summary>
+            overriden by derived classes
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.CopyFrom_(Cekirdekler.FastArr{`0},System.Int32)">
+            <summary>
+            overriden by derived classes
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.FastArr`1.CopyTo_(Cekirdekler.FastArr{`0},System.Int32)">
+            <summary>
+            overriden by derived classes
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="T:Cekirdekler.ClByteArray">
+            <summary>
+            C++ byte array
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClByteArray.#ctor(System.Int32,System.Int32)">
+            <summary>
+            allocates a byte array in "C" space for faster opencl computations
+            </summary>
+            <param name="n"></param>
+            <param name="alignment"></param>
+        </member>
+        <member name="P:Cekirdekler.ClByteArray.Item(System.Int32)">
+            <summary>
+            access just like a C# array
+            beware! check or be sure for out-of-bounds
+            beware! don't use this after dispose()
+            </summary>
+            <param name="i"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClByteArray.toArray">
+            <summary>
+            get a copy of fast array as a C# array
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClByteArray.CopyTo(System.Byte[],System.Int32)">
+            <summary>
+            copy C++ array to C# array
+            both must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClByteArray.CopyFrom(System.Byte[],System.Int32)">
+            <summary>
+            copy C# array to C++ array
+            both must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClByteArray.CopyTo_(Cekirdekler.FastArr{System.Byte},System.Int32)">
+            <summary>
+            copy C++ array to C++ array
+            both must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClByteArray.CopyFrom_(Cekirdekler.FastArr{System.Byte},System.Int32)">
+            <summary>
+            copy C++ array to C++ array
+            both must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="T:Cekirdekler.ClFloatArray">
+            <summary>
+            C++ float array
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClFloatArray.#ctor(System.Int32,System.Int32)">
+            <summary>
+            C++ float array
+            </summary>
+            <param name="n">number of elements</param>
+            <param name="alignment">byte alignment value</param>
+        </member>
+        <member name="P:Cekirdekler.ClFloatArray.Item(System.Int32)">
+            <summary>
+            array indexing similar to C# arrays
+            beware, don't cross bounds
+            beware, don't use after dispose()
+            </summary>
+            <param name="i"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClFloatArray.toArray">
+            <summary>
+            get a copy of C++ array as a C# array 
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClFloatArray.CopyTo(System.Single[],System.Int32)">
+            <summary>
+            copy C++ float array to C# float array
+            </summary>
+            <param name="array">C# float array</param>
+            <param name="arrayIndex">copy start index</param>
+        </member>
+        <member name="M:Cekirdekler.ClFloatArray.CopyFrom(System.Single[],System.Int32)">
+            <summary>
+            copy C# float array to C++ float array
+            </summary>
+            <param name="array">C# array</param>
+            <param name="arrayIndex">copy start index</param>
+        </member>
+        <member name="M:Cekirdekler.ClFloatArray.CopyTo_(Cekirdekler.FastArr{System.Single},System.Int32)">
+            <summary>
+            C++ array to C++ array copy, both must be same length
+            </summary>
+            <param name="array">C++ float array</param>
+            <param name="arrayIndex">copy start index</param>
+        </member>
+        <member name="M:Cekirdekler.ClFloatArray.CopyFrom_(Cekirdekler.FastArr{System.Single},System.Int32)">
+            <summary>
+            C++ to C++ array copy, both must be same length
+            </summary>
+            <param name="array">C++ float array</param>
+            <param name="arrayIndex">copy start index</param>
+        </member>
+        <member name="T:Cekirdekler.ClIntArray">
+            <summary>
+            C++ int array
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClIntArray.#ctor(System.Int32,System.Int32)">
+            <summary>
+            C++ int array
+            </summary>
+            <param name="n"></param>
+            <param name="alignment"></param>
+        </member>
+        <member name="P:Cekirdekler.ClIntArray.Item(System.Int32)">
+            <summary>
+            access like a C# array, beware: don't cross boundaries and don't use after dispose()
+            </summary>
+            <param name="i"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClIntArray.toArray">
+            <summary>
+            get a copy of C++ int array as C# array
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClIntArray.CopyTo(System.Int32[],System.Int32)">
+            <summary>
+            copy from C++ int array to C# int array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClIntArray.CopyFrom(System.Int32[],System.Int32)">
+            <summary>
+            copy from C# int array to C++ int array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClIntArray.CopyTo_(Cekirdekler.FastArr{System.Int32},System.Int32)">
+            <summary>
+            copy from C++ int array to C++ int array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClIntArray.CopyFrom_(Cekirdekler.FastArr{System.Int32},System.Int32)">
+            <summary>
+            copy from C++ int array to C++ int array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="T:Cekirdekler.ClDoubleArray">
+            <summary>
+            C++ double array
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClDoubleArray.#ctor(System.Int32,System.Int32)">
+            <summary>
+            C++ double array
+            </summary>
+            <param name="n"></param>
+            <param name="alignment"></param>
+        </member>
+        <member name="P:Cekirdekler.ClDoubleArray.Item(System.Int32)">
+            <summary>
+            access like a C# array, don't cross boundaries, don't use after dispose()
+            </summary>
+            <param name="i"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClDoubleArray.toArray">
+            <summary>
+            get a copy of C++ array as a C# array
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClDoubleArray.CopyTo(System.Double[],System.Int32)">
+            <summary>
+            Copy from C++ array to C# array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClDoubleArray.CopyFrom(System.Double[],System.Int32)">
+            <summary>
+            Copy from C# array to C++ array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClDoubleArray.CopyTo_(Cekirdekler.FastArr{System.Double},System.Int32)">
+            <summary>
+            Copy from C++ array to C++ array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClDoubleArray.CopyFrom_(Cekirdekler.FastArr{System.Double},System.Int32)">
+            <summary>
+            Copy from C++ array to C++ array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="T:Cekirdekler.ClCharArray">
+            <summary>
+            C++ (C#-char) array
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClCharArray.#ctor(System.Int32,System.Int32)">
+            <summary>
+            C++ (C#-char) array
+            </summary>
+            <param name="n"></param>
+            <param name="alignment"></param>
+        </member>
+        <member name="P:Cekirdekler.ClCharArray.Item(System.Int32)">
+            <summary>
+            access like a C# array, don't cross boundaries, don't use after dispose()
+            </summary>
+            <param name="i"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClCharArray.toArray">
+            <summary>
+            get a copy of C++ arrays as a C# array
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClCharArray.CopyTo(System.Char[],System.Int32)">
+            <summary>
+            copy C++ array to C# array
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClCharArray.CopyFrom(System.Char[],System.Int32)">
+            <summary>
+            copy C# array to C++ array
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClCharArray.CopyTo_(Cekirdekler.FastArr{System.Char},System.Int32)">
+            <summary>
+            copy C++ array to C++ array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClCharArray.CopyFrom_(Cekirdekler.FastArr{System.Char},System.Int32)">
+            <summary>
+            copy C++ array to C++ array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="T:Cekirdekler.ClLongArray">
+            <summary>
+            C++ long array
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClLongArray.#ctor(System.Int32,System.Int32)">
+            <summary>
+            C++ long array
+            </summary>
+            <param name="n"></param>
+            <param name="alignment"></param>
+        </member>
+        <member name="P:Cekirdekler.ClLongArray.Item(System.Int32)">
+            <summary>
+            access like a C# array, don't cross boundaries, don't use after dispose()
+            </summary>
+            <param name="i"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClLongArray.toArray">
+            <summary>
+            get a copy of C++ array as a C# array
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClLongArray.CopyTo(System.Int64[],System.Int32)">
+            <summary>
+            copy C++ array to C# array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClLongArray.CopyFrom(System.Int64[],System.Int32)">
+            <summary>
+            copy C# array to C++ array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClLongArray.CopyTo_(Cekirdekler.FastArr{System.Int64},System.Int32)">
+            <summary>
+            copy C++ array to C++ array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClLongArray.CopyFrom_(Cekirdekler.FastArr{System.Int64},System.Int32)">
+            <summary>
+            copy from C++ array to C++ array, must be same length
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="T:Cekirdekler.ClUIntArray">
+            <summary>
+            C++ (C#-uint) array
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClUIntArray.#ctor(System.Int32,System.Int32)">
+            <summary>
+            C++ (C#-uint) array
+            </summary>
+            <param name="n"></param>
+            <param name="alignment"></param>
+        </member>
+        <member name="P:Cekirdekler.ClUIntArray.Item(System.Int32)">
+            <summary>
+            access like a C# array, don't cross boundaries, don't use after dispose()
+            </summary>
+            <param name="i"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClUIntArray.toArray">
+            <summary>
+            get a copy of C++ array as a C# array
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.ClUIntArray.CopyTo(System.UInt32[],System.Int32)">
+            <summary>
+            copy from C++ array to C# array, both must be same size
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClUIntArray.CopyFrom(System.UInt32[],System.Int32)">
+            <summary>
+            copy from C# array to C++ array, must be same size
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClUIntArray.CopyTo_(Cekirdekler.FastArr{System.UInt32},System.Int32)">
+            <summary>
+            copy from C++ array to C++ array, must be same size
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="M:Cekirdekler.ClUIntArray.CopyFrom_(Cekirdekler.FastArr{System.UInt32},System.Int32)">
+            <summary>
+            copy from C++ array to C++ array, must be same size
+            </summary>
+            <param name="array"></param>
+            <param name="arrayIndex"></param>
+        </member>
+        <member name="T:Cekirdekler.Functions">
+            <summary>
+            helper functions
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Functions.isTypeOfFastArr(System.Object)">
+            <summary>
+            checks if object is derived from FastArr or not
+            </summary>
+            <param name="o"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Functions.loadBalance(System.Double[],System.Int32,System.Int32[],System.Int32)">
+            <summary>
+            distribute workitems to devices accordingly with their weighted throughput
+            </summary>
+            <param name="benchmark">timings</param>
+            <param name="totalRange">global range of kernel</param>
+            <param name="globalRanges">global range per device</param>
+            <param name="step">minimum exchange rate of workitems between devices to balance the load</param>
+        </member>
+        <member name="T:Cekirdekler.CluserHizlandirici">
+            <summary>
+            <para>prealpha cluster add-on</para>
+            <para>"cluster:xxxxx" then this class is used</para> 
+            <para>cluster server node sonradan alt cluster olarak kullanılabilir hale getirilecek</para>
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.CluserHizlandirici.serverBul(System.Int32,System.Boolean)">
+            <summary>
+            clientte parametre ile belirlenen portları kontrol eder(ör: tüm serverların 50000 portları)
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.IHesapNode">
+            <summary>
+            <para>prealpha cluster add-on</para>
+            <para>hesaplayacak nesne, Cekirdekler api de olabilir,</para> 
+            <para>bir pc(ip tcp) grubunda çalışan Hizlandirici api de(içinde Cekirdekler var) olabilir</para> 
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.IHesapNode.hesapla(System.String[],System.Int32,System.String,System.Object[],System.String[],System.Int32[],System.Int32,System.Int32,System.Int32,System.Boolean,System.Int32,System.Boolean)">
+            <summary>
+            parametreli hesap
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.IHesapNode.hesapSuresi">
+            <summary>
+            upload + hesap + download süresi
+            </summary>
+            <returns>milisaniye değeri</returns>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Cekirdekler.IHesapNode.sil" -->
+        <!-- Badly formed XML comment ignored for member "T:Cekirdekler.License" -->
+        <!-- Badly formed XML comment ignored for member "M:Cekirdekler.License.readMe" -->
+        <member name="T:Cekirdekler.Tester">
+            <summary>
+            for testing all features in different PCs 
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Tester.byteArrayOperations">
+            <summary>
+            tests byte arrays
+            </summary>
+            <returns>1=error,0=ok</returns>
+        </member>
+        <member name="M:Cekirdekler.Tester.charArrayOperations">
+            <summary>
+            tests (C# char) arrays
+            </summary>
+            <returns>1=error,0=ok</returns>
+        </member>
+        <member name="M:Cekirdekler.Tester.intArrayOperations">
+            <summary>
+            tests int arrays
+            </summary>
+            <returns>1=error,0=ok</returns>
+        </member>
+        <member name="M:Cekirdekler.Tester.uintArrayOperations">
+            <summary>
+            tests uint arrays
+            </summary>
+            <returns>1=error,0=ok</returns>
+        </member>
+        <member name="M:Cekirdekler.Tester.floatArrayOperations">
+            <summary>
+            tests float arrays
+            </summary>
+            <returns>1=error,0=ok</returns>
+        </member>
+        <member name="M:Cekirdekler.Tester.doubleArrayOperations">
+            <summary>
+            tests double arrays
+            </summary>
+            <returns>1=error,0=ok</returns>
+        </member>
+        <member name="M:Cekirdekler.Tester.longArrayOperations">
+            <summary>
+            tests long arrays
+            </summary>
+            <returns>1=error,0=ok</returns>
+        </member>
+        <member name="M:Cekirdekler.Tester.buffers">
+            <summary>
+            tests host side buffer operations
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Tester.nBody(System.Int32)">
+            <summary>
+            compares an nbody all-pairs(bruteforce) implementation for a C# vs opencl (2D-forces within (+/-)0.01f)
+            </summary>
+            <param name="n"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Tester.stream_C_equals_A_plus_B_1M_elements(System.Int32)">
+            <summary>
+            pipelined + streamed data performance test
+            </summary>
+            <param name="n"></param>
+            <returns></returns>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue">
+            <summary>
+            <para>horizontal(driver-driven) pipelining opencl queue (read + compute +write)</para>
+            <para>vertical(event-driven) pipelining opencl kernel execution queue</para>
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueueRead">
+            <summary>
+            event-driven pipelining opencl buffer-write queue (read from C# array or C++ array)
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueueWrite">
+            <summary>
+            event-driven pipelining opencl buffer-read queue (write to C# array or C++ array)
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue2">
+            <summary>
+            <para>horizontal(driver-driven) pipelining opencl queue (read + compute +write)</para>
+            <para>extra vertical(event-driven) pipelining opencl kernel execution queue</para>
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueueRead2">
+            <summary>
+            event-driven pipelining opencl buffer-write queue (read from C# array or C++ array)
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueueWrite2">
+            <summary>
+            event-driven pipelining opencl buffer-read queue (write to C# array or C++ array)
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue3">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue4">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue5">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue6">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue7">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue8">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue9">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue10">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue11">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue12">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue13">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue14">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue15">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.commandQueue16">
+            <summary>
+            extra horizontal(driver-driven) pipelining opencl queue (read + compute +write) 
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.benchmark">
+            <summary>
+            total time
+            </summary>
+        </member>
+        <member name="F:Cekirdekler.Worker.deviceName">
+            <summary>
+            opencl device name that this worker is bound to
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.#ctor(Cekirdekler.ClDevice,Cekirdekler.ClString,Cekirdekler.ClString[])">
+            <summary>
+            <para>creates a worker for a device for a kernel string contains many kernel definitions and names of kernels given explicity</para>
+            <para>(Cekirdekler API usage style-2 doesn't need kernel names explicitly)</para>
+            </summary>
+            <param name="device_">opencl device wrapper</param>
+            <param name="kernels_">string wrapper containing all kernels</param>
+            <param name="kernelNames_">names of kernels to be compiled on this device</param>
+        </member>
+        <member name="M:Cekirdekler.Worker.deviceType">
+            <summary>
+            device type(code)
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Worker.getAllErrors">
+            <summary>
+            all errors by compiler
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Worker.getErrorCode">
+            <summary>
+            indicator of error
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Worker.createUserEventForStartingPoint">
+            <summary>
+            experimental user event for synchronized multiple-commandqueue starter, development cancelled 
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.bindStartPointToCommandQueues">
+            <summary>
+            start synchronization
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.triggerUserEventStartPoint">
+            <summary>
+            trigger start action
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.decrementUserEventCounter">
+            <summary>
+            decrement user event counter
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.incrementUserEventCounter">
+            <summary>
+            increment user event counter
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.deleteUserEventStartPoint">
+            <summary>
+            delete user event start point
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.gddr">
+            <summary>
+            true: has dedicated memory
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Worker.buffer(System.Object,System.Int32)">
+            <summary>
+            prepares an opencl buffer for each C# array or other array-like object
+            </summary>
+            <param name="arr">float[], double[], long[], int[], byte[] gibi diziler olabilir</param>
+            <param name="elementsPerThread">number of elements used in each workitem</param>
+        </member>
+        <member name="M:Cekirdekler.Worker.range(System.Int32)">
+            <summary>
+            checks if ndrange is already allocated, allocates if hasnt already
+            </summary>
+            <param name="num">range value</param>
+            <returns></returns>
+        </member>
+        <member name="M:Cekirdekler.Worker.benchmark0(System.Int32)">
+            <summary>
+            prepares benchmark variables for compute profiling
+            </summary>
+            <param name="computeId">compute id to differentiate from other compute actions</param>
+        </member>
+        <member name="M:Cekirdekler.Worker.startBench">
+            <summary>
+            start benchmarking for load balancing
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.endBench(System.Int32)">
+            <summary>
+            end benchmarking for load balancing
+            </summary>
+            <param name="computeId">unique id for compute action</param>
+        </member>
+        <member name="M:Cekirdekler.Worker.writeToBuffer(System.Object[],System.Int32,System.Int32,System.Int32,System.String[],System.Int32[])">
+            <summary>
+            read from client array and write to cl buffer (partially or all of it)
+            </summary>
+            <param name="arrays">kernel's parameters - arrays from C# or wrappers of C++ arrays</param>
+            <param name="reference">start point of writing</param>
+            <param name="range">range of writing</param>
+            <param name="computeId">compute id of the writing</param>
+            <param name="readWrite">"read"=read all array, "partial read"=read device share only, "write"=write partial(devie share) kernel results</param>
+            <param name="elementsPerWorkItem">elements per workitem. example: streaming float4*2 means size=4</param>
+        </member>
+        <member name="M:Cekirdekler.Worker.writeToBufferWithoutPartial(System.Object[],System.String[])">
+            <summary>
+            non partial writes to buffer (read from array)
+            </summary>
+            <param name="arrs"></param>
+            <param name="readWrite"></param>
+        </member>
+        <member name="M:Cekirdekler.Worker.writeToBufferUsingQueueRead(System.Object[],System.Int32,System.Int32,System.Int32,System.String[],System.Int32[])">
+            <summary>
+            write to buffer(read from array) using queueRead queue
+            </summary>
+            <param name="arrs"></param>
+            <param name="reference"></param>
+            <param name="range"></param>
+            <param name="computeId"></param>
+            <param name="readWrite"></param>
+            <param name="elementsPerWorkItem"></param>
+        </member>
+        <member name="M:Cekirdekler.Worker.writeToBufferUsingQueueReadPartial(System.Object[],System.Int32,System.Int32,System.Int32,System.String[],System.Int32[])">
+            <summary>
+            write to buffer, read from array, using queueRead queue, partially
+            </summary>
+            <param name="arrs"></param>
+            <param name="reference"></param>
+            <param name="range"></param>
+            <param name="computeId"></param>
+            <param name="readWrite"></param>
+            <param name="elementsPerWorkItem"></param>
+        </member>
+        <member name="M:Cekirdekler.Worker.writeToBufferUsingQueueReadFinish">
+            <summary>
+            clFinish for commandqueueread
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.writeToBufferUsingQueueReadFlush">
+            <summary>
+            clFlush for commandqueueread
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.writeToBufferUsingQueueReadFinish2">
+            <summary>
+            clFinish for commandqueueread2
+            </summary>        
+        </member>
+        <member name="M:Cekirdekler.Worker.writeToBufferUsingQueueReadFlush2">
+            <summary>
+            clFlush for commandqueueread2
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.kernelArgument(System.String,System.Object[],System.Int32[])">
+            <summary>
+            binds arrays to a kernel as arguments
+            </summary>
+            <param name="kernelName"></param>
+            <param name="arrs"></param>
+            <param name="numberOfElementsOrBytes"></param>
+        </member>
+        <member name="M:Cekirdekler.Worker.compute(System.String,System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            compute a kernel
+            </summary>
+            <param name="kernelName"></param>
+            <param name="reference"></param>
+            <param name="globalRange"></param>
+            <param name="localRange"></param>
+            <param name="computeId"></param>
+        </member>
+        <member name="M:Cekirdekler.Worker.computeQueue(System.String,System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            compute with extra queue1
+            </summary>
+            <param name="kernelName"></param>
+            <param name="reference"></param>
+            <param name="globalRange"></param>
+            <param name="localRange"></param>
+            <param name="computeId"></param>
+        </member>
+        <member name="M:Cekirdekler.Worker.computeQueueEvent(System.String,System.Int32,System.Int32,System.Int32,System.Int32,Cekirdekler.ClEventArray,Cekirdekler.ClEvent,System.Int32,Cekirdekler.ClCommandQueue)">
+            <summary>
+            compute with extra queue2 or chosen queue
+            </summary>
+            <param name="kernelName"></param>
+            <param name="reference"></param>
+            <param name="globalRange"></param>
+            <param name="localRange"></param>
+            <param name="computeId"></param>
+            <param name="eArr"></param>
+            <param name="e"></param>
+            <param name="pipelineOrder">pipeline order: 0=1st, 1=2nd pipeline</param>
+            <param name="cqSelection"></param>
+        </member>
+        <member name="M:Cekirdekler.Worker.computeQueueFinish">
+            <summary>
+            clfinish for commandqueue
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.computeQueueFlush">
+            <summary>
+            clflush for commandqueue
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.computeQueueFinish2">
+            <summary>
+            clfinish for commandqueue2
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.computeQueueFlush2">
+            <summary>
+            clflush for commandqueue2
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.computeQueueFinish3">
+            <summary>
+            clfinish for commandqueue3
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.computeQueueFlush3">
+            <summary>
+            clflush for commandqueue3
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.readFromBuffer(System.Object[],System.Int32,System.Int32,System.Int32,System.String[],System.Int32[])">
+            <summary>
+             reads from buffer, writes to array
+            </summary>
+            <param name="arrs"></param>
+            <param name="reference"></param>
+            <param name="globalRange"></param>
+            <param name="computeId"></param>
+            <param name="readWrite"></param>
+            <param name="elementsPerWorkItem"></param>
+        </member>
+        <member name="M:Cekirdekler.Worker.readFromBufferUsingQueueWrite(System.Object[],System.Int32,System.Int32,System.Int32,System.String[],System.Int32[])">
+            <summary>
+            reads from buffer, writes to array, uses commandqueuewrite
+            </summary>
+            <param name="arrs"></param>
+            <param name="reference"></param>
+            <param name="globalRange"></param>
+            <param name="computeId"></param>
+            <param name="readWrite"></param>
+            <param name="elementsPerWorkItem"></param>
+        </member>
+        <member name="M:Cekirdekler.Worker.writeToBufferUsingQueueReadPartialEvent(System.Object[],System.Int32,System.Int32,System.Int32,System.String[],System.Int32[],Cekirdekler.ClEventArray,Cekirdekler.ClEvent,System.Int32,Cekirdekler.ClCommandQueue)">
+            <summary>
+            write to buffer using queueread with event
+            </summary>
+            <param name="arrs"></param>
+            <param name="reference"></param>
+            <param name="globalRange"></param>
+            <param name="computeId"></param>
+            <param name="readWrite"></param>
+            <param name="elementsPerWorkItem"></param>
+            <param name="eArr"></param>
+            <param name="e"></param>
+            <param name="pipelineOrder">0=1st pipeline, 1=2nd pipeline</param>
+            <param name="cqSelection"></param>
+            <returns></returns> 
+        </member>
+        <member name="M:Cekirdekler.Worker.readFromBufferUsingQueueWriteEvent(System.Object[],System.Int32,System.Int32,System.Int32,System.String[],System.Int32[],Cekirdekler.ClEventArray,Cekirdekler.ClEvent,System.Int32,Cekirdekler.ClCommandQueue)">
+            <summary>
+            read from buffer, write to array, use commandqueueWrite with events
+            </summary>
+            <param name="arrs"></param>
+            <param name="reference"></param>
+            <param name="globalRange"></param>
+            <param name="computeId"></param>
+            <param name="readWrite"></param>
+            <param name="elementsPerWorkItem"></param>
+            <param name="eArr"></param>
+            <param name="e"></param>
+            <param name="pipelineOrder">0:first pipeline, 1:second pipeline</param>
+            <param name="cqSelection"></param>
+            <returns>1=has written, 0=no write</returns>
+        </member>
+        <member name="M:Cekirdekler.Worker.readBufferQueueWriteFinish">
+            <summary>
+            clfinish for commandqueuewrite
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.bufferReadQueueWriteFlush">
+            <summary>
+            clflush for commandqueuewrite
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.readBufferQueueWriteFinish2">
+            <summary>
+            clfinish for commandqueuewrite2
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.readBufferQueueWriteFlush2">
+            <summary>
+            clflush for commandqueuewrite2
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.Worker.dispose">
+            <summary>
+            release C++ resources
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.JsonCPPCS">
+            <summary>
+            reads string from C space and converts json
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.JsonCPPCS.jsonStringCallBack(System.IntPtr)">
+            <summary>
+            not a real callback actually
+            </summary>
+            <param name="hStringInfo"></param>
+        </member>
+        <member name="M:Cekirdekler.JsonCPPCS.read(System.IntPtr)">
+            <summary>
+            read string from C space string and parse by javascript serializer
+            </summary>
+            <param name="hStringInfo"></param>
+            <returns></returns>
+        </member>
+        <member name="T:Cekirdekler.NetworkBuffer">
+            <summary>
+            prealpha cluster add-on
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.NetworkBuffer.oku(System.Byte[],System.String,System.Object[])">
+            <summary>
+            gelen buffer bilgisinden Dictionary üretir, dizileri sırasıyla list halinde döndürür
+            </summary>
+        </member>
+        <member name="T:Cekirdekler.ClusterLoadBalancer">
+            <summary>
+            prealpha cluster add-on
+            </summary>
+        </member>
+        <member name="M:Cekirdekler.ClusterLoadBalancer.#ctor">
+            <summary>
+            her çalışma adımında önceki adımdaki aygıt performanslarına göre aygıtların yeni
+            yüklerini belirler.
+            Sonradan yeni aygıt eklenebilir
+            </summary>
+            <param name="toplamMenzil">dengelenecek yükün tamamı</param>
+            <param name="enKucukParcalar">her aygıt için ayrı olarak,
+            dengeleme için eklenebilecek veya çıkartılabilecek en küçük yük miktarı
+            Bu değer, aygıttaki(bilgisayardaki) ekran kartı + işlemci sayısının,
+            opencl-local-thread sayıları ve pipeline parça sayıları ile çarpımlarının toplamlarına eşittir
+            Bir bilgisayarda 3 ekran kartı varsa ve her biri 256 local thread sayısına sahipse
+            o bilgisayarın en küçük yük adımı 768 thread olur. Pipeline optimizasyonu kullanılmışsa ve
+            pipeline adımı sayısı 16 ise, en küçük yük adımı 768 * 16 yani 12288 thread olur.
+            Bu şekilde tüm bilgisayarların mutlaka toplam thread sayısı kadar thread paylaşabilmeleri zorunludur
+            En küçük adımları 512 olan iki bilgisayara toplam 1280 thread paylaştırılamaz.
+            Veya 256 fazladan thread kullanılır ama kernel içinde bunlar kullanılmaz(verimsiz de olsa çalışmış olur)</param>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:Cekirdekler.ClusterLoadBalancer.dengelePerformansaGore(System.Double[],System.Int32,System.Int32[],System.Int32[],System.Int32,System.Double)" -->
+    </members>
+</doc>
