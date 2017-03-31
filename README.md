@@ -5,6 +5,8 @@ Needs extra C++ dll built in 64-bit(x86_64) from https://github.com/tugrul512bit
 
 The other needed dll is Microsoft's System.Threading.dll and its xml helper for .Net 2.0 - or - you can adjust "using" and use .Net 3.5+ for your own project and don't need System.Threading.dll.
 
+In total, Cekirdekler.dll and KutuphaneCL.dll and using .Net 3.5 should be enough.
+
 <h1>Features</h1>
 <ul>
 <li><b>Implicit multi device control:</b> from CPUs to any number of GPUs and ACCeelerators. Explicit in library-side for compatibility and performance, implicit for client-coder for the ease of GPGPU to concentrate on opencl kernel code.</li>
