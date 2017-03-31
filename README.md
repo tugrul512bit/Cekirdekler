@@ -1,6 +1,8 @@
 # Cekirdekler
 Very simple C# Multi-device GPGPU(OpenCL) compute API with an iterative interdevice-loadbalancing feature using multiple pipelining on read/write/compute operations for developers' custom opencl kernels. 
 
+Needs an extra C++ dll built in 64-bit(x86_64) from https://github.com/tugrul512bit/CekirdeklerCPP which must be named KutuphaneCL.dll
+
 <h1>Features</h1>
 <ul>
 <li><b>Implicit multi device control:</b> from CPUs to any number of GPUs and ACCeelerators. Explicit in library-side for compatibility and performance, implicit for client-coder for the ease of GPGPU to concentrate on opencl kernel code.</li>
