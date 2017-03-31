@@ -1,7 +1,0 @@
-E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\bin\Release\Cekirdekler.dll
-E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\bin\Release\Cekirdekler.pdb
-E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\bin\Release\System.Threading.dll
-E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\bin\Release\System.Threading.xml
-E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\obj\Release\Cekirdekler.csprojResolveAssemblyReference.cache
-E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\obj\Release\Cekirdekler.dll
-E:\Users\Tugrul_Asli\Documents\visual studio 2015\Projects\Cekirdekler\Cekirdekler\obj\Release\Cekirdekler.pdb
