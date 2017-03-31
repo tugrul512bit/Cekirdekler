@@ -740,7 +740,7 @@ namespace Cekirdekler
         }
 
         /// <summary>
-        /// pipelined + streamed data performance test
+        /// pipelined + streamed data performance test.
         /// </summary>
         /// <param name="n"></param>
         /// <returns></returns>
