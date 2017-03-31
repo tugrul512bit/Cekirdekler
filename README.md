@@ -13,6 +13,9 @@ Very simple C# Multi-device GPGPU(OpenCL) compute API with an iterative interdev
 <li><b>Uses OpenCL 1.2:</b> <a href="https://www.khronos.org/">C++ bindings from  Khronos.org</a> for its base.</li>
 </ul>
 <hr></hr>
+<h2>Documentation</h2>
+You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekirdekler/wiki"> here in Cekirdekler-wiki </a>
+<hr></hr>
 <h2>Known Issues</h2>
 <ul>
 <li>For C++ array wrappers like Array&lt;float&gt; there is no out-of-bounds-check, don't cross boundaries when accessing array indexing.</li>
