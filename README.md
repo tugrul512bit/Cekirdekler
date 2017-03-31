@@ -27,7 +27,7 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
 </ul>
 <hr></hr>
 <h3>Example</h3>
-```C#
+
 
             Cekirdekler.ClNumberCruncher cr = new Cekirdekler.ClNumberCruncher(
                 Cekirdekler.AcceleratorType.GPU, @"
@@ -39,5 +39,3 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
 
             Cekirdekler.ClArray<byte> array = new Cekirdekler.ClArray<byte>(1000);
             array.compute(cr, 1, "hello", 1000, 100); 
-
-```
