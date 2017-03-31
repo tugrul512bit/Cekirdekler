@@ -26,3 +26,16 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
 <li>No performance output at first iteration. <b>Load balancer</b> needs at least several iterations to distribute fairly and <b>performance report</b> needs at least 2 iterations for console output.</li>
 </ul>
 <hr></hr>
+<h3>Example</h3>
+```C#
+            Cekirdekler.ClNumberCruncher cr = new Cekirdekler.ClNumberCruncher(
+                Cekirdekler.AcceleratorType.GPU, @"
+                    __kernel void hello(__global char * arr)
+                    {
+                        printf(""hello world"");
+                    }
+                ");
+
+            Cekirdekler.ClArray<byte> array = new Cekirdekler.ClArray<byte>(1000);
+            array.compute(cr, 1, "hello", 1000, 100); 
+```
