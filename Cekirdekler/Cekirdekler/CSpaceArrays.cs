@@ -196,6 +196,7 @@ namespace Cekirdekler
     }
 
 
+
     /// <summary>
     /// <para>C++ array in "C" space for fast GPGPU buffer access/map/read/write</para>
     /// <para>switchabe from C#'s float,double,int,long</para>
@@ -244,7 +245,7 @@ namespace Cekirdekler
             n_ = n;
             if (typeof(T) == typeof(float))
             {
-                arrType = CSpaceArrays.ARR_FLOAT;
+                arrType = CSpaceArrays.ARR_FLOAT; 
                 sizeOfEnum = ClBuffer.SizeOf.cl_float;
             }
             else if (typeof(T) == typeof(int))
@@ -351,7 +352,7 @@ namespace Cekirdekler
         /// return a copy of C++ array as a C# array
         /// </summary>
         /// <returns></returns>
-        virtual public T[] toArray()
+        virtual public T[] ToArray()
         {
             T[] f = new T[Length];
             GCHandle gc = GCHandle.Alloc(f, GCHandleType.Pinned);
@@ -550,7 +551,7 @@ namespace Cekirdekler
         /// get a copy of fast array as a C# array
         /// </summary>
         /// <returns></returns>
-        public override byte[] toArray()
+        public override byte[] ToArray()
         {
             int dL = Length;
             byte[] f = new byte[dL];
@@ -684,7 +685,7 @@ namespace Cekirdekler
         /// get a copy of C++ array as a C# array 
         /// </summary>
         /// <returns></returns>
-        public override float[] toArray()
+        public override float[] ToArray()
         {
             int dL = Length;
             float[] f = new float[dL];
@@ -810,7 +811,7 @@ namespace Cekirdekler
         /// get a copy of C++ int array as C# array
         /// </summary>
         /// <returns></returns>
-        public override int[] toArray()
+        public override int[] ToArray()
         {
             int dL = Length;
             int[] f = new int[dL];
@@ -937,7 +938,7 @@ namespace Cekirdekler
         /// get a copy of C++ array as a C# array
         /// </summary>
         /// <returns></returns>
-        public override double[] toArray()
+        public override double[] ToArray()
         {
             int dL = Length;
             double[] f = new double[dL];
@@ -1069,7 +1070,7 @@ namespace Cekirdekler
         /// get a copy of C++ arrays as a C# array
         /// </summary>
         /// <returns></returns>
-        public override char[] toArray()
+        public override char[] ToArray()
         {
             int dL = Length;
             char[] f = new char[dL];
@@ -1198,7 +1199,7 @@ namespace Cekirdekler
         /// get a copy of C++ array as a C# array
         /// </summary>
         /// <returns></returns>
-        public override long[] toArray()
+        public override long[] ToArray()
         {
             int dL = Length;
             long[] f = new long[dL];
@@ -1325,7 +1326,7 @@ namespace Cekirdekler
         /// get a copy of C++ array as a C# array
         /// </summary>
         /// <returns></returns>
-        public override uint[] toArray()
+        public override uint[] ToArray()
         {
             int dL = Length;
             uint[] f = new uint[dL];

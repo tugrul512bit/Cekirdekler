@@ -448,19 +448,17 @@ namespace Cekirdekler
             if (array == null)
                 return null;
 
-            T[] tmpArr = new T[N];
             if(isCSharpArr)
             {
                 // C# array to C# array
-                arrayAsIList.CopyTo(tmpArr,0);
+                return ((T[])array).ToArray();
             }
             else
             {
                 // C++ array to C# array (overridden implemented method of FastArr)
                 // so same method can be used (only a future ToFastArr() could need a different method here)
-                arrayAsIList.CopyTo(tmpArr, 0);
+                return ((FastArr<T>)array).ToArray();
             }
-            return tmpArr;
         }
 
         /// <summary>
@@ -547,6 +545,8 @@ namespace Cekirdekler
                     array = new ClCharArray(n_, a_);
                 else if (typeof(T) == typeof(byte))
                     array = new ClByteArray(n_, a_);
+
+                arrayAsIList = array_ as IList<T>;
             }
             isCSharpArr = false;
 
