@@ -631,7 +631,7 @@ namespace Cekirdekler
                 sb.Append("Device " + i + "(" + (workers[i].gddr() ? "gddr" : "stream") + "): " + workers[i].deviceName.Trim() + ", time: " + benchmarks(computeId)[i] + "ms, workitems: " + globalRanges[computeId][i]);
                 sb.AppendLine();
             }
-            sb.Append("-----------------------------------------------------------------------------------");
+            sb.Append("------------------------------------------------------------------------------------------------------");
             sb.AppendLine();
             Console.WriteLine(sb.ToString());
             return sb.ToString();
