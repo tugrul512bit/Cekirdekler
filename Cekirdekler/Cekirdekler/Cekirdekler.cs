@@ -625,13 +625,13 @@ namespace Cekirdekler
             }
             sb.AppendLine();
             sb.AppendLine();
-            sb.AppendLine("Compute-ID: " + computeId+" --------------------------------------------------------------------------------");
+            sb.AppendLine("Compute-ID: " + computeId+" -------------------------------------------------------------------------------------------");
             for (int i = 0; i < workers.Length; i++)
             {
                 sb.Append("Device " + i + "(" + (workers[i].gddr() ? "gddr" : "stream") + "): " + workers[i].deviceName.Trim() + ", time: " + benchmarks(computeId)[i] + "ms, workitems: " + globalRanges[computeId][i]);
                 sb.AppendLine();
             }
-            sb.Append("------------------------------------------------------------------------------------------------------");
+            sb.Append("---------------------------------------------------------------------------------------------------------");
             sb.AppendLine();
             Console.WriteLine(sb.ToString());
             return sb.ToString();
