@@ -457,7 +457,7 @@ namespace Cekirdekler
             {
                 // C++ array to C# array (overridden implemented method of FastArr)
                 // so same method can be used (only a future ToFastArr() could need a different method here)
-                return ((FastArr<T>)array).ToArray();
+                return ((FastArr<T>)array).ToArray(); 
             }
         }
 
