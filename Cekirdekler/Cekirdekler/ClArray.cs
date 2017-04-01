@@ -439,6 +439,29 @@ namespace Cekirdekler
         private int n;
 
 
+        /// <summary>
+        /// gets a copy as C# array
+        /// </summary>
+        /// <returns></returns>
+        public T[] ToArray()
+        {
+            if (array == null)
+                return null;
+
+            T[] tmpArr = new T[N];
+            if(isCSharpArr)
+            {
+                // C# array to C# array
+                arrayAsIList.CopyTo(tmpArr,0);
+            }
+            else
+            {
+                // C++ array to C# array (overridden implemented method of FastArr)
+                // so same method can be used (only a future ToFastArr() could need a different method here)
+                arrayAsIList.CopyTo(tmpArr, 0);
+            }
+            return tmpArr;
+        }
 
         /// <summary>
         /// <para>number of elements of this array(C++ or C# side)</para>
