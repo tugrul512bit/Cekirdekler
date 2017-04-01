@@ -625,11 +625,10 @@ namespace Cekirdekler
             }
             sb.AppendLine();
             sb.AppendLine();
-            sb.Append("Compute-ID: " + computeId);
-            sb.Append("-----------------------------------------------------------------------------------");
+            sb.AppendLine("Compute-ID: " + computeId+" --------------------------------------------------------------------------------");
             for (int i = 0; i < workers.Length; i++)
             {
-                sb.Append("Device " + i + "(" + (workers[i].gddr() ? "gddr" : "system-RAM") + "): " + workers[i].deviceName.Trim() + ", compute time: " + benchmarks(computeId)[i] + " milisaniye, compute range: " + globalRanges[computeId][i]+" workitems");
+                sb.Append("Device " + i + "(" + (workers[i].gddr() ? "gddr" : "stream") + "): " + workers[i].deviceName.Trim() + ", time: " + benchmarks(computeId)[i] + "ms, workitems: " + globalRanges[computeId][i]);
                 sb.AppendLine();
             }
             sb.Append("-----------------------------------------------------------------------------------");
