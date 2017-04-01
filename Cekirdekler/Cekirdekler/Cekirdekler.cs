@@ -624,12 +624,18 @@ namespace Cekirdekler
                 }
                 computeId = benchmarks__.Keys.ElementAt(0);
             }
+            sb.AppendLine();
+            sb.AppendLine();
+            sb.Append("Compute-ID: " + computeId);
+            sb.Append("-----------------------------------------------------------------------------------");
             for (int i = 0; i < workers.Length; i++)
             {
                 Console.WriteLine("Device " + i + "(" + (workers[i].gddr() ? "gddr" : "system-RAM") + "): " + workers[i].deviceName.Trim() + ", compute time: " + benchmarks(computeId)[i] + " milliseconds, compute range: " + globalRanges[computeId][i]+" workitems");
                 sb.Append("Device " + i + "(" + (workers[i].gddr() ? "gddr" : "system-RAM") + "): " + workers[i].deviceName.Trim() + ", compute time: " + benchmarks(computeId)[i] + " milisaniye, compute range: " + globalRanges[computeId][i]+" workitems");
                 sb.AppendLine();
             }
+            sb.Append("-----------------------------------------------------------------------------------");
+            sb.AppendLine();
             return sb.ToString();
         }
 
