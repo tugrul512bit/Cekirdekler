@@ -354,8 +354,6 @@ namespace Cekirdekler
         /// <returns></returns>
         virtual public T[] ToArray()
         {
-            Console.WriteLine("virtual method ToArray");
-
             T[] f = new T[Length];
             GCHandle gc = GCHandle.Alloc(f, GCHandleType.Pinned);
             IntPtr pointerArr= Marshal.UnsafeAddrOfPinnedArrayElement(f, 0);
@@ -1332,8 +1330,8 @@ namespace Cekirdekler
         /// <returns></returns>
         public override uint[] ToArray()
         {
-            Console.WriteLine("overriden method ToArray");
             int dL = Length;
+
             uint[] f = new uint[dL];
             unsafe
             {
@@ -1346,8 +1344,8 @@ namespace Cekirdekler
                     }
                 }
 
-                return f;
             }
+            return f;
         }
 
         /// <summary>
