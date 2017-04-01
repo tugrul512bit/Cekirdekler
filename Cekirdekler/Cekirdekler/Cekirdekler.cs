@@ -617,9 +617,8 @@ namespace Cekirdekler
             {
                 if (benchmarks__ == null)
                 {
-                    Console.WriteLine("Needs one more compute to profile. Load balancer needs multiple iterations to be useful.");
                     sb.Append("Needs one more compute to profile. Load balancer needs multiple iterations to be useful.");
-
+                    Console.WriteLine(sb.ToString());
                     return sb.ToString();
                 }
                 computeId = benchmarks__.Keys.ElementAt(0);
@@ -630,12 +629,12 @@ namespace Cekirdekler
             sb.Append("-----------------------------------------------------------------------------------");
             for (int i = 0; i < workers.Length; i++)
             {
-                Console.WriteLine("Device " + i + "(" + (workers[i].gddr() ? "gddr" : "system-RAM") + "): " + workers[i].deviceName.Trim() + ", compute time: " + benchmarks(computeId)[i] + " milliseconds, compute range: " + globalRanges[computeId][i]+" workitems");
                 sb.Append("Device " + i + "(" + (workers[i].gddr() ? "gddr" : "system-RAM") + "): " + workers[i].deviceName.Trim() + ", compute time: " + benchmarks(computeId)[i] + " milisaniye, compute range: " + globalRanges[computeId][i]+" workitems");
                 sb.AppendLine();
             }
             sb.Append("-----------------------------------------------------------------------------------");
             sb.AppendLine();
+            Console.WriteLine(sb.ToString());
             return sb.ToString();
         }
 
