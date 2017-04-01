@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -623,15 +624,38 @@ namespace Cekirdekler
                 }
                 computeId = benchmarks__.Keys.ElementAt(0);
             }
-            sb.AppendLine();
-            sb.AppendLine();
-            sb.AppendLine("Compute-ID: " + computeId+" -------------------------------------------------------------------------------------------");
+            StringBuilder sbPercent = new StringBuilder("----- Load Distributions: ");
+            int totalGlobalRange = 0;
+            for (int i=0;i<workers.Length;i++)
+            {
+                totalGlobalRange += globalRanges[computeId][i];
+            }
+
             for (int i = 0; i < workers.Length; i++)
             {
-                sb.Append("Device " + i + "(" + (workers[i].gddr() ? "gddr" : "stream") + "): " + workers[i].deviceName.Trim() + ", time: " + benchmarks(computeId)[i] + "ms, workitems: " + globalRanges[computeId][i]);
+                sbPercent.AppendFormat(CultureInfo.InvariantCulture," [{0:###.0}%] -", 100.0f*((float)globalRanges[computeId][i] / (float)totalGlobalRange));
+            }
+            int count = 50;
+            count -= sbPercent.ToString().Length;
+            sb.Append(new string('-', count));
+
+            sb.AppendLine();
+            sb.AppendLine();
+            sb.AppendLine("Compute-ID: " + computeId+"  "+sbPercent.ToString()+"------------------------------------------------"); 
+            for (int i = 0; i < workers.Length; i++)
+            {
+                string strAdd = "Device " + i + "(" + (workers[i].gddr() ? "gddr" : "stream") + "): " + workers[i].deviceName.Trim();
+                int countAdd = 50 - strAdd.Length;
+                if (countAdd < 0)
+                {
+                    strAdd = strAdd.Remove(strAdd.Length + countAdd);
+                    countAdd = 0;
+                }
+                string spaces = new string(' ', countAdd);
+                sb.Append( strAdd+spaces+ " ||| time: " + String.Format(CultureInfo.InvariantCulture,"{0:###,###.##}", benchmarks(computeId)[i]) + "ms, workitems: " +String.Format(CultureInfo.InvariantCulture,"{0:#,###,###,###}", globalRanges[computeId][i]));
                 sb.AppendLine();
             }
-            sb.Append("---------------------------------------------------------------------------------------------------------");
+            sb.Append("------------------------------------------------------------------------------------------------------------");
             sb.AppendLine();
             Console.WriteLine(sb.ToString());
             return sb.ToString();
