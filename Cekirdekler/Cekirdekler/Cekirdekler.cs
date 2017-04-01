@@ -637,7 +637,7 @@ namespace Cekirdekler
             }
             int count = 50;
             count -= sbPercent.ToString().Length;
-            sb.Append(new string('-', count));
+            sbPercent.Append(new string('-', count));
 
             sb.AppendLine();
             sb.AppendLine();
@@ -655,7 +655,7 @@ namespace Cekirdekler
                 sb.Append( strAdd+spaces+ " ||| time: " + String.Format(CultureInfo.InvariantCulture,"{0:###,###.##}", benchmarks(computeId)[i]) + "ms, workitems: " +String.Format(CultureInfo.InvariantCulture,"{0:#,###,###,###}", globalRanges[computeId][i]));
                 sb.AppendLine();
             }
-            sb.Append("------------------------------------------------------------------------------------------------------------");
+            sb.Append("-----------------------------------------------------------------------------------------------------------------");
             sb.AppendLine();
             Console.WriteLine(sb.ToString());
             return sb.ToString();
