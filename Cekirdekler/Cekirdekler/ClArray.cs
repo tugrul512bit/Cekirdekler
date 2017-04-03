@@ -96,7 +96,7 @@ namespace Cekirdekler
     public class ClParameterGroup : ICanCompute, ICanBind
     {
         /// <summary>
-        /// not used, comes from interface
+        /// not implemented
         /// </summary>
         public object array
         {
