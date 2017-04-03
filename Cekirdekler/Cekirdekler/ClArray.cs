@@ -354,6 +354,11 @@ namespace Cekirdekler
                             int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
                             bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
         {
+            if (cruncher.errorCode() != 0)
+            {
+                Console.WriteLine(cruncher.errorMessage());
+                return;
+            }
             string[] kernellerTmp = kernelNamesString.Split(new string[] { " ",",",";","-","\n" }, StringSplitOptions.RemoveEmptyEntries);
 
             object[] arrs_ = arrays.ToArray();
@@ -1178,6 +1183,11 @@ namespace Cekirdekler
                             int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
                             bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
         {
+            if (cruncher.errorCode() != 0)
+            {
+                Console.WriteLine(cruncher.errorMessage());
+                return;
+            }
             string[] kernellerTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
             object[] arrs_ = new object[] { array };

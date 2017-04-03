@@ -303,7 +303,11 @@ namespace Cekirdekler
                                 int[] elementsPerWorkItem, int globalRange, int computeId,int globalOffset = 0, 
                                 bool pipelineEnabled = false, int numberOfPipelineStages = 4, bool pipelineType = PIPELINE_EVENT,int localRange=256)
         {
-
+            if (errorCode() != 0)
+            {
+                Console.WriteLine(errorMessage());
+                return;
+            }
             counterAffinity++;
             this.localRange = localRange;
             for(int i=0;i<arrs.Length;i++)
