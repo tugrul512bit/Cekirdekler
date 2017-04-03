@@ -41,7 +41,7 @@ namespace ClObject
         private IntPtr hProgram;
         private IntPtr hString;
         private bool isDeleted = false;
-        public int errorCode_______ = 0;
+        public int intKernelError = 0;
 
         /// <summary>
         /// takes program and a kernel name and prepares a kernel to be used.
@@ -53,7 +53,7 @@ namespace ClObject
             hProgram = program.h();
             hString = kernelName.h();
             hKernel = createKernel(hProgram, hString);
-            errorCode_______ = getKernelErr(hKernel);
+            intKernelError = getKernelErr(hKernel);
         }
 
         /// <summary>

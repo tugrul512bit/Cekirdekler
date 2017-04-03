@@ -184,7 +184,7 @@ namespace ClObject
         /// opencl device name that this worker is bound to
         /// </summary>
         public string deviceName;
-        private int errorCode_______ = 0;
+        private int programAndKernelErrorCode = 0;
         private string tumHatalar="";
 
         /// <summary>
@@ -197,7 +197,7 @@ namespace ClObject
         public Worker(ClDevice device_, ClString kernels_, ClString[] kernelNames_)
         {
             {
-                errorCode_______ = 0;
+                programAndKernelErrorCode = 0;
                 device = device_;
                 deviceName = device.name();
                 context = new ClContext(device);
@@ -242,12 +242,12 @@ namespace ClObject
                 }
                 program = new ClProgram(context, kernelStrings);
                 tumHatalar += program.errMsg() + Environment.NewLine + "----" + Environment.NewLine;
-                errorCode_______ += program.errorCode_______;
+                programAndKernelErrorCode += program.intProgramError;
                 kernels = new Dictionary<string, ClKernel>();
                 for (int i = 0; i < kernelNames_.Length; i++)
                 {
                     kernels.Add(kernelNames_[i].read(), new ClKernel(program, kernelNames[i]));
-                    errorCode_______ += kernels[kernelNames_[i].read()].errorCode_______;
+                    programAndKernelErrorCode += kernels[kernelNames_[i].read()].intKernelError;
                 }
             }
         }
@@ -276,7 +276,7 @@ namespace ClObject
         /// <returns></returns>
         public int getErrorCode()
         {
-            return errorCode_______;
+            return programAndKernelErrorCode;
         }
 
         ClUserEvent startingPointEvent = null;

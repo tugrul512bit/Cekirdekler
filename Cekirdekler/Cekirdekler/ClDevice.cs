@@ -45,16 +45,16 @@ namespace ClObject
 
         private IntPtr hDevice;
         private IntPtr hPlatform;
-        private ClString deviceName__ = null;
+        private ClString deviceNameClString = null;
         private bool isDeleted = false;
-        public string deviceName_ = "";
-        private int typeOfDevice_ = -1;
+        public string deviceNameStringFromOpenclCSpace = "";
+        private int typeOfUsedDeviceInClPlatform = -1;
         private bool GDDR = false;
-        public ClDevice(ClPlatform clPlatform,int type_, int i,bool devicePartition,bool GPU_STREAM,int MAX_CPU)
+        public ClDevice(ClPlatform clPlatform,int deviceTypeCodeInClPlatform, int i,bool devicePartition,bool GPU_STREAM,int MAX_CPU)
         {
-            deviceName__ = new ClString(" ");
+            deviceNameClString = new ClString(" ");
             hPlatform = clPlatform.h();
-            if (type_ == ClPlatform.CODE_CPU() && devicePartition)
+            if (deviceTypeCodeInClPlatform == ClPlatform.CODE_CPU() && devicePartition)
             {
                 int epc1 = Environment.ProcessorCount-1;
                 if (MAX_CPU != -1)
@@ -63,13 +63,13 @@ namespace ClObject
                 }
                 Console.WriteLine(epc1 + " cores are chosen for compute(equals to device partition cores).");
 
-                hDevice = createDeviceAsPartition(hPlatform, type_, i, epc1);
+                hDevice = createDeviceAsPartition(hPlatform, deviceTypeCodeInClPlatform, i, epc1);
             }
             else
-                hDevice = createDevice(hPlatform, type_, i);
-            getDeviceName(hDevice, deviceName__.h());
-            deviceName_ = JsonCPPCS.read(deviceName__.h());
-            typeOfDevice_ = type_;
+                hDevice = createDevice(hPlatform, deviceTypeCodeInClPlatform, i);
+            getDeviceName(hDevice, deviceNameClString.h());
+            deviceNameStringFromOpenclCSpace = JsonCPPCS.read(deviceNameClString.h());
+            typeOfUsedDeviceInClPlatform = deviceTypeCodeInClPlatform;
             if (GPU_STREAM)
                 GDDR = false;
             else
@@ -91,7 +91,7 @@ namespace ClObject
         /// <returns></returns>
         public int type()
         {
-            return typeOfDevice_;
+            return typeOfUsedDeviceInClPlatform;
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace ClObject
         /// <returns></returns>
         public string name()
         {
-            return deviceName_;
+            return deviceNameStringFromOpenclCSpace;
         }
 
         /// <summary>

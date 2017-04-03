@@ -43,13 +43,13 @@ namespace ClObject
         private IntPtr hContext;
         private IntPtr hDevice;
         private IntPtr hString;
-        private string strError_______;
+        private string strProgramError;
         private bool isDeleted = false;
 
         /// <summary>
         /// error code that tells something wrong if not zero
         /// </summary>
-        public int errorCode_______ = 0;
+        public int intProgramError = 0;
 
         /// <summary>
         /// creates a program from kernel string and context
@@ -62,9 +62,9 @@ namespace ClObject
             hDevice = context.hd();
             hString = clKernelString.h();
             hProgram = createProgram(hContext, hDevice, hString);
-            errorCode_______ = getProgramErr(hProgram);
+            intProgramError = getProgramErr(hProgram);
            // strHata = Encoding.UTF8.GetString(programHataStringiOku(hProgram));
-            strError_______ = new StringBuilder( readProgramErrString(hProgram)).ToString();
+            strProgramError = new StringBuilder( readProgramErrString(hProgram)).ToString();
            
         }
 
@@ -74,7 +74,7 @@ namespace ClObject
         /// <returns></returns>
         public string errMsg()
         {
-            return strError_______;
+            return strProgramError;
         }
 
         /// <summary>

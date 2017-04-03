@@ -92,7 +92,7 @@ namespace ClObject
 
 
         private bool isDeleted = false;
-        private int errorCode_______ = 0;
+        private int intPlatformErrorCode = 0;
 
         public List<ClDevice> selectedDevices;
 

@@ -54,7 +54,7 @@ namespace Cekirdekler
         ClString kernels = null;
         Worker[] workers = null;
         ClString[] kernelNames = null;
-        private int errorCode_______;
+        private int errorNotification;
 
         /// <summary>
         /// global range values for opencl per device per compute id
@@ -76,36 +76,36 @@ namespace Cekirdekler
         /// <summary>
         /// Main class for scheduling device queues and controlling work distributions
         /// </summary>
-        /// <param name="deviceTypes__">"cpu" "gpu" "cpu gpu" "gpu acc" ...</param>
-        /// <param name="kernels__"></param>
-        /// <param name="kernelNames__"></param>
+        /// <param name="deviceTypesToUse">"cpu" "gpu" "cpu gpu" "gpu acc" ...</param>
+        /// <param name="kernelFileString"></param>
+        /// <param name="kernelFunctionNamesInKernelFileString"></param>
         /// <param name="localRangeDeprecated"></param>
         /// <param name="numGPUToUse">if pc has 4 gpu, can set this to 4</param>
         /// <param name="MAX_CPU">-1 = MAX - 1, max( min(MAX_CPU,MAX-1),1) </param>
         /// <param name="GPU_STREAM">default is true: map - unmap instead of extra read-write for all devices</param>
-        public Cores(string deviceTypes__, string kernels__, string[] kernelNames__,
+        public Cores(string deviceTypesToUse, string kernelFileString, string[] kernelFunctionNamesInKernelFileString,
                             int localRangeDeprecated = 256, int numGPUToUse = -1, bool GPU_STREAM = true, int MAX_CPU = -1)
         {
             localRange = localRangeDeprecated;
-            IntPtr platformList__ = platformList();
-            int allPlatforms__ = numberOfPlatforms(platformList__);
-            Dictionary<ClPlatform, List<ClDevice>> selectedInstruments__ = new Dictionary<ClPlatform, List<ClDevice>>();
+            IntPtr handlePlatformList = platformList();
+            int numberOfAllPlatformsThatAreOpenCL12Capable = numberOfPlatforms(handlePlatformList);
+            Dictionary<ClPlatform, List<ClDevice>> selectedDevicesForGPGPU = new Dictionary<ClPlatform, List<ClDevice>>();
 
             // should have used toLower()
-            if (deviceTypes__.Contains("cpu") || deviceTypes__.Contains("CPU") || deviceTypes__.Contains("Cpu"))
+            if (deviceTypesToUse.Contains("cpu") || deviceTypesToUse.Contains("CPU") || deviceTypesToUse.Contains("Cpu"))
             {
-                for (int i = 0; i < allPlatforms__; i++)
+                for (int i = 0; i < numberOfAllPlatformsThatAreOpenCL12Capable; i++)
                 {
-                    ClPlatform p = new ClPlatform(platformList__, i);
+                    ClPlatform p = new ClPlatform(handlePlatformList, i);
 
-                    int num_ = p.numberOfCpus();
-                    if (num_ > 0)
+                    int numberOfProcessors = p.numberOfCpus();
+                    if (numberOfProcessors > 0)
                     {
-                        if (!selectedInstruments__.ContainsKey(p))
-                            selectedInstruments__.Add(p, new List<ClDevice>());
+                        if (!selectedDevicesForGPGPU.ContainsKey(p))
+                            selectedDevicesForGPGPU.Add(p, new List<ClDevice>());
 
-                        for (int j = 0; j < num_; j++)
-                            selectedInstruments__[p].Add(new ClDevice(p, ClPlatform.CODE_CPU(), j, 
+                        for (int j = 0; j < numberOfProcessors; j++)
+                            selectedDevicesForGPGPU[p].Add(new ClDevice(p, ClPlatform.CODE_CPU(), j, 
                                 true /* true=selecting necessary number of cores of device */, 
                                 true /* true=directly access RAM, no extra buffer copies */, 
                                 MAX_CPU));
@@ -115,24 +115,24 @@ namespace Cekirdekler
             }
 
             // should have used toLower()
-            if (numGPUToUse != 0 && deviceTypes__.Contains("gpu") || deviceTypes__.Contains("GPU") || deviceTypes__.Contains("Gpu"))
+            if (numGPUToUse != 0 && deviceTypesToUse.Contains("gpu") || deviceTypesToUse.Contains("GPU") || deviceTypesToUse.Contains("Gpu"))
             {
                 int tmpGPU = 0;
-                for (int i = 0; i < allPlatforms__; i++)
+                for (int i = 0; i < numberOfAllPlatformsThatAreOpenCL12Capable; i++)
                 {
-                    ClPlatform p = new ClPlatform(platformList__, i);
+                    ClPlatform p = new ClPlatform(handlePlatformList, i);
 
                     int sayi = p.numberOfGpus();
                     if (numGPUToUse != -1)
                         sayi = Math.Min(sayi, numGPUToUse);
                     if (sayi > 0 && (tmpGPU < numGPUToUse || numGPUToUse == -1))
                     {
-                        if (!selectedInstruments__.ContainsKey(p))
-                            selectedInstruments__.Add(p, new List<ClDevice>());
+                        if (!selectedDevicesForGPGPU.ContainsKey(p))
+                            selectedDevicesForGPGPU.Add(p, new List<ClDevice>());
 
                         for (int j = 0; j < sayi; j++)
                         {
-                            selectedInstruments__[p].Add(new ClDevice(p, ClPlatform.CODE_GPU(), j, false, GPU_STREAM, -1));
+                            selectedDevicesForGPGPU[p].Add(new ClDevice(p, ClPlatform.CODE_GPU(), j, false, GPU_STREAM, -1));
                             tmpGPU++;
                         }
                     }
@@ -140,55 +140,55 @@ namespace Cekirdekler
             }
 
             // should have used toLower()
-            if (deviceTypes__.Contains("acc") || deviceTypes__.Contains("ACC") || deviceTypes__.Contains("Acc"))
+            if (deviceTypesToUse.Contains("acc") || deviceTypesToUse.Contains("ACC") || deviceTypesToUse.Contains("Acc"))
             {
-                for (int i = 0; i < allPlatforms__; i++)
+                for (int i = 0; i < numberOfAllPlatformsThatAreOpenCL12Capable; i++)
                 {
-                    ClPlatform p = new ClPlatform(platformList__, i);
+                    ClPlatform p = new ClPlatform(handlePlatformList, i);
 
                     int sayi = p.numberOfAccelerators();
                     if (sayi > 0)
                     {
-                        if (!selectedInstruments__.ContainsKey(p))
-                            selectedInstruments__.Add(p, new List<ClDevice>());
+                        if (!selectedDevicesForGPGPU.ContainsKey(p))
+                            selectedDevicesForGPGPU.Add(p, new List<ClDevice>());
 
                         for (int j = 0; j < sayi; j++)
-                            selectedInstruments__[p].Add(new ClDevice(p, ClPlatform.CODE_ACC(), j, false, GPU_STREAM, -1));
+                            selectedDevicesForGPGPU[p].Add(new ClDevice(p, ClPlatform.CODE_ACC(), j, false, GPU_STREAM, -1));
 
                     }
                 }
             }
 
-            deletePlatformList(platformList__);
+            deletePlatformList(handlePlatformList);
 
 
-            kernels = new ClString(kernels__);
-            kernelNames = new ClString[kernelNames__.Length];
+            kernels = new ClString(kernelFileString);
+            kernelNames = new ClString[kernelFunctionNamesInKernelFileString.Length];
             globalRanges = new Dictionary<int, int[]>();
             globalReferences = new Dictionary<int, int[]>();
             for (int i = 0; i < kernelNames.Length; i++)
             {
-                kernelNames[i] = new ClString(kernelNames__[i]);
+                kernelNames[i] = new ClString(kernelFunctionNamesInKernelFileString[i]);
             }
-            errorCode_______ = 0;
+            errorNotification = 0;
 
 
             List<Worker> tmp = new List<Worker>();
 
             int numberOfWorkers = 0;
-            platforms = selectedInstruments__.Keys.ToList();
+            platforms = selectedDevicesForGPGPU.Keys.ToList();
             for (int i = 0; i < platforms.Count; i++)
             {
-                numberOfWorkers = selectedInstruments__[platforms[i]].Count;
+                numberOfWorkers = selectedDevicesForGPGPU[platforms[i]].Count;
                 for (int j = 0; j < numberOfWorkers; j++)
-                    tmp.Add(new Worker(selectedInstruments__[platforms[i]][j], kernels, kernelNames));
+                    tmp.Add(new Worker(selectedDevicesForGPGPU[platforms[i]][j], kernels, kernelNames));
             }
             workers = tmp.ToArray();
             workerThreads = new Thread[workers.Length];
             allErrorsString = "";
             for (int i = 0; i < workers.Length; i++)
             {
-                errorCode_______ += workers[i].getErrorCode();
+                errorNotification += workers[i].getErrorCode();
                 if (workers[i].getErrorCode() != 0)
                 {
                     Console.WriteLine("error!");
@@ -221,7 +221,7 @@ namespace Cekirdekler
         /// <returns></returns>
         public int errorCode()
         {
-            return errorCode_______;
+            return errorNotification;
         }
 
         /// <summary>

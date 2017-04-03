@@ -55,7 +55,7 @@ namespace Cekirdekler
     public class ClNumberCruncher
     {
         internal Cores numberCruncher {get;set;}
-        internal int errCode_______ { get; set; }
+        internal int errorNotification { get; set; }
 
         /// <summary>
         /// outputs to console: each device's performance(and memory target type) results per compute() operation
@@ -104,7 +104,7 @@ namespace Cekirdekler
             if (kernelNames_.Count == 0)
             {
                 Console.WriteLine("Error: no kernel definitions are found in string. Kernel string: \n" + kernelString);
-                errCode_______ = 1;
+                errorNotification = 1;
                 return;
             }
             numberCruncher = new Cores(cpuGpu_.ToString(), kernelString, kernelNames_.ToArray(), 256,
@@ -113,7 +113,7 @@ namespace Cekirdekler
             {
                 errorMessage_ = numberCruncher.errorMessage();
                 Console.WriteLine(numberCruncher.errorMessage());
-                errCode_______ = numberCruncher.errorCode();
+                errorNotification = numberCruncher.errorCode();
                 numberCruncher.dispose();
                 return;
             }
@@ -140,7 +140,7 @@ namespace Cekirdekler
         /// <returns></returns>
         public int errorCode()
         {
-            return errCode_______;
+            return errorNotification;
         }
 
         /// <summary>

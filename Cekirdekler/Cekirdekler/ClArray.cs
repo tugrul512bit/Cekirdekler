@@ -480,38 +480,38 @@ namespace Cekirdekler
                 {
                     if(isCSharpArr)
                     {
-                        T[] tmp__ = new T[N];
+                        T[] aNewArray = new T[N];
                         int iL = Math.Min(n, value);
                         var tmpT = array as T[];
 
-                        Array.ConstrainedCopy((T[])array, 0, tmp__, 0, iL);
+                        Array.ConstrainedCopy((T[])array, 0, aNewArray, 0, iL);
                         if(iL<value)
                         {
                             for (int i = iL; i < value; i++)
                             {
-                                tmp__[i] = default(T);
+                                aNewArray[i] = default(T);
                             }
                         }
-                        array = tmp__;
+                        array = aNewArray;
                     }
                     else
                     {
-                        object tmp__ = createFastArr(value);
+                        object aNewArray = createFastArr(value);
                         int iL = Math.Min(n, value);
                         var tmpT = array as FastArr<T>;
-                        var tmp___ = tmp__ as IList<T>;
+                        var tmpIList = aNewArray as IList<T>;
                         for (int i = 0; i < iL; i++)
                         {
-                            tmp___[i] = tmpT[i];
+                            tmpIList[i] = tmpT[i];
                         }
                         if (iL < value)
                         {
                             for (int i = iL; i < value; i++)
                             {
-                                tmp___[i] = default(T);
+                                tmpIList[i] = default(T);
                             }
                         }
-                        array = tmp__;
+                        array = aNewArray;
                     }
                 }
 
@@ -661,25 +661,25 @@ namespace Cekirdekler
             }
         }
 
-        private object createFastArr(int n___=0)
+        private object createFastArr(int arrayElements=0)
         {
-            if (n___ == 0)
-                n___ = N;
+            if (arrayElements == 0)
+                arrayElements = N;
 
             if (typeof(T) == typeof(float))
-                return new ClFloatArray(n___);
+                return new ClFloatArray(arrayElements);
             else if (typeof(T) == typeof(double))
-                return new ClDoubleArray(n___);
+                return new ClDoubleArray(arrayElements);
             else if (typeof(T) == typeof(int))
-                return new ClIntArray(n___);
+                return new ClIntArray(arrayElements);
             else if (typeof(T) == typeof(uint))
-                return new ClUIntArray(n___);
+                return new ClUIntArray(arrayElements);
             else if (typeof(T) == typeof(long))
-                return new ClLongArray(n___);
+                return new ClLongArray(arrayElements);
             else if (typeof(T) == typeof(char))
-                return new ClCharArray(n___);
+                return new ClCharArray(arrayElements);
             else if (typeof(T) == typeof(byte))
-                return new ClByteArray(n___);
+                return new ClByteArray(arrayElements);
             else
                 return null;
         }
@@ -751,7 +751,7 @@ namespace Cekirdekler
 
 
         // for sub steps
-        private T tmpArr___ { get; set; }
+        private T arrayForSubSteps { get; set; }
 
         /// <summary>
         /// IList{T} compatibility, gives number of elements of C# or C++ arrays
