@@ -19,13 +19,13 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Cekirdekler
+namespace ClObject
 {
 
     /// <summary>
     /// wrapper for C++ strings 
     /// </summary>
-    public class ClString
+    internal class ClString
     {
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr createString();

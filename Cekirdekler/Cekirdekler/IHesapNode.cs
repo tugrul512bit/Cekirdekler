@@ -18,8 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
-namespace Cekirdekler
+using Cekirdekler;
+namespace ClCluster
 {
     /// <summary>
     /// <para>prealpha cluster add-on</para>

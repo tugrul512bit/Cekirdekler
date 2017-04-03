@@ -20,12 +20,12 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Cekirdekler
+namespace ClObject
 {
     /// <summary>
     /// wrapper for event array in C++
     /// </summary>
-    public class ClEventArray
+    internal class ClEventArray
     {
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr createEventArr(bool cpy);

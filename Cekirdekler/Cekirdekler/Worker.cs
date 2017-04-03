@@ -22,10 +22,14 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-
-namespace Cekirdekler
+using Cekirdekler;
+namespace ClObject
 {
-    public class Worker
+    /// <summary>
+    /// one worker per device is generated for explicit device management(but implicit for users)
+    /// maybe more for implicit pipelining in later versions
+    /// </summary>
+    internal class Worker
     {
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
@@ -395,7 +399,9 @@ namespace Cekirdekler
                     }
                     else
                     {
-                        ClBuffer buffer = new ClBuffer(context, arrayLength,((IMemoryHandle)arr).sizeOfEnum, isGddr,0, ((IMemoryHandle)arr).ha());
+                        var tmpSizeOf = new ClBuffer.SizeOf();
+                        tmpSizeOf =(ClBuffer.SizeOf)( ((IMemoryHandle)arr).sizeOfEnum);
+                        ClBuffer buffer = new ClBuffer(context, arrayLength,tmpSizeOf, isGddr,0, ((IMemoryHandle)arr).ha());
                         buffers.Add(arr, buffer);
                     }
 

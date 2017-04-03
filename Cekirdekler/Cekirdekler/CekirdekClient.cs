@@ -20,8 +20,8 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-
-namespace Cekirdekler
+using Cekirdekler;
+namespace ClCluster
 {
     /// <summary>
     /// prealpha cluster feature

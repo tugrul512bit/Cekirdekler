@@ -21,12 +21,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cekirdekler
+namespace ClObject
 {
     /// <summary>
     /// wrapper for opencl device objects
     /// </summary>
-    public class ClDevice
+    internal class ClDevice
     {
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr createDevice(IntPtr hPlatform,int type_, int index_);

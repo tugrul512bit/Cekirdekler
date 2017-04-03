@@ -21,9 +21,19 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
-
+using ClObject;
 namespace Cekirdekler
 {
+    internal enum SizeOf : int
+    {
+        cl_float = 0,
+        cl_double = 1,
+        cl_int = 2,
+        cl_long = 3,
+        cl_half = 4,
+        cl_char = 5,
+        cl_uint = 6
+    };
     /// <summary>
     /// C++ "C" space array functions for fast GPGPU
     /// </summary>
@@ -186,7 +196,7 @@ namespace Cekirdekler
         /// <summary>
         /// cl_float, cl_int definitions for compatibility with "C" space opencl
         /// </summary>
-        ClBuffer.SizeOf sizeOfEnum { get; set; }
+        int sizeOfEnum { get; set; }
 
         /// <summary>
         /// C++ dizisini siler
@@ -237,7 +247,7 @@ namespace Cekirdekler
         /// <summary>
         /// ClBuffer connection compatibility variable
         /// </summary>
-        public ClBuffer.SizeOf sizeOfEnum { get; set; }
+        public int sizeOfEnum { get; set; }
 
 
         internal FastArr(int n, int alignment = 4096)
@@ -246,37 +256,37 @@ namespace Cekirdekler
             if (typeof(T) == typeof(float))
             {
                 arrType = CSpaceArrays.ARR_FLOAT; 
-                sizeOfEnum = ClBuffer.SizeOf.cl_float;
+                sizeOfEnum =(int) SizeOf.cl_float;
             }
             else if (typeof(T) == typeof(int))
             {
                 arrType = CSpaceArrays.ARR_INT;
-                sizeOfEnum = ClBuffer.SizeOf.cl_int;
+                sizeOfEnum = (int)SizeOf.cl_int;
             }
             else if (typeof(T) == typeof(double))
             {
                 arrType = CSpaceArrays.ARR_DOUBLE;
-                sizeOfEnum = ClBuffer.SizeOf.cl_double;
+                sizeOfEnum = (int)SizeOf.cl_double;
             }
             else if (typeof(T) == typeof(long))
             {
                 arrType = CSpaceArrays.ARR_LONG;
-                sizeOfEnum = ClBuffer.SizeOf.cl_long;
+                sizeOfEnum = (int)SizeOf.cl_long;
             }
             else if (typeof(T) == typeof(char))
             {
                 arrType = CSpaceArrays.ARR_CHAR;
-                sizeOfEnum = ClBuffer.SizeOf.cl_half;
+                sizeOfEnum = (int)SizeOf.cl_half;
             }
             else if (typeof(T) == typeof(uint))
             {
                 arrType = CSpaceArrays.ARR_UINT;
-                sizeOfEnum = ClBuffer.SizeOf.cl_int;
+                sizeOfEnum = (int)SizeOf.cl_int;
             }
             else if (typeof(T) == typeof(byte))
             {
                 arrType = CSpaceArrays.ARR_BYTE;
-                sizeOfEnum = ClBuffer.SizeOf.cl_char;
+                sizeOfEnum = (int)SizeOf.cl_char;
             }
             sizeOf = CSpaceArrays.sizeOf(arrType);
             hArr = CSpaceArrays.createArray(n, alignment,arrType);

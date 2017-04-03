@@ -20,13 +20,13 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-
-namespace Cekirdekler
+using Cekirdekler;
+namespace ClObject
 {
     /// <summary>
     /// wrapper for cl::buffer and read-write-map-unmap functions
     /// </summary>
-    public class ClBuffer
+    internal class ClBuffer
     {
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr createBuffer(IntPtr hContext, int numberOfElements, 
@@ -238,7 +238,7 @@ namespace Cekirdekler
 
 
         /// <summary>
-        /// opencl buffer type
+        /// opencl buffer type, duplicated for CSpaceArrays for "internal" optimization
         /// </summary>
         public enum SizeOf : int
         {

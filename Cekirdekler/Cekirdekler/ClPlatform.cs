@@ -22,12 +22,12 @@ using System.Text;
 
 using System.Web.Script.Serialization;
 
-namespace Cekirdekler
+namespace ClObject
 {
     /// <summary>
     /// cl::platform wrapper with simple methods
     /// </summary>
-    public class ClPlatform
+    internal class ClPlatform
     {
         public static JavaScriptSerializer json = new JavaScriptSerializer();
 

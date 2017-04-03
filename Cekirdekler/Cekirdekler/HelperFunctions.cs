@@ -19,13 +19,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
-namespace Cekirdekler
+using Cekirdekler;
+namespace ClObject
 {
     /// <summary>
     /// helper functions
     /// </summary>
-    public class Functions
+    internal class Functions
     {
         /// <summary>
         /// checks if object is derived from FastArr or not

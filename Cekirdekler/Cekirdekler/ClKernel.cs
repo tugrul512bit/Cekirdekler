@@ -21,12 +21,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cekirdekler
+namespace ClObject
 {
     /// <summary>
     /// wrapper for opencl kernel object
     /// </summary>
-    public class ClKernel
+    internal class ClKernel
     {
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr createKernel(IntPtr hProgram, IntPtr hString);

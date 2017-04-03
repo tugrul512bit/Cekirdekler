@@ -19,12 +19,12 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Cekirdekler
+namespace ClObject
 {
     /// <summary>
     /// wrapper for cl::program
     /// </summary>
-    public class ClProgram
+    internal class ClProgram
     {
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]

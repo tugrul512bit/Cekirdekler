@@ -21,12 +21,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cekirdekler
+namespace ClObject
 {
     /// <summary>
     /// wrapper for opencl context
     /// </summary>
-    public class ClContext
+    internal class ClContext
     {
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]

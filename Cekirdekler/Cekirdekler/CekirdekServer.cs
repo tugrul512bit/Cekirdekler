@@ -23,7 +23,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 
-namespace Cekirdekler
+namespace ClCluster
 {
     /// <summary>
     /// prealpha cluster feature

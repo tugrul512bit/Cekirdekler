@@ -20,12 +20,12 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Cekirdekler
+namespace ClObject
 {
     /// <summary>
     /// wrapper for opencl user event
     /// </summary>
-    public class ClUserEvent
+    internal class ClUserEvent
     {
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr createUserEvent(IntPtr hContext);

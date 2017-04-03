@@ -104,6 +104,7 @@
     <Compile Include="ClEventArray.cs" />
     <Compile Include="ClKernel.cs" />
     <Compile Include="ClNdRange.cs" />
+    <Compile Include="ClObjectApi.cs" />
     <Compile Include="ClPlatform.cs" />
     <Compile Include="ClProgram.cs" />
     <Compile Include="ClString.cs" />

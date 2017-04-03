@@ -21,12 +21,12 @@ using System.Text;
 using System.Web;
 using System.Web.Script.Serialization;
 
-namespace Cekirdekler
+namespace ClObject
 {
     /// <summary>
     /// reads string from C space and converts json
     /// </summary>
-    public class JsonCPPCS
+    internal class JsonCPPCS
     {
         public static JavaScriptSerializer json = new JavaScriptSerializer();
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]

@@ -22,8 +22,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
-
-namespace Cekirdekler
+using Cekirdekler;
+namespace ClCluster
 {
     /// <summary>
     /// <para>prealpha cluster add-on</para>
