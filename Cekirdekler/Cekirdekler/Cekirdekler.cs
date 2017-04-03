@@ -274,6 +274,11 @@ namespace Cekirdekler
         /// </summary>
         public const bool PIPELINE_DRIVER = false;
 
+        private bool smooth = true;
+        /// <summary>
+        /// smoothing of load balancing to take care of performance spikes and OS hiccups and similar
+        /// </summary>
+        public bool smoothLoadBalancer { get { return smooth; } set { smooth = value; } }
 
         int counterAffinity = 0;
 
@@ -380,12 +385,14 @@ namespace Cekirdekler
                 }
 
 
-                double[] benchmark___ = new double[workers.Length];
+                double[] benchmarkInitVal = new double[workers.Length];
                 for (int l = 0; l < workers.Length; l++)
                 {
-                    benchmark___[l] = 10;
+                    benchmarkInitVal[l] = 10;
                 }
-                Functions.loadBalance(benchmark___, globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange));
+
+
+                Functions.loadBalance(benchmarkInitVal,smooth,performanceHistory(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange));
             }
             else
             {
@@ -394,7 +401,7 @@ namespace Cekirdekler
                 {
                     b1 &= (selectedGlobalRanges[i] >= (numberOfPipelineStages * this.localRange));
                 }
-                Functions.loadBalance(benchmarks(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange));
+                Functions.loadBalance(benchmarks(computeId),smooth, performanceHistory(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange));
             }
             int totalGlobalRanges = 0;
             for (int i = 0; i < workers.Length; i++)
@@ -616,13 +623,13 @@ namespace Cekirdekler
             StringBuilder sb = new StringBuilder();
             if (computeId == 0)
             {
-                if (benchmarks__ == null)
+                if (computeIdBenchmarks == null)
                 {
                     sb.Append("Needs one more compute to profile. Load balancer needs multiple iterations to be useful.");
                     Console.WriteLine(sb.ToString());
                     return sb.ToString();
                 }
-                computeId = benchmarks__.Keys.ElementAt(0);
+                computeId = computeIdBenchmarks.Keys.ElementAt(0);
             }
             StringBuilder sbPercent = new StringBuilder("----- Load Distributions: ");
             int totalGlobalRange = 0;
@@ -661,7 +668,41 @@ namespace Cekirdekler
             return sb.ToString();
         }
 
-        private Dictionary<int, double[]> benchmarks__;
+        private int performanceHistoryDepth = 10;
+        private Dictionary<int, double[][]> computeIdPerformanceHistory;
+        private Dictionary<int, double[]> computeIdBenchmarks;
+
+
+        /// <summary>
+        /// get performance old values for smoothing load balancer, making OS peaks less effective
+        /// </summary>
+        /// <param name="computeId"></param>
+        /// <returns></returns>
+        public double[][] performanceHistory(int computeId)
+        {
+            if (computeIdPerformanceHistory == null)
+                computeIdPerformanceHistory = new Dictionary<int, double[][]>();
+
+            if (computeIdPerformanceHistory.ContainsKey(computeId))
+            {
+
+            }
+            else
+            {
+                double[][] tmpHistory = new double[performanceHistoryDepth][];
+                for(int i=0;i< performanceHistoryDepth; i++)
+                {
+                    tmpHistory[i] = new double[workers.Length];
+                    for(int j=0;j< workers.Length;j++)
+                    {
+                        tmpHistory[i][j] = 0;
+                    }
+                }
+                computeIdPerformanceHistory.Add(computeId,tmpHistory );
+            }
+            return computeIdPerformanceHistory[computeId];
+        }
+
 
         /// <summary>
         /// execution timings of all devices for all compute id values
@@ -670,11 +711,12 @@ namespace Cekirdekler
         /// <returns></returns>
         public double[] benchmarks(int computeId)
         {
-            if (benchmarks__ == null)
-                benchmarks__ = new Dictionary<int, double[]>();
-            if (benchmarks__.ContainsKey(computeId))
+            if (computeIdBenchmarks == null)
+                computeIdBenchmarks = new Dictionary<int, double[]>();
+            
+            if (computeIdBenchmarks.ContainsKey(computeId))
             {
-                double[] result = benchmarks__[computeId];
+                double[] result = computeIdBenchmarks[computeId];
                 for (int i = 0; i < workers.Length; i++)
                 {
                     result[i] = workers[i].benchmark[computeId];
@@ -688,7 +730,7 @@ namespace Cekirdekler
                 {
                     result[i] = workers[i].benchmark[computeId];
                 }
-                benchmarks__.Add(computeId, result);
+                computeIdBenchmarks.Add(computeId, result);
                 return result;
             }
         }

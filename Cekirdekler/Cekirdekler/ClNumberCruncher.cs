@@ -63,6 +63,11 @@ namespace Cekirdekler
         public bool performanceFeed { get; set; }
 
         /// <summary>
+        /// to ease balancing against performance spikes, interrupts, hiccups
+        /// </summary>
+        public bool smoothLoadBalancer { get { return numberCruncher.smoothLoadBalancer; } set { numberCruncher.smoothLoadBalancer = value; } }
+
+        /// <summary>
         /// <para>prepares devices and compiles kernels in the kernel string</para>
         /// <para>does optionally pipelined kernel execution load balancing between multiple devices</para>
         /// </summary>
