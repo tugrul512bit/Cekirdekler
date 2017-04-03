@@ -7,6 +7,8 @@ The other needed dll is Microsoft's System.Threading.dll and its xml helper for 
 
 In total, Cekirdekler.dll and KutuphaneCL.dll and using .Net 3.5 should be enough.
 
+This project is being enhanced using ZenHub: <a href="https://zenhub.com"><img src="https://raw.githubusercontent.com/ZenHubIO/support/master/zenhub-badge.png"></a>
+
 <h1>Features</h1>
 <ul>
 <li><b>Implicit multi device control:</b> from CPUs to any number of GPUs and ACCeelerators. Explicit in library-side for compatibility and performance, implicit for client-coder for the ease of GPGPU to concentrate on opencl kernel code.</li>
