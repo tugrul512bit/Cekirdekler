@@ -359,7 +359,7 @@ namespace Cekirdekler
                 Console.WriteLine(cruncher.errorMessage());
                 return;
             }
-            string[] kernellerTmp = kernelNamesString.Split(new string[] { " ",",",";","-","\n" }, StringSplitOptions.RemoveEmptyEntries);
+            string[] kernelsTmp = kernelNamesString.Split(new string[] { " ",",",";","-","\n" }, StringSplitOptions.RemoveEmptyEntries);
 
             object[] arrs_ = arrays.ToArray();
             string[] reads_ = reads.Select(x=> { return x? " read ":""; }).ToArray();
@@ -375,7 +375,7 @@ namespace Cekirdekler
             }
             int[] elemPerWorkItem_ = arrayElementsPerWorkItem.ToArray();
             cruncher.numberCruncher.compute(
-                kernellerTmp, 0, "", 
+                kernelsTmp, 0, "", 
                 arrs_,readWrites_,elemPerWorkItem_, 
                 globalRange, computeId, ofsetGlobalRange, 
                 pipeline, pipelineBlobs, pipelineType, localRange);
@@ -733,6 +733,7 @@ namespace Cekirdekler
         /// <param name="b"></param>
         public static implicit operator ClArray<T> (T[] b)
         {
+            Console.WriteLine("implicit operator triggered. T[].");
 
             if (typeof(T) == typeof(int) ||
                 typeof(T) == typeof(uint) ||
@@ -759,6 +760,7 @@ namespace Cekirdekler
         /// <param name="b"></param>
         public static implicit operator ClArray<T>(FastArr<T> b)
         {
+            Console.WriteLine("implicit operator triggered. FastArr.");
             ClArray<T> clArray = new ClArray<T>();
             clArray.array = b;
             clArray.isCSharpArr = false;
@@ -1058,7 +1060,7 @@ namespace Cekirdekler
         {
             ClParameterGroup bd = new ClParameterGroup();
 
-            bd.arrays.AddLast(array);
+            bd.arrays.AddLast(this);
             bd.reads.AddLast(read);
             bd.partialReads.AddLast(partialRead);
             bd.writes.AddLast(write);
@@ -1087,7 +1089,7 @@ namespace Cekirdekler
         {
             ClParameterGroup bd = new ClParameterGroup();
             
-            bd.arrays.AddLast(array);
+            bd.arrays.AddLast(this);
             bd.reads.AddLast(read);
             bd.partialReads.AddLast(partialRead);
             bd.writes.AddLast(write);
@@ -1116,7 +1118,7 @@ namespace Cekirdekler
         {
             ClParameterGroup bd = new ClParameterGroup();
             
-            bd.arrays.AddLast(array);
+            bd.arrays.AddLast(this);
             bd.reads.AddLast(read);
             bd.partialReads.AddLast(partialRead);
             bd.writes.AddLast(write);
@@ -1145,7 +1147,7 @@ namespace Cekirdekler
         {
             ClParameterGroup bd = new ClParameterGroup();
 
-            bd.arrays.AddLast(array);
+            bd.arrays.AddLast(this);
             bd.reads.AddLast(read);
             bd.partialReads.AddLast(partialRead);
             bd.writes.AddLast(write);
@@ -1201,7 +1203,7 @@ namespace Cekirdekler
             }
             string[] kernellerTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
-            object[] arrs_ = new object[] { array };
+            object[] arrs_ = new object[] { this };
             string[] reads_ = new string[] { read ? " read " : "" };
             string[] partialReads_ = new string[]{ partialRead ? " partial " : ""};
             string[] writes_ = new string[] { write ? " write " : ""};

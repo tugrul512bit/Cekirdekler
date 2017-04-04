@@ -323,6 +323,9 @@ namespace Cekirdekler
                 {
                     strongReferences.Add(arrs[i], true);
                     strongReferencesList.Add(arrs[i]);
+                    if (strongReferencesList[i] is IBufferOptimization)
+                        strongReferencesList.Add(((IBufferOptimization)arrs[i]).array);
+
                 }
             }
             for(int i=0;i<strongReferencesList.Count;i++)
