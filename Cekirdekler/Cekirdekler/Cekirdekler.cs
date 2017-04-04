@@ -283,6 +283,10 @@ namespace Cekirdekler
 
         int counterAffinity = 0;
 
+        // to protect unmanaged arrays being garbage collected before its opencl buffer is released
+        // in a LRU manner(later will be implemented)
+        private Dictionary<object,bool> strongReferences { get; set; }
+        private List<object> strongReferencesList { get; set; }
         /// <summary>
         /// 
         /// </summary>
@@ -303,6 +307,31 @@ namespace Cekirdekler
                                 int[] elementsPerWorkItem, int globalRange, int computeId,int globalOffset = 0, 
                                 bool pipelineEnabled = false, int numberOfPipelineStages = 4, bool pipelineType = PIPELINE_EVENT,int localRange=256)
         {
+            // keep garbage collector out
+            if (strongReferencesList == null)
+                strongReferencesList = new List<object>();
+            if (strongReferences == null)
+                strongReferences = new Dictionary<object, bool>();
+            int arrLengthStrongReference = arrs.Length;
+            for (int i = 0; i < arrLengthStrongReference; i++)
+            {
+                if (strongReferences.ContainsKey(arrs[i]))
+                {
+
+                }
+                else
+                {
+                    strongReferences.Add(arrs[i], true);
+                    strongReferencesList.Add(arrs[i]);
+                }
+            }
+            for(int i=0;i<strongReferencesList.Count;i++)
+            {
+                if (strongReferencesList[i] is IBufferOptimization)
+                    Console.WriteLine("array is " + (((ClArray<float>)(strongReferencesList[i])).isDeleted?"deleted":"not deleted"));
+            }
+            // keep garbage collector out end
+
             if (errorCode() != 0)
             {
                 Console.WriteLine(errorMessage());
@@ -317,6 +346,8 @@ namespace Cekirdekler
                     arrs[i] = ((IBufferOptimization)arrs[i]).array;
                 }
             }
+
+
 
             // not only adds device fission to limit cpu usage, but also alters processor affinity too.
             // lets at least 1 thread free for other processes (and drivers)

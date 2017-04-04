@@ -533,6 +533,7 @@ namespace Cekirdekler
         /// <param name="a_">alignment value(in bytes), default=4096</param>
         public ClArray(int n_=-1,int a_=4096)
         {
+            isDeleted = false;
             N = n_;
             if(n_>0)
             {
@@ -567,24 +568,34 @@ namespace Cekirdekler
         /// </summary>
         public void dispose()
         {
+            Console.WriteLine("ClArray dispose was called.");
+
             if (array != null)
             {
                 if (!isCSharpArr)
                 {
+                    isDeleted = true;
                     ((IMemoryHandle)array).dispose();
                 }
             }
         }
 
         /// <summary>
+        /// if C++ resources are released or not
+        /// </summary>
+        public bool isDeleted { get; set; }
+
+        /// <summary>
         /// release C++ resources
         /// </summary>
         ~ClArray()
         {
+            Console.WriteLine("ClArray destructor was called.");
             if(array!=null)
             {
                 if(!isCSharpArr)
                 {
+                    isDeleted = true;
                     ((IMemoryHandle)array).dispose();
                 }
             }
