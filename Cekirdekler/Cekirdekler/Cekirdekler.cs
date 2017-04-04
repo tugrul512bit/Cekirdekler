@@ -328,11 +328,6 @@ namespace Cekirdekler
 
                 }
             }
-            for(int i=0;i<strongReferencesList.Count;i++)
-            {
-                if (strongReferencesList[i] is IBufferOptimization)
-                    Console.WriteLine("array is " + (((ClArray<float>)(strongReferencesList[i])).isDeleted?"deleted":"not deleted"));
-            }
             // keep garbage collector out end
 
             if (errorCode() != 0)

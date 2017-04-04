@@ -568,8 +568,6 @@ namespace Cekirdekler
         /// </summary>
         public void dispose()
         {
-            Console.WriteLine("ClArray dispose was called.");
-
             if (array != null)
             {
                 if (!isCSharpArr)
@@ -590,7 +588,6 @@ namespace Cekirdekler
         /// </summary>
         ~ClArray()
         {
-            Console.WriteLine("ClArray destructor was called.");
             if(array!=null)
             {
                 if(!isCSharpArr)
@@ -733,7 +730,6 @@ namespace Cekirdekler
         /// <param name="b"></param>
         public static implicit operator ClArray<T> (T[] b)
         {
-            Console.WriteLine("implicit operator triggered. T[].");
 
             if (typeof(T) == typeof(int) ||
                 typeof(T) == typeof(uint) ||
@@ -760,7 +756,6 @@ namespace Cekirdekler
         /// <param name="b"></param>
         public static implicit operator ClArray<T>(FastArr<T> b)
         {
-            Console.WriteLine("implicit operator triggered. FastArr.");
             ClArray<T> clArray = new ClArray<T>();
             clArray.array = b;
             clArray.isCSharpArr = false;

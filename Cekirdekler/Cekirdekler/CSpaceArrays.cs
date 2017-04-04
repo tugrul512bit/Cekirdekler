@@ -299,7 +299,6 @@ namespace Cekirdekler
         /// </summary>
         ~FastArr()
         {
-            Console.WriteLine("FastArr destructor called.");
             dispose();
         }
 
