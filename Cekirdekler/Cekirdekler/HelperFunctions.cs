@@ -20,6 +20,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Cekirdekler;
+using Cekirdekler.ClArrays; 
 namespace ClObject
 {
     /// <summary>

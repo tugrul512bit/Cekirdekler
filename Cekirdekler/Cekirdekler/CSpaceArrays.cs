@@ -22,1409 +22,1413 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 using ClObject;
+using Cekirdekler;
 namespace Cekirdekler
 {
-    internal enum SizeOf : int
+    namespace ClArrays
     {
-        cl_float = 0,
-        cl_double = 1,
-        cl_int = 2,
-        cl_long = 3,
-        cl_half = 4,
-        cl_char = 5,
-        cl_uint = 6
-    };
-    /// <summary>
-    /// C++ "C" space array functions for fast GPGPU
-    /// </summary>
-    public class CSpaceArrays
-    {
-        /// <summary>
-        /// 32-bit precision floats in C# 
-        /// </summary>
-        public const int ARR_FLOAT = 0;
-
-        /// <summary>
-        /// 64-bit precision floats in C#
-        /// </summary>
-        public const int ARR_DOUBLE = 1;
-
-        /// <summary>
-        /// 64-bit integer in C#
-        /// </summary>
-        public const int ARR_LONG = 2;
-
-        /// <summary>
-        /// 32-bit integer in C#
-        /// </summary>
-        public const int ARR_INT = 3;
-
-        /// <summary>
-        /// 32-bit unsigned integer in C#
-        /// </summary>
-        public const int ARR_UINT = 4;
-
-        /// <summary>
-        /// 8bit integer
-        /// </summary>
-        public const int ARR_BYTE = 5;
-
-        /// <summary>
-        /// 2-byte or 16-bit container for integers in C#
-        /// </summary>
-        public const int ARR_CHAR = 6; // cl_half 16bit
-
-        /// <summary>
-        /// table of number of bytes per type of element
-        /// </summary>
-        protected static int[] sizeOf_ = new int[20];
-
-        /// <summary>
-        /// loading type sizes from "C" space opencl
-        /// </summary>
-        static CSpaceArrays()
+        internal enum SizeOf : int
         {
-            sizeOf(sizeOf_);
+            cl_float = 0,
+            cl_double = 1,
+            cl_int = 2,
+            cl_long = 3,
+            cl_half = 4,
+            cl_char = 5,
+            cl_uint = 6
+        };
+        /// <summary>
+        /// C++ "C" space array functions for fast GPGPU
+        /// </summary>
+        public class CSpaceArrays
+        {
+            /// <summary>
+            /// 32-bit precision floats in C# 
+            /// </summary>
+            public const int ARR_FLOAT = 0;
+
+            /// <summary>
+            /// 64-bit precision floats in C#
+            /// </summary>
+            public const int ARR_DOUBLE = 1;
+
+            /// <summary>
+            /// 64-bit integer in C#
+            /// </summary>
+            public const int ARR_LONG = 2;
+
+            /// <summary>
+            /// 32-bit integer in C#
+            /// </summary>
+            public const int ARR_INT = 3;
+
+            /// <summary>
+            /// 32-bit unsigned integer in C#
+            /// </summary>
+            public const int ARR_UINT = 4;
+
+            /// <summary>
+            /// 8bit integer
+            /// </summary>
+            public const int ARR_BYTE = 5;
+
+            /// <summary>
+            /// 2-byte or 16-bit container for integers in C#
+            /// </summary>
+            public const int ARR_CHAR = 6; // cl_half 16bit
+
+            /// <summary>
+            /// table of number of bytes per type of element
+            /// </summary>
+            protected static int[] sizeOf_ = new int[20];
+
+            /// <summary>
+            /// loading type sizes from "C" space opencl
+            /// </summary>
+            static CSpaceArrays()
+            {
+                sizeOf(sizeOf_);
+            }
+
+            /// <summary>
+            /// query array element size from table
+            /// </summary>
+            /// <param name="type">example: ARR_BYTE = 5</param>
+            /// <returns>for ARR_BYTE returns 1</returns>
+            public static int sizeOf(int type)
+            {
+                return sizeOf_[type];
+            }
+
+
+            /// <summary>
+            /// just to get cl_float cl_int sizes from "C" space
+            /// </summary>
+            /// <param name="definitionArr"></param>
+            [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+            public static extern void sizeOf(int[] definitionArr);
+
+
+            /// <summary>
+            /// create "C" space arrays
+            /// </summary>
+            /// <param name="numberOfElements"></param>
+            /// <param name="alignment"></param>
+            /// <param name="typeOfArray"></param>
+            /// <returns>returns pointer to augmented array</returns>
+            [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+            public static extern IntPtr createArray(int numberOfElements, int alignment, int typeOfArray);
+
+
+            /// <summary>
+            /// get the first N-aligned element address from "C" space array
+            /// </summary>
+            /// <param name="hArr">handle for "C" space array</param>
+            /// <returns></returns>
+            [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+            public static extern IntPtr alignedArrHead(IntPtr hArr);
+
+            /// <summary>
+            /// delete "C" space array
+            /// </summary>
+            /// <param name="hArr">handle for augmented array in "C" space</param>
+            [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+            public static extern void deleteArray(IntPtr hArr);
+
+            // ---------------------------------------------------------------------
+
+            /// <summary>
+            /// IntPtr to IntPtr copy in bytes count
+            /// </summary>
+            /// <param name="dest"></param>
+            /// <param name="src"></param>
+            /// <param name="count">byte number</param>
+            [DllImport("kernel32.dll", EntryPoint = "CopyMemory", SetLastError = false)]
+            public static extern void CopyMemory(IntPtr dest, IntPtr src, uint count);
         }
 
         /// <summary>
-        /// query array element size from table
+        /// C++ dizileri ile C# veya C++ dizileri arasında kopyalama işlemleri için
         /// </summary>
-        /// <param name="type">example: ARR_BYTE = 5</param>
-        /// <returns>for ARR_BYTE returns 1</returns>
-        public static int sizeOf(int type)
+        /// <typeparam name="T"></typeparam>
+        public interface IMemoryOperations<T> : IMemoryHandle
         {
-            return sizeOf_[type];
-        }
-        
+            /// <summary>
+            /// C# array to C++ array copy
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            void CopyFrom(T[] array, int arrayIndex);
 
-        /// <summary>
-        /// just to get cl_float cl_int sizes from "C" space
-        /// </summary>
-        /// <param name="definitionArr"></param>
-        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void sizeOf(int [] definitionArr);
+            /// <summary>
+            /// C++ array to C++ array copy
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            void CopyFrom_(FastArr<T> array, int arrayIndex);
 
-
-        /// <summary>
-        /// create "C" space arrays
-        /// </summary>
-        /// <param name="numberOfElements"></param>
-        /// <param name="alignment"></param>
-        /// <param name="typeOfArray"></param>
-        /// <returns>returns pointer to augmented array</returns>
-        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern IntPtr createArray(int numberOfElements, int alignment, int typeOfArray);
-
-
-        /// <summary>
-        /// get the first N-aligned element address from "C" space array
-        /// </summary>
-        /// <param name="hArr">handle for "C" space array</param>
-        /// <returns></returns>
-        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern IntPtr alignedArrHead(IntPtr hArr);
-
-        /// <summary>
-        /// delete "C" space array
-        /// </summary>
-        /// <param name="hArr">handle for augmented array in "C" space</param>
-        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void deleteArray(IntPtr hArr);
-
-        // ---------------------------------------------------------------------
-
-        /// <summary>
-        /// IntPtr to IntPtr copy in bytes count
-        /// </summary>
-        /// <param name="dest"></param>
-        /// <param name="src"></param>
-        /// <param name="count">byte number</param>
-        [DllImport("kernel32.dll", EntryPoint = "CopyMemory", SetLastError = false)]
-        public static extern void CopyMemory(IntPtr dest, IntPtr src, uint count);
-    }
-
-    /// <summary>
-    /// C++ dizileri ile C# veya C++ dizileri arasında kopyalama işlemleri için
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public interface IMemoryOperations<T>:IMemoryHandle
-    {
-        /// <summary>
-        /// C# array to C++ array copy
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        void CopyFrom(T[] array, int arrayIndex);
-
-        /// <summary>
-        /// C++ array to C++ array copy
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        void CopyFrom_(FastArr<T> array, int arrayIndex);
-
-        /// <summary>
-        /// C++ array to C++ array copy
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        void CopyTo_(FastArr<T> array, int arrayIndex);
-    }
-
-    /// <summary>
-    /// C++ - C# array communication-compatibility interface
-    /// </summary>
-    public interface IMemoryHandle
-    {
-        /// <summary>
-        /// first (4096 default)aligned element address of array
-        /// </summary>
-        /// <returns></returns>
-        IntPtr ha();
-
-        /// <summary>
-        /// C++ array's number of elements (for compatibility with C# arrays)
-        /// </summary>
-        int Length { get; }
-
-        /// <summary>
-        /// C++ array element size
-        /// </summary>
-        int sizeOf { get; set; }
-
-        /// <summary>
-        /// cl_float, cl_int definitions for compatibility with "C" space opencl
-        /// </summary>
-        int sizeOfEnum { get; set; }
-
-        /// <summary>
-        /// C++ dizisini siler
-        /// </summary>
-        void dispose();
-        
-    }
-
-
-
-    /// <summary>
-    /// <para>C++ array in "C" space for fast GPGPU buffer access/map/read/write</para>
-    /// <para>switchabe from C#'s float,double,int,long</para>
-    /// <para>and byte,uint,char</para>
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public abstract class FastArr<T>  : IList<T>,IMemoryOperations<T>
-    {
-        /// <summary>
-        /// C++ array start(non-aligned)
-        /// </summary>
-        protected IntPtr hArr; 
-
-        /// <summary>
-        /// C++ array first (4096 default)aligned element address
-        /// </summary>
-        protected readonly IntPtr hAArr;
-
-        
-        /// <summary>
-        /// number of elements in array
-        /// </summary>
-        protected int n_;
-
-        /// <summary>
-        /// <para>C++ array type compatible to C# side as</para>
-        /// <para>CSpaceArrays.Arr_FLOAT</para>
-        /// <para>CSpaceArrays.Arr_INT</para>
-        /// <para>CSpaceArrays.Arr_BYTE</para>
-        /// </summary>
-        public int arrType { get; set; }
-
-        /// <summary> 
-        /// size of each array element
-        /// </summary>
-        public int sizeOf { get; set; }
-
-        /// <summary>
-        /// ClBuffer connection compatibility variable
-        /// </summary>
-        public int sizeOfEnum { get; set; }
-
-
-        internal FastArr(int n, int alignment = 4096)
-        {
-            n_ = n;
-            if (typeof(T) == typeof(float))
-            {
-                arrType = CSpaceArrays.ARR_FLOAT; 
-                sizeOfEnum =(int) SizeOf.cl_float;
-            }
-            else if (typeof(T) == typeof(int))
-            {
-                arrType = CSpaceArrays.ARR_INT;
-                sizeOfEnum = (int)SizeOf.cl_int;
-            }
-            else if (typeof(T) == typeof(double))
-            {
-                arrType = CSpaceArrays.ARR_DOUBLE;
-                sizeOfEnum = (int)SizeOf.cl_double;
-            }
-            else if (typeof(T) == typeof(long))
-            {
-                arrType = CSpaceArrays.ARR_LONG;
-                sizeOfEnum = (int)SizeOf.cl_long;
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                arrType = CSpaceArrays.ARR_CHAR;
-                sizeOfEnum = (int)SizeOf.cl_half;
-            }
-            else if (typeof(T) == typeof(uint))
-            {
-                arrType = CSpaceArrays.ARR_UINT;
-                sizeOfEnum = (int)SizeOf.cl_int;
-            }
-            else if (typeof(T) == typeof(byte))
-            {
-                arrType = CSpaceArrays.ARR_BYTE;
-                sizeOfEnum = (int)SizeOf.cl_char;
-            }
-            sizeOf = CSpaceArrays.sizeOf(arrType);
-            hArr = CSpaceArrays.createArray(n, alignment,arrType);
-            hAArr = CSpaceArrays.alignedArrHead(hArr);
-
+            /// <summary>
+            /// C++ array to C++ array copy
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            void CopyTo_(FastArr<T> array, int arrayIndex);
         }
 
         /// <summary>
-        /// delete C++ "C" space array
+        /// C++ - C# array communication-compatibility interface
         /// </summary>
-        ~FastArr()
+        public interface IMemoryHandle
         {
-            dispose();
+            /// <summary>
+            /// first (4096 default)aligned element address of array
+            /// </summary>
+            /// <returns></returns>
+            IntPtr ha();
+
+            /// <summary>
+            /// C++ array's number of elements (for compatibility with C# arrays)
+            /// </summary>
+            int Length { get; }
+
+            /// <summary>
+            /// C++ array element size
+            /// </summary>
+            int sizeOf { get; set; }
+
+            /// <summary>
+            /// cl_float, cl_int definitions for compatibility with "C" space opencl
+            /// </summary>
+            int sizeOfEnum { get; set; }
+
+            /// <summary>
+            /// C++ dizisini siler
+            /// </summary>
+            void dispose();
+
         }
 
+
+
         /// <summary>
-        /// C++ array's number of elements (just like C# array) 
+        /// <para>C++ array in "C" space for fast GPGPU buffer access/map/read/write</para>
+        /// <para>switchabe from C#'s float,double,int,long</para>
+        /// <para>and byte,uint,char</para>
         /// </summary>
-        public int Length
+        /// <typeparam name="T"></typeparam>
+        public abstract class FastArr<T> : IList<T>, IMemoryOperations<T>
         {
-            get
+            /// <summary>
+            /// C++ array start(non-aligned)
+            /// </summary>
+            protected IntPtr hArr;
+
+            /// <summary>
+            /// C++ array first (4096 default)aligned element address
+            /// </summary>
+            protected readonly IntPtr hAArr;
+
+
+            /// <summary>
+            /// number of elements in array
+            /// </summary>
+            protected int n_;
+
+            /// <summary>
+            /// <para>C++ array type compatible to C# side as</para>
+            /// <para>CSpaceArrays.Arr_FLOAT</para>
+            /// <para>CSpaceArrays.Arr_INT</para>
+            /// <para>CSpaceArrays.Arr_BYTE</para>
+            /// </summary>
+            public int arrType { get; set; }
+
+            /// <summary> 
+            /// size of each array element
+            /// </summary>
+            public int sizeOf { get; set; }
+
+            /// <summary>
+            /// ClBuffer connection compatibility variable
+            /// </summary>
+            public int sizeOfEnum { get; set; }
+
+
+            internal FastArr(int n, int alignment = 4096)
             {
-                return n_;
-            }
-        }
-        
-        /// <summary>
-        /// overriden by derived classes and not be used by client codes for now
-        /// </summary>
-        /// <param name="i"></param>
-        /// <returns></returns>
-        virtual public T this[int i]
-        {
-            get
-            {
-                unsafe
+                n_ = n;
+                if (typeof(T) == typeof(float))
                 {
-                    return default(T);
+                    arrType = CSpaceArrays.ARR_FLOAT;
+                    sizeOfEnum = (int)SizeOf.cl_float;
                 }
+                else if (typeof(T) == typeof(int))
+                {
+                    arrType = CSpaceArrays.ARR_INT;
+                    sizeOfEnum = (int)SizeOf.cl_int;
+                }
+                else if (typeof(T) == typeof(double))
+                {
+                    arrType = CSpaceArrays.ARR_DOUBLE;
+                    sizeOfEnum = (int)SizeOf.cl_double;
+                }
+                else if (typeof(T) == typeof(long))
+                {
+                    arrType = CSpaceArrays.ARR_LONG;
+                    sizeOfEnum = (int)SizeOf.cl_long;
+                }
+                else if (typeof(T) == typeof(char))
+                {
+                    arrType = CSpaceArrays.ARR_CHAR;
+                    sizeOfEnum = (int)SizeOf.cl_half;
+                }
+                else if (typeof(T) == typeof(uint))
+                {
+                    arrType = CSpaceArrays.ARR_UINT;
+                    sizeOfEnum = (int)SizeOf.cl_int;
+                }
+                else if (typeof(T) == typeof(byte))
+                {
+                    arrType = CSpaceArrays.ARR_BYTE;
+                    sizeOfEnum = (int)SizeOf.cl_char;
+                }
+                sizeOf = CSpaceArrays.sizeOf(arrType);
+                hArr = CSpaceArrays.createArray(n, alignment, arrType);
+                hAArr = CSpaceArrays.alignedArrHead(hArr);
 
             }
-            set
+
+            /// <summary>
+            /// delete C++ "C" space array
+            /// </summary>
+            ~FastArr()
             {
-                unsafe
+                dispose();
+            }
+
+            /// <summary>
+            /// C++ array's number of elements (just like C# array) 
+            /// </summary>
+            public int Length
+            {
+                get
                 {
-                    T t = value;
+                    return n_;
                 }
             }
-        }
-        
-        /// <summary>
-        /// first properly aligned element of C++ array
-        /// </summary>
-        /// <returns></returns>
-        public IntPtr ha()
-        {
-            return hAArr;
-        }
 
-        /// <summary>
-        /// deletes C++ array, can be called multiple times
-        /// </summary>
-        public void dispose()
-        {
-            if (hArr != IntPtr.Zero)
+            /// <summary>
+            /// overriden by derived classes and not be used by client codes for now
+            /// </summary>
+            /// <param name="i"></param>
+            /// <returns></returns>
+            virtual public T this[int i]
             {
-                CSpaceArrays.deleteArray(hArr);
-                hArr = IntPtr.Zero;
+                get
+                {
+                    unsafe
+                    {
+                        return default(T);
+                    }
+
+                }
+                set
+                {
+                    unsafe
+                    {
+                        T t = value;
+                    }
+                }
             }
-        }
 
-        /// <summary>
-        /// return a copy of C++ array as a C# array
-        /// </summary>
-        /// <returns></returns>
-        virtual public T[] ToArray()
-        {
-            T[] f = new T[Length];
-            GCHandle gc = GCHandle.Alloc(f, GCHandleType.Pinned);
-            IntPtr pointerArr= Marshal.UnsafeAddrOfPinnedArrayElement(f, 0);
-            CSpaceArrays.CopyMemory(pointerArr, hAArr,(uint) (Length*sizeOf));
-            gc.Free();
-            return f;
-        }
-
-        /// <summary>
-        /// for compatibility with IList{T} 
-        /// </summary>
-        public int Count
-        {
-            get
+            /// <summary>
+            /// first properly aligned element of C++ array
+            /// </summary>
+            /// <returns></returns>
+            public IntPtr ha()
             {
-                return n_;
+                return hAArr;
             }
-        }
 
-        /// <summary>
-        /// not implemented
-        /// </summary>
-        public bool IsReadOnly
-        {
-            get
+            /// <summary>
+            /// deletes C++ array, can be called multiple times
+            /// </summary>
+            public void dispose()
+            {
+                if (hArr != IntPtr.Zero)
+                {
+                    CSpaceArrays.deleteArray(hArr);
+                    hArr = IntPtr.Zero;
+                }
+            }
+
+            /// <summary>
+            /// return a copy of C++ array as a C# array
+            /// </summary>
+            /// <returns></returns>
+            virtual public T[] ToArray()
+            {
+                T[] f = new T[Length];
+                GCHandle gc = GCHandle.Alloc(f, GCHandleType.Pinned);
+                IntPtr pointerArr = Marshal.UnsafeAddrOfPinnedArrayElement(f, 0);
+                CSpaceArrays.CopyMemory(pointerArr, hAArr, (uint)(Length * sizeOf));
+                gc.Free();
+                return f;
+            }
+
+            /// <summary>
+            /// for compatibility with IList{T} 
+            /// </summary>
+            public int Count
+            {
+                get
+                {
+                    return n_;
+                }
+            }
+
+            /// <summary>
+            /// not implemented
+            /// </summary>
+            public bool IsReadOnly
+            {
+                get
+                {
+                    throw new NotImplementedException();
+                }
+            }
+
+            /// <summary>
+            /// not implemented
+            /// </summary>
+            /// <param name="item"></param>
+            public void Add(T item)
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// not implemented
+            /// </summary>
+            public void Clear()
+            {
+                throw new NotImplementedException();
+            }
+
+
+            /// <summary>
+            /// not implemented
+            /// </summary>
+            /// <param name="item"></param>
+            /// <returns></returns>
+            public bool Contains(T item)
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// overridden by derived classes
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public virtual void CopyTo(T[] array, int arrayIndex)
+            {
+                throw new NotImplementedException();
+            }
+
+
+            /// <summary>
+            /// not implemented
+            /// </summary>
+            /// <returns></returns>
+            public IEnumerator<T> GetEnumerator()
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// not implemented
+            /// </summary>
+            /// <param name="item"></param>
+            /// <returns></returns>
+            public int IndexOf(T item)
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// not implemented
+            /// </summary>
+            /// <param name="index"></param>
+            /// <param name="item"></param>
+            public void Insert(int index, T item)
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// not implemented
+            /// </summary>
+            /// <param name="item"></param>
+            /// <returns></returns>
+            public bool Remove(T item)
+            {
+                throw new NotImplementedException();
+            }
+
+
+            /// <summary>
+            /// not implemented
+            /// </summary>
+            /// <param name="index"></param>
+            public void RemoveAt(int index)
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// not implemented
+            /// </summary>
+            /// <returns></returns>
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// overriden by derived classes
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public virtual void CopyFrom(T[] array, int arrayIndex)
+            {
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// overriden by derived classes
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public virtual void CopyFrom_(FastArr<T> array, int arrayIndex)
+            {
+                throw new NotImplementedException();
+            }
+
+
+            /// <summary>
+            /// overriden by derived classes
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public virtual void CopyTo_(FastArr<T> array, int arrayIndex)
             {
                 throw new NotImplementedException();
             }
         }
 
         /// <summary>
-        /// not implemented
+        /// C++ byte array
         /// </summary>
-        /// <param name="item"></param>
-        public void Add(T item)
+        public unsafe class ClByteArray : FastArr<byte>
         {
-            throw new NotImplementedException();
-        }
+            private byte* pByte;
 
-        /// <summary>
-        /// not implemented
-        /// </summary>
-        public void Clear()
-        {
-            throw new NotImplementedException();
-        }
-
-
-        /// <summary>
-        /// not implemented
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
-        public bool Contains(T item)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// overridden by derived classes
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public virtual void CopyTo(T[] array, int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        /// <summary>
-        /// not implemented
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerator<T> GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// not implemented
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
-        public int IndexOf(T item)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// not implemented
-        /// </summary>
-        /// <param name="index"></param>
-        /// <param name="item"></param>
-        public void Insert(int index, T item)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// not implemented
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
-        public bool Remove(T item)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        /// <summary>
-        /// not implemented
-        /// </summary>
-        /// <param name="index"></param>
-        public void RemoveAt(int index)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// not implemented
-        /// </summary>
-        /// <returns></returns>
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// overriden by derived classes
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public virtual void CopyFrom(T[] array, int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// overriden by derived classes
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public virtual void CopyFrom_(FastArr<T> array, int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        /// <summary>
-        /// overriden by derived classes
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public virtual void CopyTo_(FastArr<T> array, int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    /// <summary>
-    /// C++ byte array
-    /// </summary>
-    public unsafe class ClByteArray : FastArr<byte>
-    {
-        private byte* pByte;
-
-        /// <summary>
-        /// allocates a byte array in "C" space for faster opencl computations
-        /// </summary>
-        /// <param name="n"></param>
-        /// <param name="alignment"></param>
-        public ClByteArray(int n, int alignment = 4096) : base(n, alignment)
-        {
-            pByte = (byte*)hAArr.ToPointer();
-        }
-
-        /// <summary>
-        /// access just like a C# array
-        /// beware! check or be sure for out-of-bounds
-        /// beware! don't use this after dispose()
-        /// </summary>
-        /// <param name="i"></param>
-        /// <returns></returns>
-        public override byte this[int i]
-        {
-            get
+            /// <summary>
+            /// allocates a byte array in "C" space for faster opencl computations
+            /// </summary>
+            /// <param name="n"></param>
+            /// <param name="alignment"></param>
+            public ClByteArray(int n, int alignment = 4096) : base(n, alignment)
             {
-                    return *(pByte + i);
+                pByte = (byte*)hAArr.ToPointer();
             }
-            set
-            {
-                     *(pByte + i) = value;
-            }
-        }
 
-        /// <summary>
-        /// get a copy of fast array as a C# array
-        /// </summary>
-        /// <returns></returns>
-        public override byte[] ToArray()
-        {
-            int dL = Length;
-            byte[] f = new byte[dL];
-            unsafe
+            /// <summary>
+            /// access just like a C# array
+            /// beware! check or be sure for out-of-bounds
+            /// beware! don't use this after dispose()
+            /// </summary>
+            /// <param name="i"></param>
+            /// <returns></returns>
+            public override byte this[int i]
             {
-                fixed (byte* p = f)
+                get
                 {
-                    byte* p2 = (byte*)hAArr.ToPointer();
-                    for (int i = 0; i < dL; i++)
-                    {
-                        f[i] = *(p2 + i);
-                    }
+                    return *(pByte + i);
                 }
-
-                return f;
+                set
+                {
+                    *(pByte + i) = value;
+                }
             }
-        }
 
-
-        /// <summary>
-        /// copy C++ array to C# array
-        /// both must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo(byte[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if(dL==array.Length)
+            /// <summary>
+            /// get a copy of fast array as a C# array
+            /// </summary>
+            /// <returns></returns>
+            public override byte[] ToArray()
             {
-                Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
-                return;
-            }
-            throw new NotImplementedException();
-        }
+                int dL = Length;
+                byte[] f = new byte[dL];
+                unsafe
+                {
+                    fixed (byte* p = f)
+                    {
+                        byte* p2 = (byte*)hAArr.ToPointer();
+                        for (int i = 0; i < dL; i++)
+                        {
+                            f[i] = *(p2 + i);
+                        }
+                    }
 
-        /// <summary>
-        /// copy C# array to C++ array
-        /// both must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom(byte[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+                    return f;
+                }
+            }
+
+
+            /// <summary>
+            /// copy C++ array to C# array
+            /// both must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo(byte[] array, int arrayIndex)
             {
-                Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
-        /// <summary>
-        /// copy C++ array to C++ array
-        /// both must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo_(FastArr<byte> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// copy C# array to C++ array
+            /// both must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom(byte[] array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<byte>)array).ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex)*sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
-        /// <summary>
-        /// copy C++ array to C++ array
-        /// both must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom_(FastArr<byte> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// copy C++ array to C++ array
+            /// both must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo_(FastArr<byte> array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(((IMemoryOperations<byte>)array).ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<byte>)array).ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
-    }
 
-    /// <summary>
-    /// C++ float array
-    /// </summary>
-    public unsafe class ClFloatArray : FastArr<float>
-    {
-        private float* pFloat;
+            /// <summary>
+            /// copy C++ array to C++ array
+            /// both must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom_(FastArr<byte> array, int arrayIndex)
+            {
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(((IMemoryOperations<byte>)array).ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
+            }
+        }
 
         /// <summary>
         /// C++ float array
         /// </summary>
-        /// <param name="n">number of elements</param>
-        /// <param name="alignment">byte alignment value</param>
-        public ClFloatArray(int n, int alignment = 4096) : base(n, alignment)
+        public unsafe class ClFloatArray : FastArr<float>
         {
+            private float* pFloat;
 
-            pFloat = (float*)hAArr.ToPointer();
-        }
-
-        /// <summary>
-        /// array indexing similar to C# arrays
-        /// beware, don't cross bounds
-        /// beware, don't use after dispose()
-        /// </summary>
-        /// <param name="i"></param>
-        /// <returns></returns>
-        public override float this[int i]
-        {
-            get
+            /// <summary>
+            /// C++ float array
+            /// </summary>
+            /// <param name="n">number of elements</param>
+            /// <param name="alignment">byte alignment value</param>
+            public ClFloatArray(int n, int alignment = 4096) : base(n, alignment)
             {
-                return *(pFloat + i);
+
+                pFloat = (float*)hAArr.ToPointer();
             }
-            set
-            {
-                *(pFloat + i) = value;
-            }
-        }
 
-        /// <summary>
-        /// get a copy of C++ array as a C# array 
-        /// </summary>
-        /// <returns></returns>
-        public override float[] ToArray()
-        {
-            int dL = Length;
-            float[] f = new float[dL];
-            unsafe
+            /// <summary>
+            /// array indexing similar to C# arrays
+            /// beware, don't cross bounds
+            /// beware, don't use after dispose()
+            /// </summary>
+            /// <param name="i"></param>
+            /// <returns></returns>
+            public override float this[int i]
             {
-                fixed (float* p = f)
+                get
                 {
-                    float* p2 = (float*)hAArr.ToPointer();
-                    for (int i = 0; i < dL; i++)
-                    {
-                        f[i] = *(p2 + i);
-                    }
+                    return *(pFloat + i);
                 }
-
-                return f;
+                set
+                {
+                    *(pFloat + i) = value;
+                }
             }
-        }
 
-        /// <summary>
-        /// copy C++ float array to C# float array
-        /// </summary>
-        /// <param name="array">C# float array</param>
-        /// <param name="arrayIndex">copy start index</param>
-        public override void CopyTo(float[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// get a copy of C++ array as a C# array 
+            /// </summary>
+            /// <returns></returns>
+            public override float[] ToArray()
             {
-                Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
-                return;
-            }
-            throw new NotImplementedException();
-        }
+                int dL = Length;
+                float[] f = new float[dL];
+                unsafe
+                {
+                    fixed (float* p = f)
+                    {
+                        float* p2 = (float*)hAArr.ToPointer();
+                        for (int i = 0; i < dL; i++)
+                        {
+                            f[i] = *(p2 + i);
+                        }
+                    }
 
-        /// <summary>
-        /// copy C# float array to C++ float array
-        /// </summary>
-        /// <param name="array">C# array</param>
-        /// <param name="arrayIndex">copy start index</param>
-        public override void CopyFrom(float[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+                    return f;
+                }
+            }
+
+            /// <summary>
+            /// copy C++ float array to C# float array
+            /// </summary>
+            /// <param name="array">C# float array</param>
+            /// <param name="arrayIndex">copy start index</param>
+            public override void CopyTo(float[] array, int arrayIndex)
             {
-                Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
-        /// <summary>
-        /// C++ array to C++ array copy, both must be same length
-        /// </summary>
-        /// <param name="array">C++ float array</param>
-        /// <param name="arrayIndex">copy start index</param>
-        public override void CopyTo_(FastArr<float> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// copy C# float array to C++ float array
+            /// </summary>
+            /// <param name="array">C# array</param>
+            /// <param name="arrayIndex">copy start index</param>
+            public override void CopyFrom(float[] array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<float>)array).ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
-        /// <summary>
-        /// C++ to C++ array copy, both must be same length
-        /// </summary>
-        /// <param name="array">C++ float array</param>
-        /// <param name="arrayIndex">copy start index</param>
-        public override void CopyFrom_(FastArr<float> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// C++ array to C++ array copy, both must be same length
+            /// </summary>
+            /// <param name="array">C++ float array</param>
+            /// <param name="arrayIndex">copy start index</param>
+            public override void CopyTo_(FastArr<float> array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(((IMemoryOperations<float>)array).ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<float>)array).ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
-    }
 
-    /// <summary>
-    /// C++ int array
-    /// </summary>
-    public unsafe class ClIntArray : FastArr<int>
-    {
-        private int* pInt;
+            /// <summary>
+            /// C++ to C++ array copy, both must be same length
+            /// </summary>
+            /// <param name="array">C++ float array</param>
+            /// <param name="arrayIndex">copy start index</param>
+            public override void CopyFrom_(FastArr<float> array, int arrayIndex)
+            {
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(((IMemoryOperations<float>)array).ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
+            }
+        }
 
         /// <summary>
         /// C++ int array
         /// </summary>
-        /// <param name="n"></param>
-        /// <param name="alignment"></param>
-        public ClIntArray(int n, int alignment = 4096) : base(n, alignment)
+        public unsafe class ClIntArray : FastArr<int>
         {
-            pInt = (int*)hAArr.ToPointer();
-        }
+            private int* pInt;
 
-        /// <summary>
-        /// access like a C# array, beware: don't cross boundaries and don't use after dispose()
-        /// </summary>
-        /// <param name="i"></param>
-        /// <returns></returns>
-        public override int this[int i]
-        {
-            get
+            /// <summary>
+            /// C++ int array
+            /// </summary>
+            /// <param name="n"></param>
+            /// <param name="alignment"></param>
+            public ClIntArray(int n, int alignment = 4096) : base(n, alignment)
             {
-                return *(pInt + i);
+                pInt = (int*)hAArr.ToPointer();
             }
-            set
-            {
-                *(pInt + i) = value;
-            }
-        }
 
-        /// <summary>
-        /// get a copy of C++ int array as C# array
-        /// </summary>
-        /// <returns></returns>
-        public override int[] ToArray()
-        {
-            int dL = Length;
-            int[] f = new int[dL];
-            unsafe
+            /// <summary>
+            /// access like a C# array, beware: don't cross boundaries and don't use after dispose()
+            /// </summary>
+            /// <param name="i"></param>
+            /// <returns></returns>
+            public override int this[int i]
             {
-                fixed (int* p = f)
+                get
                 {
-                    int* p2 = (int*)hAArr.ToPointer();
-                    for (int i = 0; i < dL; i++)
-                    {
-                        f[i] = *(p2 + i);
-                    }
+                    return *(pInt + i);
                 }
-
-                return f;
+                set
+                {
+                    *(pInt + i) = value;
+                }
             }
-        }
 
-
-        /// <summary>
-        /// copy from C++ int array to C# int array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo(int[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// get a copy of C++ int array as C# array
+            /// </summary>
+            /// <returns></returns>
+            public override int[] ToArray()
             {
-                Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
-                return;
-            }
-            throw new NotImplementedException();
-        }
+                int dL = Length;
+                int[] f = new int[dL];
+                unsafe
+                {
+                    fixed (int* p = f)
+                    {
+                        int* p2 = (int*)hAArr.ToPointer();
+                        for (int i = 0; i < dL; i++)
+                        {
+                            f[i] = *(p2 + i);
+                        }
+                    }
 
-        /// <summary>
-        /// copy from C# int array to C++ int array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom(int[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+                    return f;
+                }
+            }
+
+
+            /// <summary>
+            /// copy from C++ int array to C# int array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo(int[] array, int arrayIndex)
             {
-                Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
-        /// <summary>
-        /// copy from C++ int array to C++ int array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo_(FastArr<int> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// copy from C# int array to C++ int array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom(int[] array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<int>)array).ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
-        /// <summary>
-        /// copy from C++ int array to C++ int array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom_(FastArr<int> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// copy from C++ int array to C++ int array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo_(FastArr<int> array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(((IMemoryOperations<int>)array).ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<int>)array).ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
-    }
 
-    /// <summary>
-    /// C++ double array
-    /// </summary>
-    public unsafe class ClDoubleArray : FastArr<double>
-    {
-        private double* pDouble;
+            /// <summary>
+            /// copy from C++ int array to C++ int array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom_(FastArr<int> array, int arrayIndex)
+            {
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(((IMemoryOperations<int>)array).ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
+            }
+        }
 
         /// <summary>
         /// C++ double array
         /// </summary>
-        /// <param name="n"></param>
-        /// <param name="alignment"></param>
-        public ClDoubleArray(int n, int alignment = 4096) : base(n, alignment)
+        public unsafe class ClDoubleArray : FastArr<double>
         {
-            pDouble = (double*)hAArr.ToPointer();
-        }
+            private double* pDouble;
 
-        /// <summary>
-        /// access like a C# array, don't cross boundaries, don't use after dispose()
-        /// </summary>
-        /// <param name="i"></param>
-        /// <returns></returns>
-        public override double this[int i]
-        {
-            get
+            /// <summary>
+            /// C++ double array
+            /// </summary>
+            /// <param name="n"></param>
+            /// <param name="alignment"></param>
+            public ClDoubleArray(int n, int alignment = 4096) : base(n, alignment)
             {
-                return *(pDouble + i);
+                pDouble = (double*)hAArr.ToPointer();
             }
-            set
-            {
-                *(pDouble + i) = value;
-            }
-        }
 
-        /// <summary>
-        /// get a copy of C++ array as a C# array
-        /// </summary>
-        /// <returns></returns>
-        public override double[] ToArray()
-        {
-            int dL = Length;
-            double[] f = new double[dL];
-            unsafe
+            /// <summary>
+            /// access like a C# array, don't cross boundaries, don't use after dispose()
+            /// </summary>
+            /// <param name="i"></param>
+            /// <returns></returns>
+            public override double this[int i]
             {
-                fixed (double* p = f)
+                get
                 {
-                    double* p2 = (double*)hAArr.ToPointer();
-                    for (int i = 0; i < dL; i++)
-                    {
-                        f[i] = *(p2 + i);
-                    }
+                    return *(pDouble + i);
                 }
-
-                return f;
+                set
+                {
+                    *(pDouble + i) = value;
+                }
             }
-        }
 
-        /// <summary>
-        /// Copy from C++ array to C# array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo(double[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// get a copy of C++ array as a C# array
+            /// </summary>
+            /// <returns></returns>
+            public override double[] ToArray()
             {
-                Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
-                return;
+                int dL = Length;
+                double[] f = new double[dL];
+                unsafe
+                {
+                    fixed (double* p = f)
+                    {
+                        double* p2 = (double*)hAArr.ToPointer();
+                        for (int i = 0; i < dL; i++)
+                        {
+                            f[i] = *(p2 + i);
+                        }
+                    }
+
+                    return f;
+                }
             }
-            throw new NotImplementedException();
-        }
 
-
-        /// <summary>
-        /// Copy from C# array to C++ array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom(double[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// Copy from C++ array to C# array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo(double[] array, int arrayIndex)
             {
-                Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
 
-        /// <summary>
-        /// Copy from C++ array to C++ array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo_(FastArr<double> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// Copy from C# array to C++ array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom(double[] array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<double>)array).ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
 
-        /// <summary>
-        /// Copy from C++ array to C++ array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom_(FastArr<double> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// Copy from C++ array to C++ array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo_(FastArr<double> array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(((IMemoryOperations<double>)array).ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<double>)array).ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
+
+
+            /// <summary>
+            /// Copy from C++ array to C++ array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom_(FastArr<double> array, int arrayIndex)
+            {
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(((IMemoryOperations<double>)array).ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
+            }
         }
-    }
 
-
-    /// <summary>
-    /// C++ (C#-char) array
-    /// </summary>
-    public unsafe class ClCharArray : FastArr<char>
-    {
-        private char* pChar;
 
         /// <summary>
         /// C++ (C#-char) array
         /// </summary>
-        /// <param name="n"></param>
-        /// <param name="alignment"></param>
-        public ClCharArray(int n, int alignment = 4096) : base(n, alignment)
+        public unsafe class ClCharArray : FastArr<char>
         {
+            private char* pChar;
 
-            pChar = (char*)hAArr.ToPointer();
-        }
-
-        /// <summary>
-        /// access like a C# array, don't cross boundaries, don't use after dispose()
-        /// </summary>
-        /// <param name="i"></param>
-        /// <returns></returns>
-        public override char this[int i]
-        {
-            get
+            /// <summary>
+            /// C++ (C#-char) array
+            /// </summary>
+            /// <param name="n"></param>
+            /// <param name="alignment"></param>
+            public ClCharArray(int n, int alignment = 4096) : base(n, alignment)
             {
-                return *(pChar + i);
+
+                pChar = (char*)hAArr.ToPointer();
             }
-            set
-            {
-                *(pChar + i) = value;
-            }
-        }
 
-
-        /// <summary>
-        /// get a copy of C++ arrays as a C# array
-        /// </summary>
-        /// <returns></returns>
-        public override char[] ToArray()
-        {
-            int dL = Length;
-            char[] f = new char[dL];
-            unsafe
+            /// <summary>
+            /// access like a C# array, don't cross boundaries, don't use after dispose()
+            /// </summary>
+            /// <param name="i"></param>
+            /// <returns></returns>
+            public override char this[int i]
             {
-                fixed (char* p = f)
+                get
                 {
-                    char* p2 = (char*)hAArr.ToPointer();
-                    for (int i = 0; i < dL; i++)
-                    {
-                        f[i] = *(p2 + i);
-                    }
+                    return *(pChar + i);
                 }
-
-                return f;
+                set
+                {
+                    *(pChar + i) = value;
+                }
             }
-        }
 
 
-        /// <summary>
-        /// copy C++ array to C# array
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo(char[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// get a copy of C++ arrays as a C# array
+            /// </summary>
+            /// <returns></returns>
+            public override char[] ToArray()
             {
-                Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
-                return;
-            }
-            throw new NotImplementedException();
-        }
+                int dL = Length;
+                char[] f = new char[dL];
+                unsafe
+                {
+                    fixed (char* p = f)
+                    {
+                        char* p2 = (char*)hAArr.ToPointer();
+                        for (int i = 0; i < dL; i++)
+                        {
+                            f[i] = *(p2 + i);
+                        }
+                    }
 
-        /// <summary>
-        /// copy C# array to C++ array
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom(char[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+                    return f;
+                }
+            }
+
+
+            /// <summary>
+            /// copy C++ array to C# array
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo(char[] array, int arrayIndex)
             {
-                Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
-        /// <summary>
-        /// copy C++ array to C++ array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo_(FastArr<char> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// copy C# array to C++ array
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom(char[] array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<char>)array).ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
-        /// <summary>
-        /// copy C++ array to C++ array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom_(FastArr<char> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// copy C++ array to C++ array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo_(FastArr<char> array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(((IMemoryOperations<char>)array).ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<char>)array).ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
-    }
 
-    /// <summary>
-    /// C++ long array
-    /// </summary>
-    public unsafe class ClLongArray : FastArr<long>
-    {
-        private long* pLong;
+            /// <summary>
+            /// copy C++ array to C++ array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom_(FastArr<char> array, int arrayIndex)
+            {
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(((IMemoryOperations<char>)array).ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
+            }
+        }
 
         /// <summary>
         /// C++ long array
         /// </summary>
-        /// <param name="n"></param>
-        /// <param name="alignment"></param>
-        public ClLongArray(int n, int alignment = 4096) : base(n, alignment)
+        public unsafe class ClLongArray : FastArr<long>
         {
+            private long* pLong;
 
-            pLong = (long*)hAArr.ToPointer();
-        }
-
-        /// <summary>
-        /// access like a C# array, don't cross boundaries, don't use after dispose()
-        /// </summary>
-        /// <param name="i"></param>
-        /// <returns></returns>
-        public override long this[int i]
-        {
-            get
+            /// <summary>
+            /// C++ long array
+            /// </summary>
+            /// <param name="n"></param>
+            /// <param name="alignment"></param>
+            public ClLongArray(int n, int alignment = 4096) : base(n, alignment)
             {
-                return *(pLong + i);
+
+                pLong = (long*)hAArr.ToPointer();
             }
-            set
-            {
-                *(pLong + i) = value;
-            }
-        }
 
-
-        /// <summary>
-        /// get a copy of C++ array as a C# array
-        /// </summary>
-        /// <returns></returns>
-        public override long[] ToArray()
-        {
-            int dL = Length;
-            long[] f = new long[dL];
-            unsafe
+            /// <summary>
+            /// access like a C# array, don't cross boundaries, don't use after dispose()
+            /// </summary>
+            /// <param name="i"></param>
+            /// <returns></returns>
+            public override long this[int i]
             {
-                fixed (long* p = f)
+                get
                 {
-                    long* p2 = (long*)hAArr.ToPointer();
-                    for (int i = 0; i < dL; i++)
-                    {
-                        f[i] = *(p2 + i);
-                    }
+                    return *(pLong + i);
                 }
-
-                return f;
+                set
+                {
+                    *(pLong + i) = value;
+                }
             }
-        }
 
-        /// <summary>
-        /// copy C++ array to C# array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo(long[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+
+            /// <summary>
+            /// get a copy of C++ array as a C# array
+            /// </summary>
+            /// <returns></returns>
+            public override long[] ToArray()
             {
-                Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
-                return;
-            }
-            throw new NotImplementedException();
-        }
+                int dL = Length;
+                long[] f = new long[dL];
+                unsafe
+                {
+                    fixed (long* p = f)
+                    {
+                        long* p2 = (long*)hAArr.ToPointer();
+                        for (int i = 0; i < dL; i++)
+                        {
+                            f[i] = *(p2 + i);
+                        }
+                    }
 
-        /// <summary>
-        /// copy C# array to C++ array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom(long[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+                    return f;
+                }
+            }
+
+            /// <summary>
+            /// copy C++ array to C# array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo(long[] array, int arrayIndex)
             {
-                Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(hAArr, array, arrayIndex, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
-        /// <summary>
-        /// copy C++ array to C++ array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo_(FastArr<long> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// copy C# array to C++ array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom(long[] array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<long>)array).ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(array, arrayIndex, hAArr, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
 
-
-        /// <summary>
-        /// copy from C++ array to C++ array, must be same length
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom_(FastArr<long> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// copy C++ array to C++ array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo_(FastArr<long> array, int arrayIndex)
             {
-                CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(((IMemoryOperations<long>)array).ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<long>)array).ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
             }
-            throw new NotImplementedException();
-        }
-    }
 
-    /// <summary>
-    /// C++ (C#-uint) array
-    /// </summary>
-    public unsafe class ClUIntArray : FastArr<uint>
-    {
-        private uint* pUInt;
+
+            /// <summary>
+            /// copy from C++ array to C++ array, must be same length
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom_(FastArr<long> array, int arrayIndex)
+            {
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(((IMemoryOperations<long>)array).ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
+            }
+        }
 
         /// <summary>
         /// C++ (C#-uint) array
         /// </summary>
-        /// <param name="n"></param>
-        /// <param name="alignment"></param>
-        public ClUIntArray(int n, int alignment = 4096) : base(n, alignment)
+        public unsafe class ClUIntArray : FastArr<uint>
         {
-            pUInt = (uint*)hAArr.ToPointer();
-        }
+            private uint* pUInt;
 
-        /// <summary>
-        /// access like a C# array, don't cross boundaries, don't use after dispose()
-        /// </summary>
-        /// <param name="i"></param>
-        /// <returns></returns>
-        public override uint this[int i]
-        {
-            get
+            /// <summary>
+            /// C++ (C#-uint) array
+            /// </summary>
+            /// <param name="n"></param>
+            /// <param name="alignment"></param>
+            public ClUIntArray(int n, int alignment = 4096) : base(n, alignment)
             {
-                return *(pUInt + i);
+                pUInt = (uint*)hAArr.ToPointer();
             }
-            set
-            {
-                *(pUInt + i) = value;
-            }
-        }
 
-        /// <summary>
-        /// get a copy of C++ array as a C# array
-        /// </summary>
-        /// <returns></returns>
-        public override uint[] ToArray()
-        {
-            int dL = Length;
-
-            uint[] f = new uint[dL];
-            unsafe
+            /// <summary>
+            /// access like a C# array, don't cross boundaries, don't use after dispose()
+            /// </summary>
+            /// <param name="i"></param>
+            /// <returns></returns>
+            public override uint this[int i]
             {
-                fixed (uint* p = f)
+                get
                 {
-                    uint* p2 = (uint*)hAArr.ToPointer();
-                    for (int i = 0; i < dL; i++)
-                    {
-                        f[i] = *(p2 + i);
-                    }
+                    return *(pUInt + i);
                 }
-
+                set
+                {
+                    *(pUInt + i) = value;
+                }
             }
-            return f;
-        }
 
-        /// <summary>
-        /// copy from C++ array to C# array, both must be same size
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo(uint[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
+            /// <summary>
+            /// get a copy of C++ array as a C# array
+            /// </summary>
+            /// <returns></returns>
+            public override uint[] ToArray()
             {
-                Marshal.Copy(hAArr,(int[])(object) array, arrayIndex, dL - arrayIndex);
-                return;
+                int dL = Length;
+
+                uint[] f = new uint[dL];
+                unsafe
+                {
+                    fixed (uint* p = f)
+                    {
+                        uint* p2 = (uint*)hAArr.ToPointer();
+                        for (int i = 0; i < dL; i++)
+                        {
+                            f[i] = *(p2 + i);
+                        }
+                    }
+
+                }
+                return f;
             }
-            throw new NotImplementedException();
+
+            /// <summary>
+            /// copy from C++ array to C# array, both must be same size
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo(uint[] array, int arrayIndex)
+            {
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy(hAArr, (int[])(object)array, arrayIndex, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// copy from C# array to C++ array, must be same size
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom(uint[] array, int arrayIndex)
+            {
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    Marshal.Copy((int[])(object)array, arrayIndex, hAArr, dL - arrayIndex);
+                    return;
+                }
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// copy from C++ array to C++ array, must be same size
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyTo_(FastArr<uint> array, int arrayIndex)
+            {
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<uint>)array).ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// copy from C++ array to C++ array, must be same size
+            /// </summary>
+            /// <param name="array"></param>
+            /// <param name="arrayIndex"></param>
+            public override void CopyFrom_(FastArr<uint> array, int arrayIndex)
+            {
+                int dL = Length;
+                if (dL == array.Length)
+                {
+                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                                       new IntPtr(((IMemoryOperations<uint>)array).ha().ToInt64() + (long)arrayIndex),
+                                       (uint)((dL - arrayIndex) * sizeOf));
+                    return;
+                }
+                throw new NotImplementedException();
+            }
         }
 
-        /// <summary>
-        /// copy from C# array to C++ array, must be same size
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom(uint[] array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
-            {
-                Marshal.Copy((int[])(object)array, arrayIndex, hAArr, dL - arrayIndex);
-                return;
-            }
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// copy from C++ array to C++ array, must be same size
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyTo_(FastArr<uint> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
-            {
-                CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<uint>)array).ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
-            }
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// copy from C++ array to C++ array, must be same size
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="arrayIndex"></param>
-        public override void CopyFrom_(FastArr<uint> array, int arrayIndex)
-        {
-            int dL = Length;
-            if (dL == array.Length)
-            {
-                CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
-                                   new IntPtr(((IMemoryOperations<uint>)array).ha().ToInt64() + (long)arrayIndex),
-                                   (uint)((dL - arrayIndex) * sizeOf));
-                return;
-            }
-            throw new NotImplementedException();
-        }
     }
-
 }
