@@ -38,14 +38,13 @@ namespace Cekirdekler
         private static extern void setKernelArguments(IntPtr hKernel, IntPtr hBuffer, int index_);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr platformList();
+        internal static extern IntPtr platformList();
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int numberOfPlatforms(IntPtr hList);
+        internal static extern int numberOfPlatforms(IntPtr hList);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void deletePlatformList(IntPtr hList);
-
+        internal static extern void deletePlatformList(IntPtr hList);
 
         int localRange = 256; // just a default local thread number for all devices
 
@@ -109,7 +108,6 @@ namespace Cekirdekler
                                 true /* true=selecting necessary number of cores of device */, 
                                 true /* true=directly access RAM, no extra buffer copies */, 
                                 MAX_CPU));
-
                     }
                 }
             }

@@ -14,6 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.If not, see<http://www.gnu.org/licenses/>.
 
+using Cekirdekler;
 using System;
 using System.Collections.Generic;
 
@@ -39,6 +40,12 @@ namespace ClObject
 
         [DllImport("KutuphaneCL.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr getPlatformInfo(IntPtr hPlatform);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr getPlatformNameString(IntPtr hPlatform);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr getPlatformVendorNameString(IntPtr hPlatform);
 
         /// <summary>
         /// takes cpu flag to be used later in other wrappers
@@ -93,8 +100,10 @@ namespace ClObject
 
         private bool isDeleted = false;
         private int intPlatformErrorCode = 0;
-
+        private int platformIndex = -1;
         public List<ClDevice> selectedDevices;
+        public string platformName;
+        public string vendorName;
 
         /// <summary>
         /// gets a platform from a list of platforms in "C" space using an index
@@ -103,8 +112,21 @@ namespace ClObject
         /// <param name="index_">0 to N-1</param>
         public ClPlatform(IntPtr hPlatformList_, int index_)
         {
+            platformIndex = index_;
+
             hPlatform = createPlatform(hPlatformList_,index_);
             selectedDevices = new List<ClDevice>();
+            platformName=JsonCPPCS.read(getPlatformNameString(hPlatform));
+            vendorName= JsonCPPCS.read(getPlatformVendorNameString(hPlatform));
+            // platformName and vendorName are deleted when hPlatform is deleted
+        }
+
+        internal ClPlatform copy()
+        {
+            IntPtr hList= Cores.platformList();
+            ClPlatform tmp = new ClPlatform(hList,platformIndex);
+            Cores.deletePlatformList(hList);
+            return tmp;
         }
 
         /// <summary>
