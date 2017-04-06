@@ -41,23 +41,34 @@ namespace ClObject
         private static extern void getDeviceName(IntPtr hDevice, IntPtr hString);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void getDeviceVendorName(IntPtr hDevice, IntPtr hString);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool deviceGDDR(IntPtr hDevice);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern int deviceComputeUnits(IntPtr hDevice);
 
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern ulong deviceMemSize(IntPtr hDevice);
+
         private IntPtr hDevice;
         private IntPtr hPlatform;
         private ClString deviceNameClString = null;
+        private ClString deviceVendorNameClString = null;
         private bool isDeleted = false;
         public string deviceNameStringFromOpenclCSpace = "";
+        public string deviceVendorNameStringFromOpenclCSpace = "";
         private int typeOfUsedDeviceInClPlatform = -1;
         private int numberOfComputeUnitsPrivate = 0;
         public int numberOfComputeUnits {get { return numberOfComputeUnitsPrivate; } }
         private bool GDDR = false;
+        private ulong memorySizePrivate = 0;
+        public ulong memorySize { get { return memorySizePrivate; }  }
         public ClDevice(ClPlatform clPlatform,int deviceTypeCodeInClPlatform, int i,bool devicePartition,bool GPU_STREAM,int MAX_CPU)
         {
             deviceNameClString = new ClString(" ");
+            deviceVendorNameClString = new ClString(" ");
             hPlatform = clPlatform.h();
             if (deviceTypeCodeInClPlatform == ClPlatform.CODE_CPU() && devicePartition)
             {
@@ -73,8 +84,11 @@ namespace ClObject
             else
                 hDevice = createDevice(hPlatform, deviceTypeCodeInClPlatform, i);
             getDeviceName(hDevice, deviceNameClString.h());
+            getDeviceVendorName(hDevice, deviceVendorNameClString.h());
             numberOfComputeUnitsPrivate = deviceComputeUnits(hDevice);
+            memorySizePrivate = deviceMemSize(hDevice);
             deviceNameStringFromOpenclCSpace = JsonCPPCS.read(deviceNameClString.h());
+            deviceVendorNameStringFromOpenclCSpace = JsonCPPCS.read(deviceVendorNameClString.h());
             typeOfUsedDeviceInClPlatform = deviceTypeCodeInClPlatform;
             if (GPU_STREAM)
                 GDDR = false;
@@ -107,6 +121,15 @@ namespace ClObject
         public string name()
         {
             return deviceNameStringFromOpenclCSpace;
+        }
+
+        /// <summary>
+        /// device vendor name
+        /// </summary>
+        /// <returns></returns>
+        public string vendorName()
+        {
+            return deviceVendorNameStringFromOpenclCSpace;
         }
 
         /// <summary>
