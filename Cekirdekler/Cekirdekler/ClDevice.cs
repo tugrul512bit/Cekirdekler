@@ -121,6 +121,19 @@ namespace ClObject
             return result;
         }
 
+        internal ClDevice copyExact()
+        {
+            ClDevice result = new ClDevice(clPlatformForCopy,
+                deviceTypeCodeInClPlatformForCopy,
+                iForCopy,
+                devicePartitionForCopy,
+                GPU_STREAMForCopy,
+                MAX_CPUForCopy);
+
+
+            return result;
+        }
+
         /// <summary>
         /// if device has dedicated memory, returns true
         /// </summary>

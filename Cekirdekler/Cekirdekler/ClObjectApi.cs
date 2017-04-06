@@ -710,6 +710,47 @@ namespace Cekirdekler
         {
             internal ClDevice[] devices;
 
+            /// <summary>
+            /// get 1 platform
+            /// </summary>
+            /// <param name="i"></param>
+            /// <returns></returns>
+            public ClDevices this[int i]
+            {
+                get
+                {
+                    ClDevices tmp = this.copyExact(new int[] { i });
+                    return tmp;
+                }
+            }
+
+            internal ClDevices copyExact(int[] j = null)
+            {
+                ClDevices tmp = new ClDevices();
+                if (this.devices != null && this.devices.Length > 0)
+                {
+                    if (j == null || j.Length == 0)
+                    {
+                        tmp.devices = new ClDevice[this.devices.Length];
+                        for (int i = 0; i < this.devices.Length; i++)
+                        {
+                            tmp.devices[i] = this.devices[i].copyExact();
+                        }
+                    }
+                    else
+                    {
+                        List<ClDevice> devicesTmp = new List<ClDevice>();
+
+                        tmp.devices = new ClDevice[j.Length];
+                        for (int k = 0; k < j.Length; k++)
+                            if (j[k] >= 0)
+                                devicesTmp.Add(this.devices[j[k]].copyExact());
+                        tmp.devices = devicesTmp.ToArray();
+                    }
+                }
+                return tmp;
+            }
+
             internal ClDevices copy(int[] j = null, bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 ClDevices tmp = new ClDevices();
