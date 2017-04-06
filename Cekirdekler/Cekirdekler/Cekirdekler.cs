@@ -207,10 +207,9 @@ namespace Cekirdekler
         /// <param name="numGPUToUse">if pc has 4 gpu, can set this to 4</param>
         /// <param name="MAX_CPU">-1 = MAX - 1, max( min(MAX_CPU,MAX-1),1) </param>
         /// <param name="GPU_STREAM">default is true: map - unmap instead of extra read-write for all devices</param>
-        public Cores(ClDevices devicesForGPGPU, string kernelFileString, string[] kernelFunctionNamesInKernelFileString,
-                            int localRangeDeprecated = 256, int numGPUToUse = -1, bool GPU_STREAM = true, int MAX_CPU = -1)
+        public Cores(ClDevices devicesForGPGPU, string kernelFileString, string[] kernelFunctionNamesInKernelFileString)
         {
-            localRange = localRangeDeprecated;
+            localRange = 256;
             IntPtr handlePlatformList = platformList();
             
             Dictionary<ClPlatform, List<ClDevice>> selectedDevicesForGPGPU = new Dictionary<ClPlatform, List<ClDevice>>();

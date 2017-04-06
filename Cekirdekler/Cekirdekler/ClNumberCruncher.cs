@@ -155,8 +155,7 @@ namespace Cekirdekler
                 errorNotification = 1;
                 return;
             }
-            numberCruncher = new Cores(devicesForGPGPU, kernelString, kernelNames_.ToArray(), 256,
-                numberOfGPUsToUse, stream, numberofCPUCoresToUseAsDeviceFission);
+            numberCruncher = new Cores(devicesForGPGPU, kernelString, kernelNames_.ToArray());
             if (numberCruncher.errorCode() != 0)
             {
                 errorMessage_ = numberCruncher.errorMessage();
