@@ -25,6 +25,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using ClObject;
 using Cekirdekler.ClArrays;
+using Cekirdekler.Hardware;
+
 namespace Cekirdekler
 {
     /// <summary>
@@ -194,6 +196,68 @@ namespace Cekirdekler
                 }
             }
         }
+
+        /// <summary>
+        /// Main class for scheduling device queues and controlling work distributions
+        /// </summary>
+        /// <param name="devicesForGPGPU">device or a group of devices to use in gpgpu calculations</param>
+        /// <param name="kernelFileString"></param>
+        /// <param name="kernelFunctionNamesInKernelFileString"></param>
+        /// <param name="localRangeDeprecated"></param>
+        /// <param name="numGPUToUse">if pc has 4 gpu, can set this to 4</param>
+        /// <param name="MAX_CPU">-1 = MAX - 1, max( min(MAX_CPU,MAX-1),1) </param>
+        /// <param name="GPU_STREAM">default is true: map - unmap instead of extra read-write for all devices</param>
+        public Cores(ClDevices devicesForGPGPU, string kernelFileString, string[] kernelFunctionNamesInKernelFileString,
+                            int localRangeDeprecated = 256, int numGPUToUse = -1, bool GPU_STREAM = true, int MAX_CPU = -1)
+        {
+            localRange = localRangeDeprecated;
+            IntPtr handlePlatformList = platformList();
+            
+            Dictionary<ClPlatform, List<ClDevice>> selectedDevicesForGPGPU = new Dictionary<ClPlatform, List<ClDevice>>();
+
+            for (int i = 0; i < devicesForGPGPU.devices.Length; i++)
+            {
+                ClPlatform tmpPlatform = devicesForGPGPU.devices[i].clPlatformForCopy;
+                if (!selectedDevicesForGPGPU.ContainsKey(tmpPlatform))
+                    selectedDevicesForGPGPU.Add(tmpPlatform, new List<ClDevice>());
+                
+                    selectedDevicesForGPGPU[tmpPlatform].Add(devicesForGPGPU.devices[i]);
+            }
+            kernels = new ClString(kernelFileString);
+            kernelNames = new ClString[kernelFunctionNamesInKernelFileString.Length];
+            globalRanges = new Dictionary<int, int[]>();
+            globalReferences = new Dictionary<int, int[]>();
+            for (int i = 0; i < kernelNames.Length; i++)
+            {
+                kernelNames[i] = new ClString(kernelFunctionNamesInKernelFileString[i]);
+            }
+            errorNotification = 0;
+
+
+            List<Worker> tmp = new List<Worker>();
+
+            int numberOfWorkers = 0;
+            platforms = selectedDevicesForGPGPU.Keys.ToList();
+            for (int i = 0; i < platforms.Count; i++)
+            {
+                numberOfWorkers = selectedDevicesForGPGPU[platforms[i]].Count;
+                for (int j = 0; j < numberOfWorkers; j++)
+                    tmp.Add(new Worker(selectedDevicesForGPGPU[platforms[i]][j], kernels, kernelNames));
+            }
+            workers = tmp.ToArray();
+            workerThreads = new Thread[workers.Length];
+            allErrorsString = "";
+            for (int i = 0; i < workers.Length; i++)
+            {
+                errorNotification += workers[i].getErrorCode();
+                if (workers[i].getErrorCode() != 0)
+                {
+                    Console.WriteLine("error!");
+                    allErrorsString += workers[i].getAllErrors() + Environment.NewLine + "*******************" + Environment.NewLine;
+                }
+            }
+        }
+
 
         /// <summary>
         /// 1 worker per device (each worker can have concurrent pipelining if enabled)

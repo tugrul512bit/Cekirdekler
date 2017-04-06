@@ -209,7 +209,8 @@ namespace Cekirdekler
                     {
                         tmp.platforms = new ClPlatform[j.Length];
                         for(int k=0;k<j.Length;k++)
-                            tmp.platforms[k] = this.platforms[j[k]].copy();
+                            if(j[k]>=0)
+                                tmp.platforms[k] = this.platforms[j[k]].copy();
                     }
                 }
                 return tmp;
@@ -259,6 +260,10 @@ namespace Cekirdekler
             {
                 int counter = 0;
                 int[] indices = new int[platforms.Length];
+                for (int i = 0; i < platforms.Length; i++)
+                {
+                    indices[i] = -1;
+                }
                 for (int i = 0; i < platforms.Length; i++)
                 {
                     for (int j = 0; j < nameSearchStrings.Length; j++)
@@ -720,9 +725,13 @@ namespace Cekirdekler
                     }
                     else
                     {
+                        List<ClDevice> devicesTmp = new List<ClDevice>();
+
                         tmp.devices = new ClDevice[j.Length];
                         for (int k = 0; k < j.Length; k++)
-                            tmp.devices[k] = this.devices[j[k]].copy(devicePartitionEnabled ,streamingEnabled, MAX_CPU_CORES);
+                            if (j[k] >= 0)
+                                devicesTmp.Add(this.devices[j[k]].copy(devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES));
+                        tmp.devices = devicesTmp.ToArray(); 
                     }
                 }
                 return tmp;
@@ -764,7 +773,11 @@ namespace Cekirdekler
             {
                 int counter = 0;
                 int[] indices = new int[devices.Length];
-                for(int i=0;i<devices.Length;i++)
+                for (int i = 0; i < devices.Length; i++)
+                {
+                    indices[i] = -1;
+                }
+                for (int i=0;i<devices.Length;i++)
                 {
                     if(devices[i].type()==ClPlatform.CODE_ACC())
                     {
@@ -785,6 +798,10 @@ namespace Cekirdekler
             {
                 int counter = 0;
                 int[] indices = new int[devices.Length];
+                for (int i = 0; i < devices.Length; i++)
+                {
+                    indices[i] = -1;
+                }
                 for (int i = 0; i < devices.Length; i++)
                 {
                     if (devices[i].type() == ClPlatform.CODE_CPU())
@@ -808,6 +825,10 @@ namespace Cekirdekler
                 int[] indices = new int[devices.Length];
                 for (int i = 0; i < devices.Length; i++)
                 {
+                    indices[i] = -1;
+                }
+                for (int i = 0; i < devices.Length; i++)
+                {
                     if (devices[i].type() == ClPlatform.CODE_GPU())
                     {
                         indices[counter] = i;
@@ -827,6 +848,10 @@ namespace Cekirdekler
             {
                 int counter = 0;
                 int[] indices = new int[devices.Length];
+                for (int i = 0; i < devices.Length; i++)
+                {
+                    indices[i] = -1;
+                }
                 for (int i = 0; i < devices.Length; i++)
                 {
                     for (int j = 0; j < names.Length; j++)
@@ -879,6 +904,10 @@ namespace Cekirdekler
                 int[] indices = new int[devices.Length];
                 for (int i = 0; i < devices.Length; i++)
                 {
+                    indices[i] = -1;
+                }
+                for (int i = 0; i < devices.Length; i++)
+                {
                     if (devices[i].isGddr())
                     {
                         indices[counter] = i;
@@ -896,26 +925,24 @@ namespace Cekirdekler
 
             public ClDevices devicesWithHighestMemoryAvailable(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
-                int counter = 0;
                 ulong[] keys = new ulong[devices.Length];
                 for (int i = 0; i < devices.Length; i++)
                 {
                     keys[i] = ulong.MaxValue - devices[i].memorySize;
                 }
-                if (counter > 0)
-                {
                     ClDevices result = this.copy(null, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
                     Array.Sort(keys, result.devices);
                     return result;
-                }
-                else
-                    return null;
             }
 
             public ClDevices devicesWithHostMemorySharing(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 int counter = 0;
                 int[] indices = new int[devices.Length];
+                for (int i = 0; i < devices.Length; i++)
+                {
+                    indices[i] = -1;
+                }
                 for (int i = 0; i < devices.Length; i++)
                 {
                     if (!devices[i].isGddr())
@@ -942,20 +969,14 @@ namespace Cekirdekler
             /// <returns></returns>
             public ClDevices devicesWithMostComputeUnits(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
-                int counter = 0;
                 int[] keys = new int[devices.Length];
                 for (int i = 0; i < devices.Length; i++)
                 {
                     keys[i] = int.MaxValue - devices[i].numberOfComputeUnits;
                 }
-                if (counter > 0)
-                {
                     ClDevices result = this.copy(null, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
                     Array.Sort(keys, result.devices);
                     return result;
-                }
-                else
-                    return null;
             }
 
 

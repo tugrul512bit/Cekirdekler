@@ -65,7 +65,7 @@ namespace ClObject
         private bool GDDR = false;
         private ulong memorySizePrivate = 0;
         public ulong memorySize { get { return memorySizePrivate; }  }
-        private ClPlatform clPlatformForCopy;
+        internal ClPlatform clPlatformForCopy;
         private int deviceTypeCodeInClPlatformForCopy;
         private int iForCopy;
         private bool devicePartitionForCopy;
