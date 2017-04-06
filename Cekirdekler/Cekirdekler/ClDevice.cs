@@ -65,8 +65,20 @@ namespace ClObject
         private bool GDDR = false;
         private ulong memorySizePrivate = 0;
         public ulong memorySize { get { return memorySizePrivate; }  }
+        private ClPlatform clPlatformForCopy;
+        private int deviceTypeCodeInClPlatformForCopy;
+        private int iForCopy;
+        private bool devicePartitionForCopy;
+        private bool GPU_STREAMForCopy;
+        private int MAX_CPUForCopy;
         public ClDevice(ClPlatform clPlatform,int deviceTypeCodeInClPlatform, int i,bool devicePartition,bool GPU_STREAM,int MAX_CPU)
         {
+            clPlatformForCopy = clPlatform;
+            deviceTypeCodeInClPlatformForCopy = deviceTypeCodeInClPlatform;
+            iForCopy = i;
+            devicePartitionForCopy = devicePartition;
+            GPU_STREAMForCopy = GPU_STREAM;
+            MAX_CPUForCopy = MAX_CPU;
             deviceNameClString = new ClString(" ");
             deviceVendorNameClString = new ClString(" ");
             hPlatform = clPlatform.h();
@@ -94,6 +106,19 @@ namespace ClObject
                 GDDR = false;
             else
                 GDDR = deviceGDDR(hDevice);
+        }
+
+        internal ClDevice copy(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
+        {
+            ClDevice result = new ClDevice(clPlatformForCopy,
+                deviceTypeCodeInClPlatformForCopy,
+                iForCopy,
+                devicePartitionForCopy | devicePartitionEnabled,
+                GPU_STREAMForCopy | streamingEnabled,
+                ((MAX_CPU_CORES<=0)? MAX_CPUForCopy:MAX_CPU_CORES));
+
+
+            return result;
         }
 
         /// <summary>
