@@ -14,6 +14,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.If not, see<http://www.gnu.org/licenses/>.
 
+using Cekirdekler.Hardware;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -121,7 +122,52 @@ namespace Cekirdekler
 
         }
 
-        
+        /// <summary>
+        /// <para>prepares devices and compiles kernels in the kernel string</para>
+        /// <para>does optionally pipelined kernel execution load balancing between multiple devices</para>
+        /// </summary>
+        /// <param name="devicesForGPGPU">one or more devices for GPGPU</param>
+        /// <param name="kernelString">something like: @"multi-line C# string that has multiple kernel definitions"</param>
+        /// <param name="numberofCPUCoresToUseAsDeviceFission">AcceleratorType.CPU uses number of threads for an N-core CPU(between 1 and N-1)(-1 means N-1)</param>
+        /// <param name="numberOfGPUsToUse">AcceleratorType.GPU uses number of GPUs equal to this parameter. Between 1 and N(-1 means N)</param>
+        /// <param name="stream">devices that share RAM with CPU will not do extra copies. Devices that don't share RAM will directly access RAM and reduce number of copies</param>
+        public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,
+                            int numberofCPUCoresToUseAsDeviceFission = -1,
+                            int numberOfGPUsToUse = -1, bool stream = true)
+        {
+            
+            List<string> kernelNames_ = new List<string>();
+
+            // extracting patterns kernel _ _ _ void _ _ name _ _ (
+            string kernelVoidRegex = "(kernel[\\s]+void[\\s]+[a-zA-Z\\d_]+[^\\(])";
+            Regex regex = new Regex(kernelVoidRegex);
+            MatchCollection match = regex.Matches(kernelString);
+            for (int i = 0; i < match.Count; i++)
+            {
+                // extracting name
+                Regex rgx = new Regex("([\\s]+[a-zA-Z\\d_]+)");
+                MatchCollection mc = rgx.Matches(match[i].Value.Trim());
+                kernelNames_.Add(mc[mc.Count - 1].Value.Trim());
+            }
+            if (kernelNames_.Count == 0)
+            {
+                Console.WriteLine("Error: no kernel definitions are found in string. Kernel string: \n" + kernelString);
+                errorNotification = 1;
+                return;
+            }
+            numberCruncher = new Cores(devicesForGPGPU, kernelString, kernelNames_.ToArray(), 256,
+                numberOfGPUsToUse, stream, numberofCPUCoresToUseAsDeviceFission);
+            if (numberCruncher.errorCode() != 0)
+            {
+                errorMessage_ = numberCruncher.errorMessage();
+                Console.WriteLine(numberCruncher.errorMessage());
+                errorNotification = numberCruncher.errorCode();
+                numberCruncher.dispose();
+                return;
+            }
+
+
+        }
 
         private string errorMessage_;
 
