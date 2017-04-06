@@ -19,74 +19,74 @@ namespace Cekirdekler
             /// select  all gpus from container
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable cpus();
+            ClDevices cpus(bool devicePartitionEnabled=false, bool streamingEnabled=false, int MAX_CPU_CORES=-1);
 
             /// <summary>
             /// select gpus
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable gpus();
+            ClDevices gpus( bool streamingEnabled = false);
 
             /// <summary>
             /// select accelerators
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable accelerators();
+            ClDevices accelerators( bool streamingEnabled = false);
 
             /// <summary>
             /// orders devices with most numerous compute units first, least ones last 
             /// </summary>
             /// <param name="n"></param>
             /// <returns></returns>
-            IDeviceQueryable devicesWithMostComputeUnits();
+            ClDevices devicesWithMostComputeUnits();
 
             /// <summary>
             /// disrete GPUs, fpgas, ...
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable devicesWithDedicatedMemory();
+            ClDevices devicesWithDedicatedMemory();
 
             /// <summary>
             /// iGPUs but not CPUs
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable devicesWithHostMemorySharing();
+            ClDevices devicesWithHostMemorySharing();
 
             /// <summary>
             /// 16GB CPU > 8GB GPU
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable devicesWithHighestMemoryAvailable();
+            ClDevices devicesWithHighestMemoryAvailable();
 
             /// <summary>
             /// Amd devices
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable devicesAmd();
+            ClDevices devicesAmd();
 
             /// <summary>
             /// Nvidia devices
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable devicesNvidia();
+            ClDevices devicesNvidia();
 
             /// <summary>
             /// Intel devices
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable devicesIntel();
+            ClDevices devicesIntel();
 
             /// <summary>
             /// Altera devices
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable devicesAltera();
+            ClDevices devicesAltera();
 
             /// <summary>
             /// Xilinx devices
             /// </summary>
             /// <returns></returns>
-            IDeviceQueryable devicesXilinx();
+            ClDevices devicesXilinx();
         }
 
         /// <summary>
@@ -328,71 +328,182 @@ namespace Cekirdekler
             }
 
 
-            public IDeviceQueryable cpus()
+            /// <summary>
+            /// get all cpu devices from selected platforms
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
+            public ClDevices cpus(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
+                ClDevices cpuDevices = new ClDevices();
+                List<ClDevice> deviceList = new List<ClDevice>();
+                for (int i = 0; i < platforms.Length; i++)
+                {
+                    for (int j = 0; j < platforms[i].numberOfCpus(); j++)
+                    {
+                        ClDevice device = new ClDevice(platforms[i], ClPlatform.CODE_CPU(), j, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
+                        deviceList.Add(device);
+                    }
+                }
+                cpuDevices.devices = deviceList.ToArray();
+                return cpuDevices;
+            }
+
+            /// <summary>
+            /// get all gpus from selected platforms
+            /// </summary>
+            /// <param name="streamingEnabled"></param>
+            /// <returns></returns>
+            public ClDevices gpus(bool streamingEnabled = false)
+            {
+                ClDevices gpuDevices = new ClDevices();
+                List<ClDevice> deviceList = new List<ClDevice>();
+                for (int i = 0; i < platforms.Length; i++)
+                {
+                    for (int j = 0; j < platforms[i].numberOfGpus(); j++)
+                    {
+                        ClDevice device = new ClDevice(platforms[i], ClPlatform.CODE_GPU(), j, false, streamingEnabled, -1);
+                        deviceList.Add(device);
+                    }
+                }
+                gpuDevices.devices = deviceList.ToArray();
+                return gpuDevices;
+            }
+
+            /// <summary>
+            /// selects all accelerators from platforms inside
+            /// </summary>
+            /// <param name="streamingEnabled"></param>
+            /// <returns></returns>
+            public ClDevices accelerators(bool streamingEnabled = false)
+            {
+                ClDevices accDevices = new ClDevices();
+                List<ClDevice> deviceList = new List<ClDevice>();
+                for (int i = 0; i < platforms.Length; i++)
+                {
+                    for (int j = 0; j < platforms[i].numberOfAccelerators(); j++)
+                    {
+                        ClDevice device = new ClDevice(platforms[i], ClPlatform.CODE_ACC(), j, false, streamingEnabled, -1);
+                        deviceList.Add(device);
+                    }
+                }
+                accDevices.devices = deviceList.ToArray();
+                return accDevices;
+            }
+
+            /// <summary>
+            /// returns devices ordered by decreasing number of compute units
+            /// </summary>
+            /// <returns></returns>
+            public ClDevices devicesWithMostComputeUnits()
+            {
+                int totalDevices = 0;
+                List<ClDevice> deviceList = new List<ClDevice>();
+                for (int i=0;i<platforms.Length;i++)
+                {
+                    int numAcc=platforms[i].numberOfAccelerators();
+                    int numCpu=platforms[i].numberOfCpus();
+                    int numGpu=platforms[i].numberOfGpus();
+                    for(int j=0;j<numAcc;j++)
+                    {
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_ACC(), j, false, false, -1);
+                        totalDevices++;
+                        deviceList.Add(tmp);
+                    }
+                    for (int j = 0; j < numCpu; j++)
+                    {
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_CPU(), j, false, false, -1);
+                        totalDevices++;
+                        deviceList.Add(tmp);
+                    }
+                    for (int j = 0; j < numGpu; j++)
+                    {
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_GPU(), j, false, false, -1);
+                        totalDevices++;
+                        deviceList.Add(tmp);
+                    }
+                }
+                int[] keysComputeUnits = new int[deviceList.Count];
+                ClDevice[] devices = deviceList.ToArray();
+                for(int i=0;i<totalDevices;i++)
+                {
+                    keysComputeUnits[i] =1000000 - devices[i].numberOfComputeUnits;
+                }
+                Array.Sort(keysComputeUnits, devices);
+                // get cpu gpu acc, put in same array, order by decreasing CU
+
+                ClDevices clDevices = new ClDevices();
+                clDevices.devices = devices;
+                return clDevices;
+            }
+
+            public ClDevices devicesWithDedicatedMemory()
+            {
+                // get cpu gpu acc, put in same array, order by dedicated or not
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable gpus()
+            public ClDevices devicesWithHostMemorySharing()
             {
+                // get cpu gpu acc, put in same array, order by not dedicated or dedicated
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable accelerators()
+            public ClDevices devicesWithHighestMemoryAvailable()
             {
-                throw new NotImplementedException();
-            }
-
-            public IDeviceQueryable devicesWithMostComputeUnits()
-            {
-                throw new NotImplementedException();
-            }
-
-            public IDeviceQueryable devicesWithDedicatedMemory()
-            {
-                throw new NotImplementedException();
-            }
-
-            public IDeviceQueryable devicesWithHostMemorySharing()
-            {
-                throw new NotImplementedException();
-            }
-
-            public IDeviceQueryable devicesWithHighestMemoryAvailable()
-            {
+                // get cpu gpu acc, put in same array, order by mem size
                 throw new NotImplementedException();
             }
 
 
-            public IDeviceQueryable devicesAmd()
+            public ClDevices devicesAmd()
             {
+                // get cpu gpu acc, get only amd named, put in same array
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesNvidia()
+            public ClDevices devicesNvidia()
             {
+                // get cpu gpu acc, get only nvidia named, put in same array
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesIntel()
+            public ClDevices devicesIntel()
             {
+                // get cpu gpu acc, get only intel named, put in same array
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesAltera()
+            public ClDevices devicesAltera()
             {
+                // get cpu gpu acc, get only altera named, put in same array
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesXilinx()
+            public ClDevices devicesXilinx()
             {
+                // get cpu gpu acc, get only xilinx named, put in same array
                 throw new NotImplementedException();
             }
 
             /// <summary>
-            /// contains all devices of this platform, overloads [], indexing
+            /// info about platform details
             /// </summary>
-            internal ClDevices devices { get;  }
+            public void logInfo()
+            {
+                Console.WriteLine("--------------");
+                Console.WriteLine("Selected platforms:");
+                string[][] names = platformVendorNames();
+                for (int i = 0; i < names.Length; i++)
+                {
+                    Console.WriteLine("#"+i+":");
+                    Console.WriteLine("Platform name: "+ names[i][0]);
+                    Console.WriteLine("Vendor name..: "+names[i][1]);
+                    Console.WriteLine("Devices......: CPUs=" + platforms[i].numberOfCpus()+"      GPUs="+ platforms[i].numberOfGpus()+"        Accelerators="+ platforms[i].numberOfAccelerators());
+                }
+            }
         }
 
 
@@ -401,64 +512,86 @@ namespace Cekirdekler
         /// </summary>
         public class ClDevices : IDeviceQueryable
         {
-            private ClDevice[] devices;
+            internal ClDevice[] devices;
 
-            public IDeviceQueryable accelerators()
+            /// <summary>
+            /// device details
+            /// </summary>
+            public void logInfo()
+            {
+                Console.WriteLine("---------");
+                Console.WriteLine("Selected devices:");
+                for(int i=0;i<devices.Length;i++)
+                {
+                    string stringToAddForDeviceName = "#" + i + ": " + devices[i].name().Trim();
+                    int spaces = stringToAddForDeviceName.Length;
+                    spaces = 48 - spaces;
+                    if (spaces < 0)
+                    {
+                        spaces = 0;
+                        stringToAddForDeviceName = stringToAddForDeviceName.Remove(48);
+                    }
+                    Console.WriteLine(stringToAddForDeviceName + (new string(' ',spaces))+"  number of compute units: "+String.Format("{0:###,###}", devices[i].numberOfComputeUnits).PadLeft(3,' ')+"    type:"+((devices[i].type()==ClPlatform.CODE_GPU())?"GPU":((devices[i].type() == ClPlatform.CODE_CPU())?"CPU":"ACCELERATOR")));
+                }
+                Console.WriteLine("---------");
+            }
+
+            public ClDevices accelerators(bool streamingEnabled = false)
             {
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable cpus()
+            public ClDevices cpus(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable gpus()
+            public ClDevices gpus(bool streamingEnabled = false)
             {
                 throw new NotImplementedException();
             }   
 
-            public IDeviceQueryable devicesAltera()
+            public ClDevices devicesAltera()
             {
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesAmd()
+            public ClDevices devicesAmd()
             {
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesIntel()
+            public ClDevices devicesIntel()
             {
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesNvidia()
+            public ClDevices devicesNvidia()
             {
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesWithDedicatedMemory()
+            public ClDevices devicesWithDedicatedMemory()
             {
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesWithHighestMemoryAvailable()
+            public ClDevices devicesWithHighestMemoryAvailable()
             {
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesWithHostMemorySharing()
+            public ClDevices devicesWithHostMemorySharing()
             {
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesWithMostComputeUnits()
+            public ClDevices devicesWithMostComputeUnits()
             {
                 throw new NotImplementedException();
             }
 
-            public IDeviceQueryable devicesXilinx()
+            public ClDevices devicesXilinx()
             {
                 throw new NotImplementedException();
             }

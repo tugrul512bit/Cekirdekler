@@ -175,6 +175,11 @@ namespace ClObject
             isDeleted = true;
         }
 
+        ~ClPlatform()
+        {
+            dispose();
+        }
+
         private class PlatformInformation
         {
             public int totalCPUs;

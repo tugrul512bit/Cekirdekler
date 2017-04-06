@@ -43,12 +43,17 @@ namespace ClObject
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool deviceGDDR(IntPtr hDevice);
 
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int deviceComputeUnits(IntPtr hDevice);
+
         private IntPtr hDevice;
         private IntPtr hPlatform;
         private ClString deviceNameClString = null;
         private bool isDeleted = false;
         public string deviceNameStringFromOpenclCSpace = "";
         private int typeOfUsedDeviceInClPlatform = -1;
+        private int numberOfComputeUnitsPrivate = 0;
+        public int numberOfComputeUnits {get { return numberOfComputeUnitsPrivate; } }
         private bool GDDR = false;
         public ClDevice(ClPlatform clPlatform,int deviceTypeCodeInClPlatform, int i,bool devicePartition,bool GPU_STREAM,int MAX_CPU)
         {
@@ -68,6 +73,7 @@ namespace ClObject
             else
                 hDevice = createDevice(hPlatform, deviceTypeCodeInClPlatform, i);
             getDeviceName(hDevice, deviceNameClString.h());
+            numberOfComputeUnitsPrivate = deviceComputeUnits(hDevice);
             deviceNameStringFromOpenclCSpace = JsonCPPCS.read(deviceNameClString.h());
             typeOfUsedDeviceInClPlatform = deviceTypeCodeInClPlatform;
             if (GPU_STREAM)
@@ -129,6 +135,11 @@ namespace ClObject
             if (!isDeleted)
                 deleteDevice(hDevice);
             isDeleted = true;
+        }
+
+        ~ClDevice()
+        {
+            dispose();
         }
     }
 }
