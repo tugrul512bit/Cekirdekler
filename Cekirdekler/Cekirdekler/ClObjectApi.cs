@@ -36,21 +36,20 @@ namespace Cekirdekler
             /// <summary>
             /// orders devices with most numerous compute units first, least ones last 
             /// </summary>
-            /// <param name="n"></param>
             /// <returns></returns>
-            ClDevices devicesWithMostComputeUnits();
+            ClDevices devicesWithMostComputeUnits(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1);
 
             /// <summary>
             /// disrete GPUs, fpgas, ...
             /// </summary>
             /// <returns></returns>
-            ClDevices devicesWithDedicatedMemory();
+            ClDevices devicesWithDedicatedMemory(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1);
 
             /// <summary>
             /// iGPUs but not CPUs
             /// </summary>
             /// <returns></returns>
-            ClDevices devicesWithHostMemorySharing();
+            ClDevices devicesWithHostMemorySharing(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1);
 
             /// <summary>
             /// 16GB CPU > 8GB GPU
@@ -331,9 +330,9 @@ namespace Cekirdekler
             /// <summary>
             /// get all cpu devices from selected platforms
             /// </summary>
-            /// <param name="devicePartitionEnabled"></param>
-            /// <param name="streamingEnabled"></param>
-            /// <param name="MAX_CPU_CORES"></param>
+            /// <param name="devicePartitionEnabled">cpus can be generally partitioned for smaller workloads or data locality</param>
+            /// <param name="streamingEnabled">streaming makes device access to RAM with a zero-copy way if C++ wrapper array is given</param>
+            /// <param name="MAX_CPU_CORES">limit number of cpu cores if device partition is enabled</param>
             /// <returns></returns>
             public ClDevices cpus(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
@@ -354,7 +353,7 @@ namespace Cekirdekler
             /// <summary>
             /// get all gpus from selected platforms
             /// </summary>
-            /// <param name="streamingEnabled"></param>
+            /// <param name="streamingEnabled">access to RAM with a zero-copy way when C++ wrapper array is given</param>
             /// <returns></returns>
             public ClDevices gpus(bool streamingEnabled = false)
             {
@@ -375,7 +374,7 @@ namespace Cekirdekler
             /// <summary>
             /// selects all accelerators from platforms inside
             /// </summary>
-            /// <param name="streamingEnabled"></param>
+            /// <param name="streamingEnabled">access to RAM with zero-copy buffers when C++ array wrapper is given</param>
             /// <returns></returns>
             public ClDevices accelerators(bool streamingEnabled = false)
             {
@@ -394,10 +393,13 @@ namespace Cekirdekler
             }
 
             /// <summary>
-            /// returns devices ordered by decreasing number of compute units
+            /// get devices ordered by decreasing number of compute units
             /// </summary>
+            /// <param name="devicePartitionEnabled">for each CPU device, this enables or disables device partition</param>
+            /// <param name="streamingEnabled">for each device, enables zero-copy buffer access for C++ array wrapper parameters</param>
+            /// <param name="MAX_CPU_CORES">for each CPU device with device partitioning enabled, limits max number of cores for the sub-device created</param>
             /// <returns></returns>
-            public ClDevices devicesWithMostComputeUnits()
+            public ClDevices devicesWithMostComputeUnits(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 int totalDevices = 0;
                 List<ClDevice> deviceList = new List<ClDevice>();
@@ -408,19 +410,19 @@ namespace Cekirdekler
                     int numGpu=platforms[i].numberOfGpus();
                     for(int j=0;j<numAcc;j++)
                     {
-                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_ACC(), j, false, false, -1);
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_ACC(), j, false, streamingEnabled, -1);
                         totalDevices++;
                         deviceList.Add(tmp);
                     }
                     for (int j = 0; j < numCpu; j++)
                     {
-                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_CPU(), j, false, false, -1);
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_CPU(), j, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
                         totalDevices++;
                         deviceList.Add(tmp);
                     }
                     for (int j = 0; j < numGpu; j++)
                     {
-                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_GPU(), j, false, false, -1);
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_GPU(), j, false, streamingEnabled, -1);
                         totalDevices++;
                         deviceList.Add(tmp);
                     }
@@ -439,16 +441,106 @@ namespace Cekirdekler
                 return clDevices;
             }
 
-            public ClDevices devicesWithDedicatedMemory()
+            /// <summary>
+            /// get devices that don't share RAM with CPU
+            /// </summary>
+            /// <param name="devicePartitionEnabled">for each CPU device, this enables or disables device partition</param>
+            /// <param name="streamingEnabled">for each device, enables zero-copy buffer access for C++ array wrapper parameters</param>
+            /// <param name="MAX_CPU_CORES">for each CPU device with device partitioning enabled, limits max number of cores for the sub-device created</param>
+            /// <returns></returns>
+            public ClDevices devicesWithDedicatedMemory(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
-                // get cpu gpu acc, put in same array, order by dedicated or not
-                throw new NotImplementedException();
+                int totalDevices = 0;
+                List<ClDevice> deviceList = new List<ClDevice>();
+                for (int i = 0; i < platforms.Length; i++)
+                {
+                    int numAcc = platforms[i].numberOfAccelerators();
+                    int numCpu = platforms[i].numberOfCpus();
+                    int numGpu = platforms[i].numberOfGpus();
+                    for (int j = 0; j < numAcc; j++)
+                    {
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_ACC(), j, false, streamingEnabled, -1);
+                        if (tmp.isGddr())
+                        {
+                            totalDevices++;
+                            deviceList.Add(tmp);
+                        }
+                    }
+                    for (int j = 0; j < numCpu; j++)
+                    {
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_CPU(), j, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
+                        if (tmp.isGddr())
+                        {
+                            totalDevices++;
+                            deviceList.Add(tmp);
+                        }
+                    }
+                    for (int j = 0; j < numGpu; j++)
+                    {
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_GPU(), j, false, streamingEnabled, -1);
+                        if (tmp.isGddr())
+                        {
+                            totalDevices++;
+                            deviceList.Add(tmp);
+                        }
+                    }
+                }
+                ClDevice[] devices = deviceList.ToArray();
+
+                ClDevices clDevices = new ClDevices();
+                clDevices.devices = devices;
+                return clDevices;
             }
 
-            public ClDevices devicesWithHostMemorySharing()
+            /// <summary>
+            /// get devices that share RAM with CPU
+            /// </summary>
+            /// <param name="devicePartitionEnabled">for each CPU device, this enables or disables device partition</param>
+            /// <param name="streamingEnabled">for each device, enables zero-copy buffer access for C++ array wrapper parameters</param>
+            /// <param name="MAX_CPU_CORES">for each CPU device with device partitioning enabled, limits max number of cores for the sub-device created</param>
+            /// <returns></returns>
+            public ClDevices devicesWithHostMemorySharing(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
-                // get cpu gpu acc, put in same array, order by not dedicated or dedicated
-                throw new NotImplementedException();
+                int totalDevices = 0;
+                List<ClDevice> deviceList = new List<ClDevice>();
+                for (int i = 0; i < platforms.Length; i++)
+                {
+                    int numAcc = platforms[i].numberOfAccelerators();
+                    int numCpu = platforms[i].numberOfCpus();
+                    int numGpu = platforms[i].numberOfGpus();
+                    for (int j = 0; j < numAcc; j++)
+                    {
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_ACC(), j, false, streamingEnabled, -1);
+                        if (!tmp.isGddr())
+                        {
+                            totalDevices++;
+                            deviceList.Add(tmp);
+                        }
+                    }
+                    for (int j = 0; j < numCpu; j++)
+                    {
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_CPU(), j, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
+                        if (!tmp.isGddr())
+                        {
+                            totalDevices++;
+                            deviceList.Add(tmp);
+                        }
+                    }
+                    for (int j = 0; j < numGpu; j++)
+                    {
+                        ClDevice tmp = new ClDevice(platforms[i], ClPlatform.CODE_GPU(), j, false, streamingEnabled, -1);
+                        if (!tmp.isGddr())
+                        {
+                            totalDevices++;
+                            deviceList.Add(tmp);
+                        }
+                    }
+                }
+                ClDevice[] devices = deviceList.ToArray();
+
+                ClDevices clDevices = new ClDevices();
+                clDevices.devices = devices;
+                return clDevices;
             }
 
             public ClDevices devicesWithHighestMemoryAvailable()
@@ -571,7 +663,8 @@ namespace Cekirdekler
                 throw new NotImplementedException();
             }
 
-            public ClDevices devicesWithDedicatedMemory()
+
+            public ClDevices devicesWithDedicatedMemory(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 throw new NotImplementedException();
             }
@@ -581,12 +674,19 @@ namespace Cekirdekler
                 throw new NotImplementedException();
             }
 
-            public ClDevices devicesWithHostMemorySharing()
+            public ClDevices devicesWithHostMemorySharing(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 throw new NotImplementedException();
             }
 
-            public ClDevices devicesWithMostComputeUnits()
+            /// <summary>
+            /// get devices ordered by decreasing number of compute units
+            /// </summary>
+            /// <param name="devicePartitionEnabled">for each CPU device, this enables or disables device partition</param>
+            /// <param name="streamingEnabled">for each device, enables zero-copy buffer access for C++ array wrapper parameters</param>
+            /// <param name="MAX_CPU_CORES">for each CPU device with device partitioning enabled, limits max number of cores for the sub-device created</param>
+            /// <returns></returns>
+            public ClDevices devicesWithMostComputeUnits(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 throw new NotImplementedException();
             }
