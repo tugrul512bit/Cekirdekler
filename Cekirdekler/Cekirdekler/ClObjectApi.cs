@@ -711,7 +711,7 @@ namespace Cekirdekler
             internal ClDevice[] devices;
 
             /// <summary>
-            /// get 1 platform
+            /// get 1 device
             /// </summary>
             /// <param name="i"></param>
             /// <returns></returns>
@@ -722,6 +722,31 @@ namespace Cekirdekler
                     ClDevices tmp = this.copyExact(new int[] { i });
                     return tmp;
                 }
+            }
+
+
+            /// <summary>
+            /// add two groups of devices into one
+            /// </summary>
+            /// <param name="d1"></param>
+            /// <param name="d2"></param>
+            /// <returns></returns>
+            public static ClDevices operator  +(ClDevices d1,ClDevices d2)
+            {
+                ClDevices result = new ClDevices();
+                ClDevice[] tmp = new ClDevice[d1.devices.Length + d2.devices.Length];
+                for(int i=0;i<d1.devices.Length;i++)
+                {
+                    tmp[i] = d1.devices[i].copyExact();
+                }
+
+                for (int i = 0; i <d2.devices.Length; i++)
+                {
+                    tmp[i+d1.devices.Length] = d2.devices[i].copyExact();
+                }
+                result.devices = tmp;
+
+                return result; 
             }
 
             internal ClDevices copyExact(int[] j = null)
