@@ -211,7 +211,10 @@ namespace Cekirdekler
         {
             localRange = 256;
             IntPtr handlePlatformList = platformList();
-            
+            //for(int i=0;i< devicesForGPGPU.devices.Length;i++)
+            //{
+            //    devicesForGPGPU.devices[i].cruncherWillDispose();
+            //} 
             Dictionary<ClPlatform, List<ClDevice>> selectedDevicesForGPGPU = new Dictionary<ClPlatform, List<ClDevice>>();
 
             for (int i = 0; i < devicesForGPGPU.devices.Length; i++)

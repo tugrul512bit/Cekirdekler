@@ -189,6 +189,15 @@ namespace ClObject
         }
 
         /// <summary>
+        /// this device and its platform is used in number crunching and will be disposed in there
+        /// </summary>
+        public void cruncherWillDispose()
+        {
+            isDeleted = true;
+            clPlatformForCopy.cruncherWillDispose();
+        }
+
+        /// <summary>
         /// releases resources taken in C++ C space functions
         /// </summary>
         public void dispose()

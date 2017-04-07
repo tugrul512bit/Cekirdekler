@@ -121,6 +121,14 @@ namespace ClObject
             // platformName and vendorName are deleted when hPlatform is deleted
         }
 
+        /// <summary>
+        /// this platform is used in number crunching and will be disposed in there
+        /// </summary>
+        public void cruncherWillDispose()
+        {
+            isDeleted = true;
+        }
+
         internal ClPlatform copy()
         {
             IntPtr hList= Cores.platformList();
