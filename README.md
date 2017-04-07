@@ -11,7 +11,7 @@ This project is being enhanced using ZenHub: <a href="https://zenhub.com"><img s
 
 <h1>Features</h1>
 <ul>
-<li><b>Implicit multi device control:</b> from CPUs to any number of GPUs and ACCeelerators. Explicit in library-side for compatibility and performance, implicit for client-coder for the ease of GPGPU to concentrate on opencl kernel code.</li>
+<li><b>Implicit multi device control:</b> from CPUs to any number of GPUs and ACCeelerators. Explicit in library-side for compatibility and performance, implicit for client-coder for the ease of GPGPU to concentrate on opencl kernel code. Selection of devices can be done implicitly or explicitly to achieve ease-of-setup or detailed device query. </li>
 <li><b>Iterative load balancing between devices:</b> uniquely done for each different compute(explicit control with user-given compute-id). Multiple devices get more and more fair work loads until the ratio of work distribution converges to some point. Partitionig workload completes a kernel with less latency which is applicable for hot-spot loops and some simple embarrassingly-parallel algorithms. Even better for streaming data with pipelining option enabled.</li>
 <li><b>Pipelining for reads, computes and writes:</b> either by the mercy of device drivers or explicit event-based queue management. Hides the latency of least time consuming part(such as writes) behind the most time consuming part(such as compute). GPUs can run buffer copies and opencl kernels concurrently.</li>
 <li><b>Working with different numeric arrays:</b> Either C#-arrays like float[], int[], byte[],... or C++-array wrappers like ClFloatArray, ClArray&lt;float&gt;, ClByteArray, ClArray&lt;byte&gt; </li>
