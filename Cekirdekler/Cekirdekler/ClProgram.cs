@@ -119,6 +119,7 @@ namespace ClObject
         /// </summary>
         public void dispose()
         {
+
             if (!isDeleted)
                 deleteProgram(hProgram);
             isDeleted = true;

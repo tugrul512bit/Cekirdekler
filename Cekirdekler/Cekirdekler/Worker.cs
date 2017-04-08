@@ -1276,13 +1276,13 @@ namespace ClObject
 
             {
                 if (ranges != null)
-                    ranges.Values.ToList<ClNdRange>().ForEach(s => { if (s != null) { s.dispose(); } });
+                    ranges.Values.ToList<ClNdRange>().ForEach(s => { if (s != null) { s.dispose();s = null; } });
                 ranges = null;
                 if (buffers != null)
-                    buffers.Values.ToList<ClBuffer>().ForEach(s => { if (s != null) { s.dispose(); } });
+                    buffers.Values.ToList<ClBuffer>().ForEach(s => { if (s != null) { s.dispose();s = null; } });
                 buffers = null;
                 if (kernels != null)
-                    kernels.Values.ToList<ClKernel>().ForEach(s => { if (s != null) { s.dispose(); } });
+                    kernels.Values.ToList<ClKernel>().ForEach(s => { if (s != null) { s.dispose();s = null; } });
                 kernels = null;
                 if (program != null)
                     program.dispose();
@@ -1292,7 +1292,10 @@ namespace ClObject
                     for (int i = 0; i < kernelNames.Length; i++)
                     {
                         if (kernelNames[i] != null)
-                        { kernelNames[i].dispose(); }
+                        {
+                            kernelNames[i].dispose();
+                            kernelNames[i] = null;
+                        }
                     }
                 }
                 kernelNames = null;

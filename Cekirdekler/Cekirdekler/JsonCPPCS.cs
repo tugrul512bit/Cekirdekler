@@ -44,11 +44,23 @@ namespace ClObject
         /// </summary>
         /// <param name="hStringInfo"></param>
         /// <returns></returns>
-        public static string read(IntPtr hStringInfo)
+        public static string readWithDispose(IntPtr hStringInfo)
         {
             IntPtr t = readFromString(hStringInfo);
             string str = Marshal.PtrToStringAnsi(t);
             jsonStringCallBack(hStringInfo);
+            return str;
+        }
+
+        /// <summary>
+        /// (without delete )read string from C space string and parse by javascript serializer
+        /// </summary>
+        /// <param name="hStringInfo"></param>
+        /// <returns></returns>
+        public static string readWithoutDispose(IntPtr hStringInfo)
+        {
+            IntPtr t = readFromString(hStringInfo);
+            string str = Marshal.PtrToStringAnsi(t);
             return str;
         }
     }

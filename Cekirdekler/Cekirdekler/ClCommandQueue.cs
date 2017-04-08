@@ -83,8 +83,10 @@ namespace ClObject
         /// </summary>
         public void dispose()
         {
-            if(hCommandQueue!=IntPtr.Zero)
+
+            if (hCommandQueue!=IntPtr.Zero)
                 deleteCommandQueue(hCommandQueue);
+            hCommandQueue = IntPtr.Zero;
         }
     }
 }

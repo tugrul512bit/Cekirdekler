@@ -210,11 +210,6 @@ namespace Cekirdekler
         public Cores(ClDevices devicesForGPGPU, string kernelFileString, string[] kernelFunctionNamesInKernelFileString)
         {
             localRange = 256;
-            IntPtr handlePlatformList = platformList();
-            //for(int i=0;i< devicesForGPGPU.devices.Length;i++)
-            //{
-            //    devicesForGPGPU.devices[i].cruncherWillDispose();
-            //} 
             Dictionary<ClPlatform, List<ClDevice>> selectedDevicesForGPGPU = new Dictionary<ClPlatform, List<ClDevice>>();
 
             for (int i = 0; i < devicesForGPGPU.devices.Length; i++)
@@ -852,7 +847,7 @@ namespace Cekirdekler
         /// </summary>
         ~Cores()
         {
-
+            dispose();
         }
 
         /// <summary>
@@ -869,7 +864,7 @@ namespace Cekirdekler
 
             //if(platform!=null)
             //     platform.sil();
-
+            Console.WriteLine("Workers dispose finished.");
             for (int i = 0; i < platforms.Count; i++)
             {
                 if (platforms[i] != null)

@@ -116,8 +116,9 @@ namespace ClObject
 
             hPlatform = createPlatform(hPlatformList_,index_);
             selectedDevices = new List<ClDevice>();
-            platformName=JsonCPPCS.read(getPlatformNameString(hPlatform));
-            vendorName= JsonCPPCS.read(getPlatformVendorNameString(hPlatform));
+            // platform deletes these when disposed
+            platformName=JsonCPPCS.readWithoutDispose(getPlatformNameString(hPlatform));
+            vendorName= JsonCPPCS.readWithoutDispose(getPlatformVendorNameString(hPlatform));
             // platformName and vendorName are deleted when hPlatform is deleted
         }
 
@@ -178,15 +179,20 @@ namespace ClObject
         /// </summary>
         public void dispose()
         {
+
             if (!isDeleted)
                 deletePlatform(hPlatform);
             isDeleted = true;
         }
 
+        /// <summary>
+        /// release C++ resources when not needed(and not having referenced by devices)
+        /// </summary>
         ~ClPlatform()
         {
             dispose();
         }
+
 
         private class PlatformInformation
         {

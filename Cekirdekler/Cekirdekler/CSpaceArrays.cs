@@ -354,6 +354,7 @@ namespace Cekirdekler
             /// </summary>
             public void dispose()
             {
+
                 if (hArr != IntPtr.Zero)
                 {
                     CSpaceArrays.deleteArray(hArr);

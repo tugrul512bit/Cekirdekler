@@ -193,6 +193,7 @@ namespace Cekirdekler
         /// </summary>
         public void dispose()
         {
+
             if (numberCruncher != null)
                 numberCruncher.dispose();
             numberCruncher = null;

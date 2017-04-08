@@ -419,6 +419,7 @@ namespace ClObject
         /// </summary>
         public void dispose()
         {
+
             if (!isDeleted)
                 deleteBuffer(hBuffer);
             isDeleted = true;

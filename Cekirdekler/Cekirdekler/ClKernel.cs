@@ -79,6 +79,7 @@ namespace ClObject
         /// </summary>
         public void dispose()
         {
+
             if (!isDeleted)
                 deleteKernel(hKernel);
             isDeleted = true;

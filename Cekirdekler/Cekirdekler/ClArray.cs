@@ -569,6 +569,7 @@ namespace Cekirdekler
             /// </summary>
             public void dispose()
             {
+
                 if (array != null)
                 {
                     if (!isCSharpArr)

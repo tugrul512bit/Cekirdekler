@@ -99,8 +99,8 @@ namespace ClObject
             getDeviceVendorName(hDevice, deviceVendorNameClString.h());
             numberOfComputeUnitsPrivate = deviceComputeUnits(hDevice);
             memorySizePrivate = deviceMemSize(hDevice);
-            deviceNameStringFromOpenclCSpace = JsonCPPCS.read(deviceNameClString.h());
-            deviceVendorNameStringFromOpenclCSpace = JsonCPPCS.read(deviceVendorNameClString.h());
+            deviceNameStringFromOpenclCSpace = JsonCPPCS.readWithDispose(deviceNameClString.h());
+            deviceVendorNameStringFromOpenclCSpace = JsonCPPCS.readWithDispose(deviceVendorNameClString.h());
             typeOfUsedDeviceInClPlatform = deviceTypeCodeInClPlatform;
             if (GPU_STREAM)
                 GDDR = false;
@@ -202,14 +202,19 @@ namespace ClObject
         /// </summary>
         public void dispose()
         {
+
             if (!isDeleted)
                 deleteDevice(hDevice);
             isDeleted = true;
         }
 
+        /// <summary>
+        /// releases C++ resources when not needed (and not referenced)
+        /// </summary>
         ~ClDevice()
         {
             dispose();
         }
+
     }
 }

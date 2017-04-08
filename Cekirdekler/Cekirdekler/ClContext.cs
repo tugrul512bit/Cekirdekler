@@ -85,6 +85,7 @@ namespace ClObject
         /// </summary>
         public void dispose()
         {
+
             if (!isDeleted)
                 deleteContext(hContext);
             isDeleted = true;
