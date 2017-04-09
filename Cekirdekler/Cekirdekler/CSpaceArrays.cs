@@ -87,7 +87,7 @@ namespace Cekirdekler
             /// </summary>
             static CSpaceArrays()
             {
-                sizeOf(sizeOf_);
+                sizeOf(sizeOf_); 
             }
 
             /// <summary>
