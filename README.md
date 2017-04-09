@@ -7,6 +7,8 @@ The other needed dll is Microsoft's System.Threading.dll and its xml helper for 
 
 In total, Cekirdekler.dll and KutuphaneCL.dll and using .Net 3.5 should be enough.
 
+Usage: add only Cekirdekler.dll and system.threading.dll as references to your C# projects. Other files needs to exist in same folder with Cekirdekler.dll.
+
 This project is being enhanced using ZenHub: <a href="https://zenhub.com"><img src="https://raw.githubusercontent.com/ZenHubIO/support/master/zenhub-badge.png"></a>
 
 <h1>Features</h1>
