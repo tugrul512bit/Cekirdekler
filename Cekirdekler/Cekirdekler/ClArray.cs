@@ -79,6 +79,10 @@ namespace Cekirdekler
             /// </summary>
             bool write { get; set; }
 
+            /// <summary>
+            /// just to return typeof(T) instead of using many if-else in client code
+            /// </summary>
+            int arrayLength { get; }
 
             /// <summary>
             /// <para>number of array elements per workitem to be computed, to be buffer-copied. default=1</para>
@@ -115,6 +119,10 @@ namespace Cekirdekler
             // for adding more parameters and to be turned into an array later
             internal LinkedList<object> arrays = new LinkedList<object>();
 
+            // lengths of arrays (instead of casting and finding cast type later)
+            internal LinkedList<int> arrayLengths = new LinkedList<int>();
+
+
             // read whole 
             internal LinkedList<bool> reads = new LinkedList<bool>();
 
@@ -149,10 +157,12 @@ namespace Cekirdekler
                 ClParameterGroup gr = new ClParameterGroup();
 
                 LinkedListNode<object> node = arrays.First;
+
                 LinkedListNode<bool> node2 = reads.First;
                 LinkedListNode<bool> node3 = partialReads.First;
                 LinkedListNode<bool> node4 = writes.First;
                 LinkedListNode<int> node5 = arrayElementsPerWorkItem.First;
+                LinkedListNode<int> node6 = arrayLengths.First;
 
                 while (node != null)
                 {
@@ -161,11 +171,13 @@ namespace Cekirdekler
                     gr.partialReads.AddLast(node3.Value);
                     gr.writes.AddLast(node4.Value);
                     gr.arrayElementsPerWorkItem.AddLast(node5.Value);
+                    gr.arrayLengths.AddLast(node6.Value);
                     node = node.Next;
                     node2 = node2.Next;
                     node3 = node3.Next;
                     node4 = node4.Next;
                     node5 = node5.Next;
+                    node6 = node6.Next;
                 }
 
 
@@ -178,6 +190,7 @@ namespace Cekirdekler
                     gr.partialReads.AddLast(true);
                     gr.writes.AddLast(true);
                     gr.arrayElementsPerWorkItem.AddLast(1);
+                    gr.arrayLengths.AddLast(arrays_[i].Length);
                 }
                 return gr;
             }
@@ -199,7 +212,8 @@ namespace Cekirdekler
                 LinkedListNode<bool> node3 = partialReads.First;
                 LinkedListNode<bool> node4 = writes.First;
                 LinkedListNode<int> node5 = arrayElementsPerWorkItem.First;
-
+                LinkedListNode<int> node6 = arrayLengths.First;
+                
                 while (node != null)
                 {
                     gr.arrays.AddLast(node.Value);
@@ -207,11 +221,13 @@ namespace Cekirdekler
                     gr.partialReads.AddLast(node3.Value);
                     gr.writes.AddLast(node4.Value);
                     gr.arrayElementsPerWorkItem.AddLast(node5.Value);
+                    gr.arrayLengths.AddLast(node6.Value);
                     node = node.Next;
                     node2 = node2.Next;
                     node3 = node3.Next;
                     node4 = node4.Next;
                     node5 = node5.Next;
+                    node6 = node6.Next;
                 }
 
 
@@ -224,6 +240,7 @@ namespace Cekirdekler
                     gr.partialReads.AddLast(true);
                     gr.writes.AddLast(true);
                     gr.arrayElementsPerWorkItem.AddLast(1);
+                    gr.arrayLengths.AddLast(arrays_[i].Length);
 
                 }
                 return gr;
@@ -246,6 +263,7 @@ namespace Cekirdekler
                 LinkedListNode<bool> node3 = partialReads.First;
                 LinkedListNode<bool> node4 = writes.First;
                 LinkedListNode<int> node5 = arrayElementsPerWorkItem.First;
+                LinkedListNode<int> node6 = arrayLengths.First;
 
                 while (node != null)
                 {
@@ -254,23 +272,24 @@ namespace Cekirdekler
                     gr.partialReads.AddLast(node3.Value);
                     gr.writes.AddLast(node4.Value);
                     gr.arrayElementsPerWorkItem.AddLast(node5.Value);
+                    gr.arrayLengths.AddLast(node6.Value);
                     node = node.Next;
                     node2 = node2.Next;
                     node3 = node3.Next;
                     node4 = node4.Next;
                     node5 = node5.Next;
+                    node6 = node6.Next;
                 }
 
 
                 for (int i = 0; i < arrays_.Length; i++)
                 {
                     gr.arrays.AddLast(arrays_[i]);
-
-
                     gr.reads.AddLast(arrays_[i].read);
                     gr.partialReads.AddLast(arrays_[i].partialRead);
                     gr.writes.AddLast(arrays_[i].write);
                     gr.arrayElementsPerWorkItem.AddLast(arrays_[i].numberOfElementsPerWorkItem);
+                    gr.arrayLengths.AddLast(arrays_[i].arrayLength);
                 }
                 return gr;
             }
@@ -293,6 +312,7 @@ namespace Cekirdekler
                 LinkedListNode<bool> node03 = partialReads.First;
                 LinkedListNode<bool> node04 = writes.First;
                 LinkedListNode<int> node05 = arrayElementsPerWorkItem.First;
+                LinkedListNode<int> node06 = arrayLengths.First;
 
                 while (node0 != null)
                 {
@@ -301,11 +321,13 @@ namespace Cekirdekler
                     gr.partialReads.AddLast(node03.Value);
                     gr.writes.AddLast(node04.Value);
                     gr.arrayElementsPerWorkItem.AddLast(node05.Value);
+                    gr.arrayLengths.AddLast(node06.Value);
                     node0 = node0.Next;
                     node02 = node02.Next;
                     node03 = node03.Next;
                     node04 = node04.Next;
                     node05 = node05.Next;
+                    node06 = node06.Next;
                 }
 
 
@@ -316,23 +338,24 @@ namespace Cekirdekler
                     LinkedListNode<bool> node3 = parameterGroups_[i].partialReads.First;
                     LinkedListNode<bool> node4 = parameterGroups_[i].writes.First;
                     LinkedListNode<int> node5 = parameterGroups_[i].arrayElementsPerWorkItem.First;
+                    LinkedListNode<int> node6 = parameterGroups_[i].arrayLengths.First;
                     while (node != null)
                     {
                         if (node.Value != null)
                         {
                             gr.arrays.AddLast(node.Value);
-
-
                             gr.reads.AddLast(node2.Value);
                             gr.partialReads.AddLast(node3.Value);
                             gr.writes.AddLast(node4.Value);
                             gr.arrayElementsPerWorkItem.AddLast(node5.Value);
+                            gr.arrayLengths.AddLast(node6.Value);
                         }
                         node = node.Next;
                         node2 = node2.Next;
                         node3 = node3.Next;
                         node4 = node4.Next;
                         node5 = node5.Next;
+                        node6 = node6.Next;
                     }
                 }
                 return gr;
@@ -418,6 +441,7 @@ namespace Cekirdekler
                 string[] kernelsTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
                 object[] arrs_ = arrays.ToArray();
+                int[] lengths_ = arrayLengths.ToArray();
                 string[] reads_ = reads.Select(x => { return x ? " read " : ""; }).ToArray();
                 string[] partialReads_ = partialReads.Select(x => { return x ? " partial " : ""; }).ToArray();
                 string[] writes_ = writes.Select(x => { return x ? " write " : ""; }).ToArray();
@@ -430,6 +454,18 @@ namespace Cekirdekler
                     readWrites_[i] = sb.ToString();
                 }
                 int[] elemPerWorkItem_ = arrayElementsPerWorkItem.ToArray();
+                for (int ar = 0; ar < arrs_.Length; ar++)
+                {
+                    
+                    if ( lengths_[ar] < (globalRange * elemPerWorkItem_[ar]))
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Array-size error: (global range)*(number of array elements per work item)=(" + (globalRange * elemPerWorkItem_[ar]) + ") must be equal to or less than array length (" + (lengths_[ar]) + ").");
+                        Console.WriteLine();
+                        cruncher.numberOfErrorsHappened++;
+                        return;
+                    }
+                }
                 cruncher.numberCruncher.compute(
                     kernelsTmp, 0, "",
                     arrs_, readWrites_, elemPerWorkItem_,
@@ -1117,6 +1153,7 @@ namespace Cekirdekler
                 bd.partialReads.AddLast(partialRead);
                 bd.writes.AddLast(write);
                 bd.arrayElementsPerWorkItem.AddLast(numberOfElementsPerWorkItem);
+                bd.arrayLengths.AddLast(Length);
                 for (int i = 0; i < arrays_.Length; i++)
                 {
                     bd.arrays.AddLast(arrays_[i]);
@@ -1126,6 +1163,7 @@ namespace Cekirdekler
                     bd.partialReads.AddLast(false);
                     bd.writes.AddLast(true);
                     bd.arrayElementsPerWorkItem.AddLast(1);
+                    bd.arrayLengths.AddLast(arrays_[i].Length);
                 }
                 return bd;
             }
@@ -1146,6 +1184,7 @@ namespace Cekirdekler
                 bd.partialReads.AddLast(partialRead);
                 bd.writes.AddLast(write);
                 bd.arrayElementsPerWorkItem.AddLast(numberOfElementsPerWorkItem);
+                bd.arrayLengths.AddLast(Length);
                 for (int i = 0; i < arrays_.Length; i++)
                 {
                     bd.arrays.AddLast(arrays_[i]);
@@ -1155,6 +1194,7 @@ namespace Cekirdekler
                     bd.partialReads.AddLast(false);
                     bd.writes.AddLast(true);
                     bd.arrayElementsPerWorkItem.AddLast(1);
+                    bd.arrayLengths.AddLast(arrays_[i].Length);
                 }
                 return bd;
             }
@@ -1175,6 +1215,7 @@ namespace Cekirdekler
                 bd.partialReads.AddLast(partialRead);
                 bd.writes.AddLast(write);
                 bd.arrayElementsPerWorkItem.AddLast(numberOfElementsPerWorkItem);
+                bd.arrayLengths.AddLast(Length);
                 for (int i = 0; i < arrays_.Length; i++)
                 {
                     bd.arrays.AddLast(arrays_[i]);
@@ -1184,6 +1225,7 @@ namespace Cekirdekler
                     bd.partialReads.AddLast(arrays_[i].partialRead);
                     bd.writes.AddLast(arrays_[i].write);
                     bd.arrayElementsPerWorkItem.AddLast(arrays_[i].numberOfElementsPerWorkItem);
+                    bd.arrayLengths.AddLast(arrays_[i].arrayLength);
                 }
                 return bd;
             }
@@ -1204,6 +1246,7 @@ namespace Cekirdekler
                 bd.partialReads.AddLast(partialRead);
                 bd.writes.AddLast(write);
                 bd.arrayElementsPerWorkItem.AddLast(numberOfElementsPerWorkItem);
+                bd.arrayLengths.AddLast(Length);
 
                 for (int i = 0; i < parameterGroups_.Length; i++)
                 {
@@ -1212,6 +1255,7 @@ namespace Cekirdekler
                     LinkedListNode<bool> node3 = parameterGroups_[i].partialReads.First;
                     LinkedListNode<bool> node4 = parameterGroups_[i].writes.First;
                     LinkedListNode<int> node5 = parameterGroups_[i].arrayElementsPerWorkItem.First;
+                    LinkedListNode<int> node6 = parameterGroups_[i].arrayLengths.First;
                     while (node != null)
                     {
                         if (node.Value != null)
@@ -1221,12 +1265,14 @@ namespace Cekirdekler
                             bd.partialReads.AddLast(node3.Value);
                             bd.writes.AddLast(node4.Value);
                             bd.arrayElementsPerWorkItem.AddLast(node5.Value);
+                            bd.arrayLengths.AddLast(node6.Value);
                         }
                         node = node.Next;
                         node2 = node2.Next;
                         node3 = node3.Next;
                         node4 = node4.Next;
                         node5 = node5.Next;
+                        node6 = node6.Next;
                     }
                 }
                 return bd;
@@ -1248,6 +1294,7 @@ namespace Cekirdekler
                                 int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
                                 bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
             {
+                
                 if(cruncher.numberOfErrorsHappened>0)
                 {
                     Console.WriteLine();
@@ -1300,15 +1347,24 @@ namespace Cekirdekler
                     if ((globalRange < (localRange * cruncher.numberCruncher.workers.Length * pipelineBlobs)))
                     {
                         Console.WriteLine();
-                        Console.WriteLine("Work-size error: global work size must be equal to or greater than (number of selected devices)*(local worksize)*(number of pipeline blobs)=(" + (cruncher.numberCruncher.workers.Length * localRange * pipelineBlobs) + ") if pipelining is enabled.");
+                        Console.WriteLine("Work-size error: global range(" + globalRange + ") must be equal to or greater than (number of selected devices)*(local worksize)*(number of pipeline blobs)=(" + (cruncher.numberCruncher.workers.Length * localRange * pipelineBlobs) + ") if pipelining is enabled.");
                         Console.WriteLine();
                         cruncher.numberOfErrorsHappened++;
                         return;
                     }
                 }
+                if(Length<(globalRange * numberOfElementsPerWorkItem))
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Array-size error: (global range)*(number of array elements per work item)=(" + (globalRange * numberOfElementsPerWorkItem) + ") must be equal to or less than array length (" + (Length) + ").");
+                    Console.WriteLine();
+                    cruncher.numberOfErrorsHappened++;
+                    return;
+                }
                 string[] kernellerTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
                 object[] arrs_ = new object[] { this };
+                int[] lengths_ = new int[] {this.Length };
                 string[] reads_ = new string[] { read ? " read " : "" };
                 string[] partialReads_ = new string[] { partialRead ? " partial " : "" };
                 string[] writes_ = new string[] { write ? " write " : "" };
@@ -1321,6 +1377,19 @@ namespace Cekirdekler
                     readWrites_[i] = sb.ToString();
                 }
                 int[] elemsPerWorkItem_ = new int[] { numberOfElementsPerWorkItem };
+
+                for (int ar = 0; ar < arrs_.Length; ar++)
+                {
+
+                    if (lengths_[ar] < (globalRange * elemsPerWorkItem_[ar]))
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Array-size error: (global range)*(number of array elements per work item)=(" + (globalRange * elemsPerWorkItem_[ar]) + ") must be equal to or less than array length (" + (lengths_[ar]) + ").");
+                        Console.WriteLine();
+                        cruncher.numberOfErrorsHappened++;
+                        return;
+                    }
+                }
                 cruncher.numberCruncher.compute(
                     kernellerTmp, 0, "",
                     arrs_, readWrites_, elemsPerWorkItem_,
@@ -1353,6 +1422,17 @@ namespace Cekirdekler
             /// <para>global range * this number must be smaller than or equal to array size </para>
             /// </summary>
             public int numberOfElementsPerWorkItem { get; set; }
+
+            /// <summary>
+            /// <para>for more communication between interfaces</para>
+            /// </summary>
+            public int arrayLength
+            {
+                get
+                {
+                    return Length;
+                }
+            }
 
             /// <summary>
             /// <para>direct access to C++ array elements just like C# arrays</para>
