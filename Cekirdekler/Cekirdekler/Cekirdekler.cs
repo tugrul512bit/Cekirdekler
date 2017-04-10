@@ -53,7 +53,7 @@ namespace Cekirdekler
         List<ClPlatform> platforms = new List<ClPlatform>();
 
         ClString kernels = null;
-        Worker[] workers = null;
+        internal Worker[] workers = null;
         ClString[] kernelNames = null;
         private int errorNotification;
 
