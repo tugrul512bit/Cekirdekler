@@ -57,7 +57,7 @@ namespace Cekirdekler
     {
         internal Cores numberCruncher {get;set;}
         internal int errorNotification { get; set; }
-
+        internal int numberOfErrorsHappened { get; set; }
         /// <summary>
         /// outputs to console: each device's performance(and memory target type) results per compute() operation
         /// </summary>
@@ -81,6 +81,7 @@ namespace Cekirdekler
                             int numberofCPUCoresToUseAsDeviceFission = -1,
                             int numberOfGPUsToUse = -1, bool stream = true)
         {
+            numberOfErrorsHappened = 0;
             StringBuilder cpuGpu_ = new StringBuilder("");
             if (((int)cpuGpu & ((int)AcceleratorType.CPU)) > 0)
                 cpuGpu_.Append("cpu ");
@@ -116,6 +117,7 @@ namespace Cekirdekler
                 Console.WriteLine(numberCruncher.errorMessage());
                 errorNotification = numberCruncher.errorCode();
                 numberCruncher.dispose();
+                numberOfErrorsHappened++;
                 return;
             }
             
@@ -131,7 +133,7 @@ namespace Cekirdekler
         /// <param name="stream">devices that share RAM with CPU will not do extra copies. Devices that don't share RAM will directly access RAM and reduce number of copies</param>
         public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,bool stream = true)
         {
-            
+            numberOfErrorsHappened = 0;
             List<string> kernelNames_ = new List<string>();
 
             // extracting patterns kernel _ _ _ void _ _ name _ _ (
@@ -158,6 +160,7 @@ namespace Cekirdekler
                 Console.WriteLine(numberCruncher.errorMessage());
                 errorNotification = numberCruncher.errorCode();
                 numberCruncher.dispose();
+                numberOfErrorsHappened++;
                 return;
             }
 

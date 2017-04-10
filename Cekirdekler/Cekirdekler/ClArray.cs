@@ -355,28 +355,39 @@ namespace Cekirdekler
                                 int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
                                 bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
             {
+                if (cruncher.numberOfErrorsHappened > 0)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Error: there has been " + (cruncher.numberOfErrorsHappened) + " error(s) before, cannot compute.");
+                    Console.WriteLine();
+                    return;
+                }
                 if (cruncher.errorCode() != 0)
                 {
                     Console.WriteLine("Number-cruncher C99-device compiling error:");
                     Console.WriteLine(cruncher.errorMessage());
+                    cruncher.numberOfErrorsHappened++;
                     return;
                 }
 
-                if((globalRange%localRange)!=0)
+                if ((globalRange % localRange) != 0)
                 {
                     Console.WriteLine();
-                    Console.WriteLine("Work-size error: global range("+ globalRange + ") is not an integer multiple of local range. Global range has to be exact multiple of local range("+localRange+").  This is obliged by OpenCL rules.");
+                    Console.WriteLine("Work-size error: global range(" + globalRange + ") is not an integer multiple of local range. Global range has to be exact multiple of local range(" + localRange + ").  This is obliged by OpenCL rules.");
                     Console.WriteLine();
+                    cruncher.numberOfErrorsHappened++;
                     return;
                 }
 
-                if(pipeline)
+                if (pipeline)
                 {
-                    if((globalRange % (localRange*pipelineBlobs)) != 0)
+                    if ((globalRange % (localRange * pipelineBlobs)) != 0)
                     {
                         Console.WriteLine();
-                        Console.WriteLine("Work-size error: global range(" + globalRange + ") is not an integer multiple of (local range)*(number of pipeline blobs)=("+(localRange * cruncher.numberCruncher.workers.Length)+").");
+                        Console.WriteLine("Work-size error: global range(" + globalRange + ") is not an integer multiple of (local range)*(number of pipeline blobs)=(" + (localRange * cruncher.numberCruncher.workers.Length) + ").");
                         Console.WriteLine();
+                        cruncher.numberOfErrorsHappened++;
+                        return;
                     }
                 }
 
@@ -385,8 +396,9 @@ namespace Cekirdekler
                     if ((globalRange < (localRange * cruncher.numberCruncher.workers.Length)))
                     {
                         Console.WriteLine();
-                        Console.WriteLine("Work-size error: global work size("+globalRange+") must be equal to or greater than (number of selected devices)*(local worksize)=("+(cruncher.numberCruncher.workers.Length * localRange)+")");
+                        Console.WriteLine("Work-size error: global work size(" + globalRange + ") must be equal to or greater than (number of selected devices)*(local worksize)=(" + (cruncher.numberCruncher.workers.Length * localRange) + ")");
                         Console.WriteLine();
+                        cruncher.numberOfErrorsHappened++;
                         return;
                     }
                 }
@@ -395,8 +407,9 @@ namespace Cekirdekler
                     if ((globalRange < (localRange * cruncher.numberCruncher.workers.Length * pipelineBlobs)))
                     {
                         Console.WriteLine();
-                        Console.WriteLine("Work-size error: global work size must be equal to or greater than (number of selected devices)*(local worksize)*(number of pipeline blobs)=("+ (cruncher.numberCruncher.workers.Length * localRange * pipelineBlobs) + ") if pipelining is enabled.");
+                        Console.WriteLine("Work-size error: global work size must be equal to or greater than (number of selected devices)*(local worksize)*(number of pipeline blobs)=(" + (cruncher.numberCruncher.workers.Length * localRange * pipelineBlobs) + ") if pipelining is enabled.");
                         Console.WriteLine();
+                        cruncher.numberOfErrorsHappened++;
                         return;
                     }
                 }
@@ -1235,10 +1248,18 @@ namespace Cekirdekler
                                 int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
                                 bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
             {
+                if(cruncher.numberOfErrorsHappened>0)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Error: there has been "+(cruncher.numberOfErrorsHappened)+" error(s) before, cannot compute.");
+                    Console.WriteLine();
+                    return;
+                }
                 if (cruncher.errorCode() != 0)
                 {
                     Console.WriteLine("Number-cruncher C99-device compiling error:");
                     Console.WriteLine(cruncher.errorMessage());
+                    cruncher.numberOfErrorsHappened++;
                     return;
                 }
 
@@ -1247,6 +1268,7 @@ namespace Cekirdekler
                     Console.WriteLine();
                     Console.WriteLine("Work-size error: global range(" + globalRange + ") is not an integer multiple of local range. Global range has to be exact multiple of local range(" + localRange + ").  This is obliged by OpenCL rules.");
                     Console.WriteLine();
+                    cruncher.numberOfErrorsHappened++;
                     return;
                 }
 
@@ -1257,6 +1279,8 @@ namespace Cekirdekler
                         Console.WriteLine();
                         Console.WriteLine("Work-size error: global range(" + globalRange + ") is not an integer multiple of (local range)*(number of pipeline blobs)=(" + (localRange * cruncher.numberCruncher.workers.Length) + ").");
                         Console.WriteLine();
+                        cruncher.numberOfErrorsHappened++;
+                        return;
                     }
                 }
 
@@ -1267,6 +1291,7 @@ namespace Cekirdekler
                         Console.WriteLine();
                         Console.WriteLine("Work-size error: global work size(" + globalRange + ") must be equal to or greater than (number of selected devices)*(local worksize)=(" + (cruncher.numberCruncher.workers.Length * localRange) + ")");
                         Console.WriteLine();
+                        cruncher.numberOfErrorsHappened++;
                         return;
                     }
                 }
@@ -1277,6 +1302,7 @@ namespace Cekirdekler
                         Console.WriteLine();
                         Console.WriteLine("Work-size error: global work size must be equal to or greater than (number of selected devices)*(local worksize)*(number of pipeline blobs)=(" + (cruncher.numberCruncher.workers.Length * localRange * pipelineBlobs) + ") if pipelining is enabled.");
                         Console.WriteLine();
+                        cruncher.numberOfErrorsHappened++;
                         return;
                     }
                 }
