@@ -400,6 +400,8 @@ namespace Cekirdekler
                         return;
                     }
                 }
+
+
                 string[] kernelsTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
                 object[] arrs_ = arrays.ToArray();
@@ -1235,8 +1237,48 @@ namespace Cekirdekler
             {
                 if (cruncher.errorCode() != 0)
                 {
+                    Console.WriteLine("Number-cruncher C99-device compiling error:");
                     Console.WriteLine(cruncher.errorMessage());
                     return;
+                }
+
+                if ((globalRange % localRange) != 0)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Work-size error: global range(" + globalRange + ") is not an integer multiple of local range. Global range has to be exact multiple of local range(" + localRange + ").  This is obliged by OpenCL rules.");
+                    Console.WriteLine();
+                    return;
+                }
+
+                if (pipeline)
+                {
+                    if ((globalRange % (localRange * pipelineBlobs)) != 0)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Work-size error: global range(" + globalRange + ") is not an integer multiple of (local range)*(number of pipeline blobs)=(" + (localRange * cruncher.numberCruncher.workers.Length) + ").");
+                        Console.WriteLine();
+                    }
+                }
+
+                if (!pipeline)
+                {
+                    if ((globalRange < (localRange * cruncher.numberCruncher.workers.Length)))
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Work-size error: global work size(" + globalRange + ") must be equal to or greater than (number of selected devices)*(local worksize)=(" + (cruncher.numberCruncher.workers.Length * localRange) + ")");
+                        Console.WriteLine();
+                        return;
+                    }
+                }
+                else
+                {
+                    if ((globalRange < (localRange * cruncher.numberCruncher.workers.Length * pipelineBlobs)))
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Work-size error: global work size must be equal to or greater than (number of selected devices)*(local worksize)*(number of pipeline blobs)=(" + (cruncher.numberCruncher.workers.Length * localRange * pipelineBlobs) + ") if pipelining is enabled.");
+                        Console.WriteLine();
+                        return;
+                    }
                 }
                 string[] kernellerTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
