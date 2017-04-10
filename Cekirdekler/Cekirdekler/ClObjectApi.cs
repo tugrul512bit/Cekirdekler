@@ -724,6 +724,13 @@ namespace Cekirdekler
                 }
             }
 
+            /// <summary>
+            /// must start from platforms.all() then narrow the selection until it reaches device
+            /// </summary>
+            internal ClDevices()
+            {
+
+            }
 
             /// <summary>
             /// add two groups of devices into one
