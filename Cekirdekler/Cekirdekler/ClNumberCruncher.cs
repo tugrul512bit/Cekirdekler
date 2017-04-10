@@ -128,12 +128,8 @@ namespace Cekirdekler
         /// </summary>
         /// <param name="devicesForGPGPU">one or more devices for GPGPU</param>
         /// <param name="kernelString">something like: @"multi-line C# string that has multiple kernel definitions"</param>
-        /// <param name="numberofCPUCoresToUseAsDeviceFission">AcceleratorType.CPU uses number of threads for an N-core CPU(between 1 and N-1)(-1 means N-1)</param>
-        /// <param name="numberOfGPUsToUse">AcceleratorType.GPU uses number of GPUs equal to this parameter. Between 1 and N(-1 means N)</param>
         /// <param name="stream">devices that share RAM with CPU will not do extra copies. Devices that don't share RAM will directly access RAM and reduce number of copies</param>
-        public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,
-                            int numberofCPUCoresToUseAsDeviceFission = -1,
-                            int numberOfGPUsToUse = -1, bool stream = true)
+        public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,bool stream = true)
         {
             
             List<string> kernelNames_ = new List<string>();
