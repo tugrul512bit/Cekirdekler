@@ -28,51 +28,49 @@ namespace ClCluster
     /// <summary>
     /// prealpha cluster feature
     /// </summary>
-    public class CekirdekServer
+    public class ClCruncherServer
     {
         int PORT_NO;
         string SERVER_IP;
         int MAX_CLIENT_N;
-        Dictionary<string, CekirdekServerThread> clientler;
-        bool calisiyor;
+        Dictionary<string, ClCruncherServerThread> clients;
+        bool isWorking;
         Thread listenerThread;
-        object kilit;
-        public CekirdekServer(int port_no = 15000, string server_ip = "192.168.1.4", int maxClientN = 4)
+        object lockObj;
+        public ClCruncherServer(int port_no = 15000, string server_ip = "192.168.1.4", int maxClientN = 4)
         {
-            calisiyor = true;
+            isWorking = true;
             MAX_CLIENT_N = maxClientN;
             PORT_NO = port_no;
             SERVER_IP = new StringBuilder(server_ip).ToString();
-            kilit = new object();
-            clientler = new Dictionary<string, CekirdekServerThread>();
+            lockObj = new object();
+            clients = new Dictionary<string, ClCruncherServerThread>();
         }
 
-        public void dur()
+        public void stop()
         {
-            lock (kilit)
+            lock (lockObj)
             {
-                calisiyor = false;
+                isWorking = false;
             }
         }
 
-        private void baglantiAc(TcpListener listener)
+        private void openConnection(TcpListener listener)
         {
-            //---incoming client connected---
             TcpClient client = listener.AcceptTcpClient();
             client.ReceiveBufferSize = NetworkBuffer.receiveSendBufferSize;
-            //---get the incoming data through a network stream---
             NetworkStream nwStream = client.GetStream();
             var sc = nwStream.GetType().GetProperty("Socket", BindingFlags.Instance | BindingFlags.NonPublic);
             var socketIp = ((Socket)sc.GetValue(nwStream, null)).RemoteEndPoint.ToString();
             Console.WriteLine("@@@" + socketIp);
-            if (clientler.ContainsKey(socketIp))
+            if (clients.ContainsKey(socketIp))
             {
 
             }
             else
             {
-                CekirdekServerThread cst = new CekirdekServerThread(listener, client, socketIp, this);
-                clientler.Add(socketIp, cst);
+                ClCruncherServerThread cst = new ClCruncherServerThread(listener, client, socketIp, this);
+                clients.Add(socketIp, cst);
             }
 
 
@@ -80,41 +78,41 @@ namespace ClCluster
 
         }
 
-        public void basla()
+        public void start()
         {
             listenerThread = new Thread(listen);
             listenerThread.Start();
             listenerThread.IsBackground = true;
         }
 
-        public void bekle()
+        public void wait()
         {
-            lock (kilit)
+            lock (lockObj)
             {
-                Monitor.PulseAll(kilit);
-                Monitor.Wait(kilit);
+                Monitor.PulseAll(lockObj);
+                Monitor.Wait(lockObj);
             }
         }
 
-        public void devamEt()
+        public void continueFromLastWait()
         {
-            lock (kilit)
+            lock (lockObj)
             {
-                Monitor.PulseAll(kilit);
+                Monitor.PulseAll(lockObj);
             }
         }
 
         private void listen()
         {
             int tmp_max = MAX_CLIENT_N;
-            int clientCt = clientler.Count;
-            bool tmpCalisiyor = true;
+            int clientCt = clients.Count;
+            bool tmpWorking = true;
             IPAddress localAdd = IPAddress.Parse(SERVER_IP);
             TcpListener listener = new TcpListener(localAdd, PORT_NO);
-            while (tmpCalisiyor)
+            while (tmpWorking)
             {
 
-                Console.WriteLine("tcp server dinlemede");
+                Console.WriteLine("tcp server is listening");
                 listener.Server.ReceiveTimeout = 10000;
                 listener.Server.SendTimeout = 10000;
                 listener.Start();
@@ -122,14 +120,14 @@ namespace ClCluster
                 {
                     Thread.Sleep(1);
                 }
-                baglantiAc(listener);
+                openConnection(listener);
 
 
-                lock (kilit)
+                lock (lockObj)
                 {
                     tmp_max = MAX_CLIENT_N;
-                    clientCt = clientler.Count;
-                    tmpCalisiyor = calisiyor;
+                    clientCt = clients.Count;
+                    tmpWorking = isWorking;
                     Console.WriteLine("a=" + clientCt + " b=" + tmp_max);
                 }
             }
@@ -138,15 +136,15 @@ namespace ClCluster
 
 
 
-        public void sil()
+        public void dispose()
         {
-            lock (kilit)
+            lock (lockObj)
             {
-                calisiyor = false;
-                var liste = clientler.ToList();
-                foreach (var item in liste)
+                isWorking = false;
+                var clientsList = clients.ToList();
+                foreach (var item in clientsList)
                 {
-                    item.Value.sil();
+                    item.Value.dispose();
                 }
             }
         }

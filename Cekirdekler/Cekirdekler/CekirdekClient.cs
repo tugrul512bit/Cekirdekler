@@ -26,7 +26,7 @@ namespace ClCluster
     /// <summary>
     /// prealpha cluster feature
     /// </summary>
-    public class CekirdekClient
+    public class ClCruncherClient
     {
         TcpClient client;
         int PORT_NO;
@@ -34,7 +34,7 @@ namespace ClCluster
         Thread t;
         NetworkStream nwStream;
         public bool exception = false;
-        public CekirdekClient(int port_no, string server_ip)
+        public ClCruncherClient(int port_no, string server_ip)
         {
             PORT_NO = port_no;
             SERVER_IP = (new StringBuilder(server_ip)).ToString();
@@ -65,219 +65,201 @@ namespace ClCluster
 
 
 
-        private void upload(NetworkStream nwStream, byte[] gonderilecek)
+        private void upload(NetworkStream nwStream, byte[] toBeSent)
         {
 
             byte endianness = BitConverter.IsLittleEndian ? (byte)0 : (byte)1;
 
 
             int pos = 0;
-            while (pos < gonderilecek.Length)
+            while (pos < toBeSent.Length)
             {
-                int l = Math.Min(gonderilecek.Length - pos, NetworkBuffer.receiveSendBufferSize);
-                nwStream.Write(gonderilecek, pos, l);
+                int l = Math.Min(toBeSent.Length - pos, NetworkBuffer.receiveSendBufferSize);
+                nwStream.Write(toBeSent, pos, l);
                 pos += l;
             }
         }
 
 
-        private NetworkBuffer download(NetworkStream nwStream, object[] diziler_ = null)
+        private NetworkBuffer download(NetworkStream nwStream, object[] arraysParameter = null)
         {
             /* cevap alınıyor */
             int bytesRead = NetworkBuffer.receiveSendBufferSize;
-            int uzunluk = -1;
-            int byteToplam = 0;
+            int length = -1;
+            int bytesTotal = 0;
             byte[] buffer = new byte[NetworkBuffer.receiveSendBufferSize];
             byte[] serverBuffer = new byte[NetworkBuffer.receiveSendBufferSize];
-            int sayac = 0;
-            NetworkBuffer nbCevap = new NetworkBuffer();
+            int counter = 0;
+            NetworkBuffer nbAnswer = new NetworkBuffer();
             while (!nwStream.DataAvailable) { Thread.Sleep(1); }
-            while (nwStream.CanRead && bytesRead > 0 && (uzunluk == -1 || byteToplam < uzunluk))
+            while (nwStream.CanRead && bytesRead > 0 && (length == -1 || bytesTotal < length))
             {
 
                 bytesRead = nwStream.Read(buffer, 0, NetworkBuffer.receiveSendBufferSize);
 
 
-                if (uzunluk == -1)
-                    uzunluk = nbCevap.bufferBoyuOku(buffer);
-                if (uzunluk == 0)
+                if (length == -1)
+                    length = nbAnswer.readLengthOfBuffer(buffer);
+                if (length == 0)
                 {
-                    Console.WriteLine("client: buffer alınamadı.");
-                    return nbCevap;
+                    Console.WriteLine("client: couldn't receive buffer.");
+                    return nbAnswer;
                 }
                 else
                 {
-                    if (serverBuffer.Length < uzunluk)
-                        serverBuffer = new byte[uzunluk];
-                    Buffer.BlockCopy(buffer, 0, serverBuffer, byteToplam, bytesRead);
-                    byteToplam += bytesRead;
+                    if (serverBuffer.Length < length)
+                        serverBuffer = new byte[length];
+                    Buffer.BlockCopy(buffer, 0, serverBuffer, bytesTotal, bytesRead);
+                    bytesTotal += bytesRead;
                 }
             }
-            List<NetworkBuffer.HashIndisSiraDizi> sonucDizileri = nbCevap.oku(serverBuffer, "client", diziler_);
+            List<NetworkBuffer.HashIndisSiraDizi> resultingArrays = nbAnswer.oku(serverBuffer, "client", arraysParameter);
 
-            return nbCevap;
+            return nbAnswer;
         }
 
-        public void kurulum(string aygitTurleri = "",
-             string kerneller_ = "",
-             string[] kernelIsimleri_ = null,
-             int localThreadSayisi_ = 256,
-             int kullanilacakGPUSayisi_ = -1,
+        public void netSetup(string deviceTypesParameter = "",
+             string kernelsString = "",
+             string[] kernelNamesStringArray = null,
+             int localWorkgroupSizeInWorkitems = 256,
+             int numberOfGpusToUse = -1,
              bool GPU_STREAM_ = false,
              int MAX_CPU_ = -1)
         {
-            NetworkBuffer nb = new NetworkBuffer(NetworkBuffer.KURULUM);
-            if (aygitTurleri.Equals(""))
-                aygitTurleri = "cpu gpu";
+            NetworkBuffer nb = new NetworkBuffer(NetworkBuffer.SETUP);
+            if (deviceTypesParameter.Equals(""))
+                deviceTypesParameter = "cpu gpu";
 
-            if (kerneller_.Equals(""))
-                kerneller_ = @"__kernel void serverDeneme(__global float *a){a[get_global_id(0)]+=3.14f;}";
+            if (kernelsString.Equals(""))
+                kernelsString = @"__kernel void serverDeneme(__global float *a){a[get_global_id(0)]+=3.14f;}";
 
-            if (kernelIsimleri_ == null)
-                kernelIsimleri_ = new string[] { "serverDeneme" };
+            if (kernelNamesStringArray == null)
+                kernelNamesStringArray = new string[] { "serverDeneme" };
 
-            int[] localThreadSayisi = new int[] { localThreadSayisi_ };
-            int[] kullanilacakGPUSayisi = new int[] { kullanilacakGPUSayisi_ };
+            int[] localThreadNumber = new int[] { localWorkgroupSizeInWorkitems };
+            int[] gpusToUse = new int[] { numberOfGpusToUse };
             bool[] GPU_STREAM = new bool[] { GPU_STREAM_ };
             int[] MAX_CPU = new int[] { MAX_CPU_ };
-            string ki = String.Join(" ", kernelIsimleri_);
-            nb.ekle(aygitTurleri.ToCharArray(), aygitTurleri.GetHashCode());
-            nb.ekle(kerneller_.ToCharArray(), kerneller_.GetHashCode());
-            nb.ekle(ki.ToCharArray(), ki.GetHashCode());
-            nb.ekle(localThreadSayisi, localThreadSayisi.GetHashCode());
-            nb.ekle(kullanilacakGPUSayisi, kullanilacakGPUSayisi.GetHashCode());
-            nb.ekle(GPU_STREAM, GPU_STREAM.GetHashCode());
-            nb.ekle(MAX_CPU, MAX_CPU.GetHashCode());
+            string ki = String.Join(" ", kernelNamesStringArray);
+            nb.addCompute(deviceTypesParameter.ToCharArray(), deviceTypesParameter.GetHashCode());
+            nb.addCompute(kernelsString.ToCharArray(), kernelsString.GetHashCode());
+            nb.addCompute(ki.ToCharArray(), ki.GetHashCode());
+            nb.addComputeSteps(localThreadNumber, localThreadNumber.GetHashCode());
+            nb.addComputeSteps(gpusToUse, gpusToUse.GetHashCode());
+            nb.addPipeline(GPU_STREAM, GPU_STREAM.GetHashCode());
+            nb.addComputeSteps(MAX_CPU, MAX_CPU.GetHashCode());
 
             upload(nwStream, nb.buf());
             Console.WriteLine(download(nwStream));
         }
 
-        public void hesap(string[] kernelAdi___ = null,
-            int adimSayisi_ = 0, string adimFonksiyonu = "",
-            object[] diziler_ = null, string[] oku_yaz = null,
-            int[] enKucukElemanGrubundakiElemanSayisi = null,
-            int toplamMenzil_ = 1024, int hesapId_ = 1,
-            int threadReferans_ = 0, bool pipelineAcik_ = false,
-            int pipelineParcaSayisi__ = 4, bool pipelineTuru_ = Cores.PIPELINE_EVENT)
+        public void compute(string[] kernelNameStringArray = null,
+            int numberOfSteps = 0, string stepFunction = "",
+            object[] arrays = null, string[] readWrite = null,
+            int[] arrayElementsPerWorkItem = null,
+            int globalRange = 1024, int computeId = 1,
+            int globalOffset = 0, bool enablePipeline = false,
+            int numberOfPipelineBlobs = 4, bool typeOfPipeline = Cores.PIPELINE_EVENT)
         {
-            NetworkBuffer nbHesap = new NetworkBuffer(NetworkBuffer.HESAP);
-            if (kernelAdi___ == null)
-                kernelAdi___ = new string[] { "serverDeneme" };
-            string kernelAdi__ = String.Join(" ", kernelAdi___);
+            NetworkBuffer nbCompute = new NetworkBuffer(NetworkBuffer.COMPUTE);
+            if (kernelNameStringArray == null)
+                kernelNameStringArray = new string[] { "serverDeneme" };
+            string kernelName = String.Join(" ", kernelNameStringArray);
 
-            int[] adimSayisi = new int[] { adimSayisi_ };
+            int[] numberOfStepsArray = new int[] { numberOfSteps };
 
-            if (diziler_ == null)
-                diziler_ = new object[] { new float[1024] };
+            if (arrays == null)
+                arrays = new object[] { new float[1024] };
 
-            int[] diziler_adet = new int[] { diziler_.Length };
+            int[] numberOfArrays = new int[] { arrays.Length };
 
-            if (oku_yaz == null)
-                oku_yaz = new string[] { "oku yaz" };
+            if (readWrite == null)
+                readWrite = new string[] { "read write" }; // unoptimized for now
 
-            if (enKucukElemanGrubundakiElemanSayisi == null)
-                enKucukElemanGrubundakiElemanSayisi = new int[] { 1 };
+            if (arrayElementsPerWorkItem == null)
+                arrayElementsPerWorkItem = new int[] { 1 };
 
-            int[] toplamMenzil = new int[] { toplamMenzil_ };
+            int[] totalGlobalRange = new int[] { globalRange };
 
-            int[] hesapId = new int[] { hesapId_ };
+            int[] computeIdArray = new int[] { computeId };
 
 
-            int[] threadReferans = new int[] { threadReferans_ };
+            int[] globalOffsetArray = new int[] { globalOffset };
 
-            bool[] pipelineAcik = new bool[] { pipelineAcik_ };
+            bool[] pipelineEnabledArray = new bool[] { enablePipeline };
 
-            int[] pipelineParcaSayisi_ = new int[] { pipelineParcaSayisi__/* default 4 ama pipeline kapalıyken önemsiz*/};
+            int[] pipelineBlobsArray = new int[] { numberOfPipelineBlobs/* default 4 but unimportant when pipelining is disabled*/};
 
-            bool[] pipelineTuru = new bool[] { pipelineTuru_ };
+            bool[] pipelineTypeArray = new bool[] { typeOfPipeline };
 
-            nbHesap.ekle(kernelAdi__.ToCharArray(), kernelAdi__.GetHashCode());
-            nbHesap.ekle(adimSayisi, adimSayisi.GetHashCode());
-            nbHesap.ekle(adimFonksiyonu.ToCharArray(), adimFonksiyonu.GetHashCode());
-            nbHesap.ekle(diziler_adet, diziler_adet.GetHashCode());
+            nbCompute.addCompute(kernelName.ToCharArray(), kernelName.GetHashCode());
+            nbCompute.addComputeSteps(numberOfStepsArray, numberOfStepsArray.GetHashCode());
+            nbCompute.addCompute(stepFunction.ToCharArray(), stepFunction.GetHashCode());
+            nbCompute.addComputeSteps(numberOfArrays, numberOfArrays.GetHashCode());
 
-            for (int m = 0; m < diziler_.Length; m++)
+            for (int m = 0; m < arrays.Length; m++)
             {
-                if (oku_yaz[m].Contains("partial"))
+                if (readWrite[m].Contains("partial"))
                 {
-                    // yapılacak: FloatDizi türü de eklenecek
-                    if (diziler_[m].GetType() == typeof(float[]))
-                        nbHesap.ekle((float[])diziler_[m], diziler_[m].GetHashCode(),
-                            threadReferans_, toplamMenzil_, enKucukElemanGrubundakiElemanSayisi[m]);
-                    else if (diziler_[m].GetType() == typeof(int[]))
-                        nbHesap.ekle((int[])diziler_[m], diziler_[m].GetHashCode(),
-                            threadReferans_, toplamMenzil_, enKucukElemanGrubundakiElemanSayisi[m]);
-                    else if (diziler_[m].GetType() == typeof(byte[]))
-                        nbHesap.ekle((byte[])diziler_[m], diziler_[m].GetHashCode(),
-                            threadReferans_, toplamMenzil_, enKucukElemanGrubundakiElemanSayisi[m]);
-                    else if (diziler_[m].GetType() == typeof(char[]))
-                        nbHesap.ekle((char[])diziler_[m], diziler_[m].GetHashCode(),
-                            threadReferans_, toplamMenzil_, enKucukElemanGrubundakiElemanSayisi[m]);
-                    else if (diziler_[m].GetType() == typeof(double[]))
-                        nbHesap.ekle((double[])diziler_[m], diziler_[m].GetHashCode(),
-                            threadReferans_, toplamMenzil_, enKucukElemanGrubundakiElemanSayisi[m]);
-                    else if (diziler_[m].GetType() == typeof(long[]))
-                        nbHesap.ekle((long[])diziler_[m], diziler_[m].GetHashCode(),
-                            threadReferans_, toplamMenzil_, enKucukElemanGrubundakiElemanSayisi[m]);
-                    /*
-                    else if (diziler_[m].GetType() == typeof(FloatDizi))
-                        nbHesap.ekle((FloatDizi)diziler_[m], diziler_[m].GetHashCode(),
-                            threadReferans_, toplamMenzil_, enKucukElemanGrubundakiElemanSayisi[m]);
-                    else if (diziler_[m].GetType() == typeof(ByteDizi))
-                        nbHesap.ekle((ByteDizi)diziler_[m], diziler_[m].GetHashCode(),
-                            threadReferans_, toplamMenzil_, enKucukElemanGrubundakiElemanSayisi[m]);
-                    */
+                    // not all array types are covered here, todo: add all types
+                    if (arrays[m].GetType() == typeof(float[]))
+                        nbCompute.addArray((float[])arrays[m], arrays[m].GetHashCode(),
+                            globalOffset, globalRange, arrayElementsPerWorkItem[m]);
+                    else if (arrays[m].GetType() == typeof(int[]))
+                        nbCompute.addComputeSteps((int[])arrays[m], arrays[m].GetHashCode(),
+                            globalOffset, globalRange, arrayElementsPerWorkItem[m]);
+                    else if (arrays[m].GetType() == typeof(byte[]))
+                        nbCompute.addArray((byte[])arrays[m], arrays[m].GetHashCode(),
+                            globalOffset, globalRange, arrayElementsPerWorkItem[m]);
+                    else if (arrays[m].GetType() == typeof(char[]))
+                        nbCompute.addCompute((char[])arrays[m], arrays[m].GetHashCode(),
+                            globalOffset, globalRange, arrayElementsPerWorkItem[m]);
+                    else if (arrays[m].GetType() == typeof(double[]))
+                        nbCompute.addArray((double[])arrays[m], arrays[m].GetHashCode(),
+                            globalOffset, globalRange, arrayElementsPerWorkItem[m]);
+                    else if (arrays[m].GetType() == typeof(long[]))
+                        nbCompute.addArray((long[])arrays[m], arrays[m].GetHashCode(),
+                            globalOffset, globalRange, arrayElementsPerWorkItem[m]);
                 }
-                else if (oku_yaz[m].Contains("read"))
+                else if (readWrite[m].Contains("read"))
                 {
-                    // yapılacak: FloatDizi türü de eklenecek
-                    if (diziler_[m].GetType() == typeof(float[]))
-                        nbHesap.ekle((float[])diziler_[m], diziler_[m].GetHashCode());
-                    else if (diziler_[m].GetType() == typeof(int[]))
-                        nbHesap.ekle((int[])diziler_[m], diziler_[m].GetHashCode());
-                    else if (diziler_[m].GetType() == typeof(byte[]))
-                        nbHesap.ekle((byte[])diziler_[m], diziler_[m].GetHashCode());
-                    else if (diziler_[m].GetType() == typeof(char[]))
-                        nbHesap.ekle((char[])diziler_[m], diziler_[m].GetHashCode());
-                    else if (diziler_[m].GetType() == typeof(double[]))
-                        nbHesap.ekle((double[])diziler_[m], diziler_[m].GetHashCode());
-                    else if (diziler_[m].GetType() == typeof(long[]))
-                        nbHesap.ekle((long[])diziler_[m], diziler_[m].GetHashCode());
-                    /*
-                    else if (diziler_[m].GetType() == typeof(FloatDizi))
-                        nbHesap.ekle((FloatDizi)diziler_[m], diziler_[m].GetHashCode());
-                    else if (diziler_[m].GetType() == typeof(ByteDizi))
-                        nbHesap.ekle((ByteDizi)diziler_[m], diziler_[m].GetHashCode());
-                        */
+                    if (arrays[m].GetType() == typeof(float[]))
+                        nbCompute.addArray((float[])arrays[m], arrays[m].GetHashCode());
+                    else if (arrays[m].GetType() == typeof(int[]))
+                        nbCompute.addComputeSteps((int[])arrays[m], arrays[m].GetHashCode());
+                    else if (arrays[m].GetType() == typeof(byte[]))
+                        nbCompute.addArray((byte[])arrays[m], arrays[m].GetHashCode());
+                    else if (arrays[m].GetType() == typeof(char[]))
+                        nbCompute.addCompute((char[])arrays[m], arrays[m].GetHashCode());
+                    else if (arrays[m].GetType() == typeof(double[]))
+                        nbCompute.addArray((double[])arrays[m], arrays[m].GetHashCode());
+                    else if (arrays[m].GetType() == typeof(long[]))
+                        nbCompute.addArray((long[])arrays[m], arrays[m].GetHashCode());
                 }
             }
 
 
-            for (int m = 0; m < diziler_.Length; m++)
-                nbHesap.ekle(oku_yaz[m].ToCharArray(), oku_yaz[m].GetHashCode());
-            nbHesap.ekle(enKucukElemanGrubundakiElemanSayisi, enKucukElemanGrubundakiElemanSayisi.GetHashCode());
-            nbHesap.ekle(toplamMenzil, toplamMenzil.GetHashCode());
-            nbHesap.ekle(hesapId, hesapId.GetHashCode());
-            nbHesap.ekle(threadReferans, threadReferans.GetHashCode());
-            nbHesap.ekle(pipelineAcik, pipelineAcik.GetHashCode());
-            nbHesap.ekle(pipelineParcaSayisi_, pipelineParcaSayisi_.GetHashCode());
-            nbHesap.ekle(pipelineTuru, pipelineTuru.GetHashCode());
+            for (int m = 0; m < arrays.Length; m++)
+                nbCompute.addCompute(readWrite[m].ToCharArray(), readWrite[m].GetHashCode());
+            nbCompute.addComputeSteps(arrayElementsPerWorkItem, arrayElementsPerWorkItem.GetHashCode());
+            nbCompute.addComputeSteps(totalGlobalRange, totalGlobalRange.GetHashCode());
+            nbCompute.addComputeSteps(computeIdArray, computeIdArray.GetHashCode());
+            nbCompute.addComputeSteps(globalOffsetArray, globalOffsetArray.GetHashCode());
+            nbCompute.addPipeline(pipelineEnabledArray, pipelineEnabledArray.GetHashCode());
+            nbCompute.addComputeSteps(pipelineBlobsArray, pipelineBlobsArray.GetHashCode());
+            nbCompute.addPipeline(pipelineTypeArray, pipelineTypeArray.GetHashCode());
 
-            // "oku" olanların hepsi,
-            // "parçalı oku" olanların kendi menzilleri yazılacak
-            upload(nwStream, nbHesap.buf());
+            upload(nwStream, nbCompute.buf());
             NetworkBuffer nbCevap = new NetworkBuffer();
 
-            // sadece "yaz" olanlar, kendi menzilleri kadar okunacak
-            download(nwStream, diziler_);
+            download(nwStream, arrays);
         }
 
 
 
-        public void sil()
+        public void dispose()
         {
-            NetworkBuffer nb2 = new NetworkBuffer(NetworkBuffer.SIL);
+            NetworkBuffer nb2 = new NetworkBuffer(NetworkBuffer.DISPOSE);
             upload(nwStream, nb2.buf());
             Console.WriteLine(download(nwStream));
 
@@ -290,15 +272,15 @@ namespace ClCluster
         }
 
 
-        public bool kontrol()
+        public bool control()
         {
-            NetworkBuffer nb2 = new NetworkBuffer(NetworkBuffer.SERVER_SINAMA);
+            NetworkBuffer nb2 = new NetworkBuffer(NetworkBuffer.SERVER_CONTROL);
             try
             {
                 if (!exception)
                 {
                     upload(nwStream, nb2.buf());
-                    return download(nwStream).bufferKomut() == NetworkBuffer.CEVAP_SINAMA;
+                    return download(nwStream).bufferCommand() == NetworkBuffer.ANSWER_CONTROL;
                 }
                 else
                     return false;
@@ -320,21 +302,21 @@ namespace ClCluster
             return false;
         }
 
-        public int aygitSayisi()
+        public int numDevices()
         {
-            NetworkBuffer nb2 = new NetworkBuffer(NetworkBuffer.SERVER_AYGIT_SAYISI);
+            NetworkBuffer nb2 = new NetworkBuffer(NetworkBuffer.SERVER_NUMBER_OF_DEVICES);
             upload(nwStream, nb2.buf());
-            int[] aygitSayisi_ = new int[1];
-            NetworkBuffer nb3= download(nwStream, new object[] { aygitSayisi_ });
-            if (nb3.bufferKomut() == NetworkBuffer.CEVAP_AYGIT_SAYISI)
-                return aygitSayisi_[0];
+            int[] numberOfDevices = new int[1];
+            NetworkBuffer nb3= download(nwStream, new object[] { numberOfDevices });
+            if (nb3.bufferCommand() == NetworkBuffer.ANSWER_NUMBER_OF_DEVICES)
+                return numberOfDevices[0];
             else
                 return -1;
         }
 
-        public void dur()
+        public void stop()
         {
-            NetworkBuffer nb2 = new NetworkBuffer(NetworkBuffer.SERVER_DURDUR);
+            NetworkBuffer nb2 = new NetworkBuffer(NetworkBuffer.SERVER_STOP);
             upload(nwStream, nb2.buf());
             Console.WriteLine(download(nwStream));
 

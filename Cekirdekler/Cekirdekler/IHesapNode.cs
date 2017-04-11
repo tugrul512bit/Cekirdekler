@@ -26,7 +26,7 @@ namespace ClCluster
     /// <para>hesaplayacak nesne, Cekirdekler api de olabilir,</para> 
     /// <para>bir pc(ip tcp) grubunda çalışan Hizlandirici api de(içinde Cekirdekler var) olabilir</para> 
     /// </summary>
-    interface IHesapNode
+    interface IComputeNode
     {
         // kurulumun verilen parametrelere göre yapılışı
         void kur(string aygitTurleri, string kerneller_,
@@ -38,7 +38,7 @@ namespace ClCluster
         /// parametreli hesap
         /// </summary>
         /// <returns></returns>
-        void hesapla(string[] kernelAdi___ = null,
+        void compute(string[] kernelAdi___ = null,
             int adimSayisi_ = 0, string adimFonksiyonu = "",
             object[] diziler_ = null, string[] oku_yaz = null,
             int[] enKucukElemanGrubundakiElemanSayisi = null,

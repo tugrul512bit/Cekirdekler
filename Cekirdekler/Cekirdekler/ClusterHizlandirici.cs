@@ -28,23 +28,22 @@ namespace ClCluster
     /// <summary>
     /// <para>prealpha cluster add-on</para>
     /// <para>"cluster:xxxxx" then this class is used</para> 
-    /// <para>cluster server node sonradan alt cluster olarak kullanılabilir hale getirilecek</para>
+    /// <para>todo: make this tree-like structure to enable grid computing or multi level cluster</para>
     /// </summary>
-    public class CluserHizlandirici:IHesapNode
+    public class ClusterAccelerator:IComputeNode
     {
-        // tüm alt katmanı tek merkezden kontrol eden,
-        // fazlalık-paylaştırılamayan işlemleri hesaplayan bilgisayar
-        Cores anaBilgisayar;
+        // controls whole sub-layer
+        // computes remaining nuisance workload after load-balancing
+        Cores mainframeComputer;
 
-        // her bir server node kontrolü için bir client
-        List<CekirdekClient> clientler;
+        List<ClCruncherClient> clients;
 
-        public class ServerBilgisi
+        public class ServerInfoSimple
         {
             public int port { get; set; }
-            public string ip_ { get; set; }
-            public string adi { get; set; }
-            public double roundTripPerformans { get; set; }
+            public string ipString { get; set; }
+            public string nameOfServer { get; set; }
+            public double roundTripPerformance { get; set; }
         }
 
         private string localIp()
@@ -59,32 +58,32 @@ namespace ClCluster
             return localIP;
         }
 
-        private bool serverCekirdekDeneme(string ip,int port)
+        private bool serverTesting(string ip,int port)
         {
-            CekirdekClient client = new CekirdekClient(port, ip);
+            ClCruncherClient client = new ClCruncherClient(port, ip);
             if (client == null || client.exception)
                 return false;
             else
             {
-                bool ret = client.kontrol();
-                client.dur();
+                bool ret = client.control();
+                client.stop();
                 return ret;
             }
         }
 
         /// <summary>
-        /// clientte parametre ile belirlenen portları kontrol eder(ör: tüm serverların 50000 portları)
+        /// checks client with given port parameters (example:  50000 ports of all servers)
         /// </summary>
-        private List<ServerBilgisi> serverBul(int port_,bool hizliArama)
+        private List<ServerInfoSimple> findServer(int port_,bool fasterSearch)
         {
             string ip_lan = "192.168.1.";
-            object kilit = new object();
-            int ipSayisi = 0;
-            List<ServerBilgisi> serverListesi = new List<ServerBilgisi>();
-            int ustLimit = 255;
-            if (hizliArama)
-                ustLimit = 10;
-            Parallel.For(1, ustLimit, i =>
+            object lockObjectTmp = new object();
+            int numIps = 0;
+            List<ServerInfoSimple> serverList = new List<ServerInfoSimple>();
+            int upperLimit = 255;
+            if (fasterSearch)
+                upperLimit = 10;
+            Parallel.For(1, upperLimit, i =>
             {
                 string ip = ip_lan + i;
                 Console.WriteLine(ip + ":");
@@ -96,41 +95,42 @@ namespace ClCluster
                    
                     if (rep.Status == System.Net.NetworkInformation.IPStatus.Success)
                     {
-                        var server = new ServerBilgisi() { port = port_, roundTripPerformans = 1.0 / (0.1 + (double)rep.RoundtripTime), ip_ = (new StringBuilder(ip)).ToString() };
+                        var server = new ServerInfoSimple() { port = port_, roundTripPerformance = 1.0 / (0.1 + (double)rep.RoundtripTime), ipString = (new StringBuilder(ip)).ToString() };
 
 
                         Console.WriteLine(rep.RoundtripTime + "ms");
                       
                         try
                         {
-
+                            // not works always
                             //IPHostEntry ipHostEntry = Dns.GetHostEntry(ip);
                             //Console.WriteLine(ipHostEntry.HostName);
-                            //server.adi = ipHostEntry.HostName;
+                            //server.nameOfServer = ipHostEntry.HostName;
                         }
                         catch (Exception ee)
                         {
                             // server olmayabilir
-                            server.adi = "belirsiz server adı";
+                            server.nameOfServer = "unknown server name";
                         }
 
 
                         
-                            if (serverCekirdekDeneme(ip, port_))
+                            if (serverTesting(ip, port_))
                             {
-                                // cluster ağaç şeklindeyse, iletişim hızı test edilecek (MB/s)
-                                // en yakın n tanesi alınacak
-                                lock (kilit)
+                                // todo
+                                // need to test connection speed before tree-cluster compute
+                                // test closes N nodes
+                                lock (lockObjectTmp)
                                 {
-                                    ipSayisi++;
-                                    serverListesi.Add(server);
+                                    numIps++;
+                                    serverList.Add(server);
                                 }
                             }
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("ping hatası");
+                    Console.WriteLine("ping error");
                     Console.WriteLine(e.StackTrace);
                     
                 }
@@ -141,217 +141,217 @@ namespace ClCluster
 
                 }
             });
-            Console.WriteLine(ipSayisi + " adet pc bağlı.");
-            foreach (var item in serverListesi)
+            Console.WriteLine(numIps + " cluster PCs connected.");
+            foreach (var item in serverList)
             {
                 Console.WriteLine("---------------");
-                Console.WriteLine(item.ip_);
-                Console.WriteLine(item.roundTripPerformans);
-                Console.WriteLine(item.adi);
+                Console.WriteLine(item.ipString);
+                Console.WriteLine(item.roundTripPerformance);
+                Console.WriteLine(item.nameOfServer);
                 Console.WriteLine("---------------");
             }
-            return serverListesi;
+            return serverList;
         }
 
-        // hesap id --> menziller
-        private bool pipelineAcik;
-        private int pipelineParcaSayisi;
-        private int localThreadSayisi_;
-        private int[] adimlar;
-        private int[] referanslar;
-        private Stopwatch[] kronometreler;
-        private Dictionary<int, int> anaBilgisayarThreadleri;
-        private Dictionary<int, double> anaBilgisayarSureleri;
-        private Dictionary<int, int[]> sonMenziller;
-        private Dictionary<int, double[]> sonHesapSureleri;
-        private Dictionary<int, ClusterLoadBalancer> yukDengeleyiciler;
-        Stopwatch swHesap;
-        Stopwatch swAnaBilgisayar;
-        public void hesapla(string[] kernelAdi___ = null,
-            int adimSayisi_ = 0, string adimFonksiyonu = "",
-            object[] diziler_ = null, string[] oku_yaz = null,
-            int[] enKucukElemanGrubundakiElemanSayisi = null,
-            int toplamMenzil_ = 1024, int hesapId_ = 1,
-            int threadReferans_ = 0, bool pipelineAcik_ = false,
-            int pipelineParcaSayisi__ = 4, bool pipelineTuru_ = Cores.PIPELINE_EVENT)
+        // compute id to global range conversion
+        private bool pipelineEnabled;
+        private int pipelineBlobCount;
+        private int localRangeValue;
+        private int[] stepsNum;
+        private int[] offsetValues;
+        private Stopwatch[] timers;
+        private Dictionary<int, int> mainframeThreads;
+        private Dictionary<int, double> mainframeTimings;
+        private Dictionary<int, int[]> latestGlobalRanges;
+        private Dictionary<int, double[]> latestTimings;
+        private Dictionary<int, ClusterLoadBalancer> loadBalancers;
+        Stopwatch swCompute;
+        Stopwatch swMainframe;
+        public void compute(string[] kernelNameStringArray = null,
+            int numberOfSteps = 0, string stepFunction = "",
+            object[] arrays_ = null, string[] readWrite_ = null,
+            int[] arrayElementsPerWorkItem = null,
+            int totalGlobalRange_ = 1024, int computeId_ = 1,
+            int offsetValueForGlobalRange = 0, bool pipelineEnabled_ = false,
+            int pipelineBlobCount = 4, bool pipelineType = Cores.PIPELINE_EVENT)
         {
-            pipelineAcik = pipelineAcik_;
-            pipelineParcaSayisi = pipelineParcaSayisi__;
-            if (adimlar == null || adimlar.Length != clientler.Count)
+            pipelineEnabled = pipelineEnabled_;
+            this.pipelineBlobCount = pipelineBlobCount;
+            if (stepsNum == null || stepsNum.Length != clients.Count)
             {
-                adimlar = new int[clientler.Count];
-                for (int i = 0; i < clientler.Count; i++)
+                stepsNum = new int[clients.Count];
+                for (int i = 0; i < clients.Count; i++)
                 {
-                    adimlar[i] = clientler[i].aygitSayisi() * localThreadSayisi_;
-                    if (pipelineAcik_)
-                        adimlar[i] *= pipelineParcaSayisi__;
+                    stepsNum[i] = clients[i].numDevices() * localRangeValue;
+                    if (pipelineEnabled_)
+                        stepsNum[i] *= pipelineBlobCount;
                 }
             }
-            if (swHesap == null)
-                swHesap = new Stopwatch();
-            if (referanslar == null || referanslar.Length != clientler.Count)
+            if (swCompute == null)
+                swCompute = new Stopwatch();
+            if (offsetValues == null || offsetValues.Length != clients.Count)
             {
-                referanslar = new int[clientler.Count];
+                offsetValues = new int[clients.Count];
             }
-            if (swAnaBilgisayar == null)
-                swAnaBilgisayar = new Stopwatch();
-            if (kronometreler == null)
+            if (swMainframe == null)
+                swMainframe = new Stopwatch();
+            if (timers == null)
             {
-                kronometreler = new Stopwatch[clientler.Count];
-                for (int i = 0; i < clientler.Count; i++)
-                    kronometreler[i] = new Stopwatch();
+                timers = new Stopwatch[clients.Count];
+                for (int i = 0; i < clients.Count; i++)
+                    timers[i] = new Stopwatch();
             }
-            if (sonMenziller == null)
-                sonMenziller = new Dictionary<int, int[]>();
-            if (sonHesapSureleri == null)
+            if (latestGlobalRanges == null)
+                latestGlobalRanges = new Dictionary<int, int[]>();
+            if (latestTimings == null)
             {
-                sonHesapSureleri = new Dictionary<int, double[]>();
-                if (sonHesapSureleri.ContainsKey(hesapId_))
+                latestTimings = new Dictionary<int, double[]>();
+                if (latestTimings.ContainsKey(computeId_))
                 {
-                    for (int i = 0; i < clientler.Count; i++)
+                    for (int i = 0; i < clients.Count; i++)
                     {
 
-                        sonHesapSureleri[hesapId_][i] = 0.01;
+                        latestTimings[computeId_][i] = 0.01;
                     }
                 }
                 else
                 {
-                    sonHesapSureleri.Add(hesapId_, new double[clientler.Count]);
+                    latestTimings.Add(computeId_, new double[clients.Count]);
 
-                    for (int i = 0; i < clientler.Count; i++)
+                    for (int i = 0; i < clients.Count; i++)
                     {
-                        sonHesapSureleri[hesapId_][i] = 0.01;
+                        latestTimings[computeId_][i] = 0.01;
                     }
                 }
             }
         
-            if (yukDengeleyiciler == null)
-                yukDengeleyiciler = new Dictionary<int, ClusterLoadBalancer>();
-            if (anaBilgisayarThreadleri == null)
-                anaBilgisayarThreadleri = new Dictionary<int, int>();
-            if (anaBilgisayarSureleri == null)
-                anaBilgisayarSureleri = new Dictionary<int, double>();
-            if (!yukDengeleyiciler.ContainsKey(hesapId_))
-                yukDengeleyiciler.Add(hesapId_, new ClusterLoadBalancer());
+            if (loadBalancers == null)
+                loadBalancers = new Dictionary<int, ClusterLoadBalancer>();
+            if (mainframeThreads == null)
+                mainframeThreads = new Dictionary<int, int>();
+            if (mainframeTimings == null)
+                mainframeTimings = new Dictionary<int, double>();
+            if (!loadBalancers.ContainsKey(computeId_))
+                loadBalancers.Add(computeId_, new ClusterLoadBalancer());
 
 
-            if (!sonMenziller.ContainsKey(hesapId_))
+            if (!latestGlobalRanges.ContainsKey(computeId_))
             {
-                int[] tmpMenziller = new int[clientler.Count];
-                if (anaBilgisayarThreadleri.ContainsKey(hesapId_))
+                int[] tmpRanges = new int[clients.Count];
+                if (mainframeThreads.ContainsKey(computeId_))
                 {
-                    anaBilgisayarThreadleri[hesapId_] = yukDengeleyiciler[hesapId_].dengeleEsit(toplamMenzil_, tmpMenziller, adimlar);
+                    mainframeThreads[computeId_] = loadBalancers[computeId_].dengeleEsit(totalGlobalRange_, tmpRanges, stepsNum);
                 }
                 else
                 {
-                    anaBilgisayarThreadleri.Add(hesapId_, yukDengeleyiciler[hesapId_].dengeleEsit(toplamMenzil_, tmpMenziller, adimlar));
+                    mainframeThreads.Add(computeId_, loadBalancers[computeId_].dengeleEsit(totalGlobalRange_, tmpRanges, stepsNum));
                 }
-                sonMenziller.Add(hesapId_, tmpMenziller);
+                latestGlobalRanges.Add(computeId_, tmpRanges);
             }
             else
             {
-                if (clientler.Count != sonMenziller[hesapId_].Length)
+                if (clients.Count != latestGlobalRanges[computeId_].Length)
                 {
-                    int[] tmpMenziller = new int[clientler.Count];
+                    int[] tmpRanges = new int[clients.Count];
 
-                    if (anaBilgisayarThreadleri.ContainsKey(hesapId_))
+                    if (mainframeThreads.ContainsKey(computeId_))
                     {
-                        anaBilgisayarThreadleri[hesapId_] = yukDengeleyiciler[hesapId_].dengeleEsit(toplamMenzil_, tmpMenziller, adimlar);
+                        mainframeThreads[computeId_] = loadBalancers[computeId_].dengeleEsit(totalGlobalRange_, tmpRanges, stepsNum);
                     }
                     else
                     {
-                        anaBilgisayarThreadleri.Add(hesapId_, yukDengeleyiciler[hesapId_].dengeleEsit(toplamMenzil_, tmpMenziller, adimlar));
+                        mainframeThreads.Add(computeId_, loadBalancers[computeId_].dengeleEsit(totalGlobalRange_, tmpRanges, stepsNum));
                     }
 
-                    sonMenziller[hesapId_] = tmpMenziller;
+                    latestGlobalRanges[computeId_] = tmpRanges;
 
                 }
                 else
                 {
-                    if (anaBilgisayarThreadleri.ContainsKey(hesapId_))
+                    if (mainframeThreads.ContainsKey(computeId_))
                     {
-                        anaBilgisayarThreadleri[hesapId_] =
-                        yukDengeleyiciler[hesapId_].dengelePerformansaGore(sonHesapSureleri[hesapId_],
-                            toplamMenzil_, sonMenziller[hesapId_],
-                            adimlar, anaBilgisayarThreadleri[hesapId_],
-                            anaBilgisayarSureleri[hesapId_]);
+                        mainframeThreads[computeId_] =
+                        loadBalancers[computeId_].balanceOnPerformances(latestTimings[computeId_],
+                            totalGlobalRange_, latestGlobalRanges[computeId_],
+                            stepsNum, mainframeThreads[computeId_],
+                            mainframeTimings[computeId_]);
                     }
                     else
                     {
-                        anaBilgisayarThreadleri.Add(hesapId_, yukDengeleyiciler[hesapId_].dengelePerformansaGore(sonHesapSureleri[hesapId_],
-                            toplamMenzil_, sonMenziller[hesapId_],
-                            adimlar, anaBilgisayarThreadleri[hesapId_],
-                            anaBilgisayarSureleri[hesapId_]));
+                        mainframeThreads.Add(computeId_, loadBalancers[computeId_].balanceOnPerformances(latestTimings[computeId_],
+                            totalGlobalRange_, latestGlobalRanges[computeId_],
+                            stepsNum, mainframeThreads[computeId_],
+                            mainframeTimings[computeId_]));
                     }
                 }
             }
 
-            int tmpRef = threadReferans_;
-            for(int i=0;i<clientler.Count;i++)
+            int tmpRef = offsetValueForGlobalRange;
+            for(int i=0;i<clients.Count;i++)
             {
-                referanslar[i] = tmpRef;
-                tmpRef += sonMenziller[hesapId_][i];
+                offsetValues[i] = tmpRef;
+                tmpRef += latestGlobalRanges[computeId_][i];
             }
 
 
-            swHesap.Reset();
-            swHesap.Start();
-            Parallel.For(0, clientler.Count + 1, i => {
-                if (i < clientler.Count)
+            swCompute.Reset();
+            swCompute.Start();
+            Parallel.For(0, clients.Count + 1, i => {
+                if (i < clients.Count)
                 {
-                    kronometreler[i].Reset();
-                    kronometreler[i].Start();
-                        clientler[i].hesap(
-                            kernelAdi___,
-                            adimSayisi_, adimFonksiyonu,
-                            diziler_, oku_yaz,
-                            enKucukElemanGrubundakiElemanSayisi,
-                            sonMenziller[hesapId_][i], hesapId_,
-                            referanslar[i], pipelineAcik_,
-                            pipelineParcaSayisi__, pipelineTuru_);
-                    kronometreler[i].Stop();
+                    timers[i].Reset();
+                    timers[i].Start();
+                        clients[i].compute(
+                            kernelNameStringArray,
+                            numberOfSteps, stepFunction,
+                            arrays_, readWrite_,
+                            arrayElementsPerWorkItem,
+                            latestGlobalRanges[computeId_][i], computeId_,
+                            offsetValues[i], pipelineEnabled_,
+                            pipelineBlobCount, pipelineType);
+                    timers[i].Stop();
 
-                    if (sonHesapSureleri.ContainsKey(hesapId_))
+                    if (latestTimings.ContainsKey(computeId_))
                     {
-                            sonHesapSureleri[hesapId_][i] = 0.01 + ((double)kronometreler[i].ElapsedMilliseconds);
+                            latestTimings[computeId_][i] = 0.01 + ((double)timers[i].ElapsedMilliseconds);
 
                     }
                     else
                     {
-                        sonHesapSureleri.Add(hesapId_, new double[clientler.Count]);
+                        latestTimings.Add(computeId_, new double[clients.Count]);
 
-                        sonHesapSureleri[hesapId_][i] = 0.01 + ((double)kronometreler[i].ElapsedMilliseconds);
+                        latestTimings[computeId_][i] = 0.01 + ((double)timers[i].ElapsedMilliseconds);
                     }
                 }
                 else
                 {
                     
-                    swAnaBilgisayar.Reset();
-                    swAnaBilgisayar.Start();
-                    if (anaBilgisayarThreadleri[hesapId_] > 0)
+                    swMainframe.Reset();
+                    swMainframe.Start();
+                    if (mainframeThreads[computeId_] > 0)
                     {
-                        anaBilgisayar.compute(kernelAdi___,
-                            adimSayisi_, adimFonksiyonu,
-                            diziler_, oku_yaz,
-                            enKucukElemanGrubundakiElemanSayisi,
-                            anaBilgisayarThreadleri[hesapId_], hesapId_,
-                            tmpRef, pipelineAcik_,
-                            pipelineParcaSayisi__, pipelineTuru_);
+                        mainframeComputer.compute(kernelNameStringArray,
+                            numberOfSteps, stepFunction,
+                            arrays_, readWrite_,
+                            arrayElementsPerWorkItem,
+                            mainframeThreads[computeId_], computeId_,
+                            tmpRef, pipelineEnabled_,
+                            pipelineBlobCount, pipelineType);
                     }
-                    swAnaBilgisayar.Stop();
-                    if (anaBilgisayarSureleri.ContainsKey(hesapId_))
+                    swMainframe.Stop();
+                    if (mainframeTimings.ContainsKey(computeId_))
                     {
-                        anaBilgisayarSureleri[hesapId_] = 0.01 + (double)swAnaBilgisayar.ElapsedMilliseconds;
+                        mainframeTimings[computeId_] = 0.01 + (double)swMainframe.ElapsedMilliseconds;
                     }
                     else
                     {
-                        anaBilgisayarSureleri.Add(hesapId_, 0.01 + (double)swAnaBilgisayar.ElapsedMilliseconds);
+                        mainframeTimings.Add(computeId_, 0.01 + (double)swMainframe.ElapsedMilliseconds);
 
                     }
                 }
             });
-            swHesap.Stop();
-            Console.WriteLine("Hesap süresi="+swHesap.ElapsedMilliseconds+"ms");
+            swCompute.Stop();
+            Console.WriteLine("Hesap süresi="+swCompute.ElapsedMilliseconds+"ms");
         }
 
         public double hesapSuresi()
@@ -366,7 +366,7 @@ namespace ClCluster
                         int kullanilacakGPUSayisi = -1, bool GPU_STREAM = true, 
                         int MAX_CPU = -1)
         {
-            localThreadSayisi_ = localThreadSayisi;
+            localRangeValue = localThreadSayisi;
             aygitTurleri = aygitTurleri.ToLower();
             kullanilacakGPUSayisi = 1;
             string anaBilgisayarClAygit = "";
@@ -377,7 +377,7 @@ namespace ClCluster
             else if (aygitTurleri.Contains("node0_c"))
                 anaBilgisayarClAygit = "cpu";
             int anaBilgisayarGPUSayisi = 1;
-            anaBilgisayar = new Cores(anaBilgisayarClAygit, kerneller_, kernelIsimleri_,
+            mainframeComputer = new Cores(anaBilgisayarClAygit, kerneller_, kernelIsimleri_,
                            localThreadSayisi, anaBilgisayarGPUSayisi, GPU_STREAM, MAX_CPU);
             List<int>portlar=new List<int>();
             if(aygitTurleri.Contains("cluster:"))
@@ -403,24 +403,24 @@ namespace ClCluster
                 return;
             }
             bool hizliArama = (aygitTurleri.Contains("hizli-ara")) ? true : false;
-            List<ServerBilgisi> clusterServerleri = new List<ServerBilgisi>();
+            List<ServerInfoSimple> clusterServerleri = new List<ServerInfoSimple>();
 
-            if (clientler == null)
-                clientler = new List<CekirdekClient>();
+            if (clients == null)
+                clients = new List<ClCruncherClient>();
             for (int i = 0; i < portlar.Count; i++)
             {
                 Console.WriteLine("prt:"+portlar[i]);
-                List<ServerBilgisi> tmpClusterServerleri = serverBul(portlar[i], hizliArama);
+                List<ServerInfoSimple> tmpClusterServerleri = findServer(portlar[i], hizliArama);
                 if (tmpClusterServerleri != null && tmpClusterServerleri.Count > 0)
                     clusterServerleri.AddRange(tmpClusterServerleri);
             }
             
             foreach (var item in clusterServerleri)
             {
-                clientler.Add(new CekirdekClient(item.port, item.ip_));
+                clients.Add(new ClCruncherClient(item.port, item.ipString));
             }
-            adimlar = new int[clientler.Count];
-            for(int i=0;i< clientler.Count; i++) {
+            stepsNum = new int[clients.Count];
+            for(int i=0;i< clients.Count; i++) {
                 string serverAygit = "";
                 if (aygitTurleri.Contains("gpu"))
                     serverAygit += "gpu";
@@ -429,26 +429,26 @@ namespace ClCluster
                 if (aygitTurleri.Contains("acc"))
                     serverAygit += "acc";
 
-                clientler[i].kurulum(serverAygit, kerneller_,
+                clients[i].netSetup(serverAygit, kerneller_,
                         kernelIsimleri_,localThreadSayisi,
                         kullanilacakGPUSayisi, GPU_STREAM,
                         MAX_CPU);
 
                 // yapılacak: aygıt sayısı * localThreadSayisi kadar
-                adimlar[i] = clientler[i].aygitSayisi()*localThreadSayisi;
-                if (pipelineAcik)
-                    adimlar[i] *= pipelineParcaSayisi;
+                stepsNum[i] = clients[i].numDevices()*localThreadSayisi;
+                if (pipelineEnabled)
+                    stepsNum[i] *= pipelineBlobCount;
             }
 
         }
 
         public void sil()
         {
-            Parallel.For(0, clientler.Count, i =>
+            Parallel.For(0, clients.Count, i =>
             {
-                clientler[i].sil();
+                clients[i].dispose();
             });
-            anaBilgisayar.dispose();
+            mainframeComputer.dispose();
         }
     }
 }

@@ -58,7 +58,7 @@ namespace ClCluster
         }
 
 
-        public void resetDiziHaric()
+        public void resetExceptArrays()
         {
             buffer.Clear();
             elemanSayisi = 0;
@@ -87,31 +87,31 @@ namespace ClCluster
         }
 
         private int KOMUT;
-        public int bufferKomut() { return KOMUT; }
-        public const int KURULUM = 0;
-        public const int HESAP = 1;
-        public const int SIL = 2;
+        public int bufferCommand() { return KOMUT; }
+        public const int SETUP = 0;
+        public const int COMPUTE = 1;
+        public const int DISPOSE = 2;
 
         // kurulum başarılı
-        public const int CEVAP_BASARILI = 3;
+        public const int ANSWER_SUCCESS = 3;
 
 
-        public const int CEVAP_SILINDI = 4;
-        public const int CEVAP_HESAPLANDI = 5;
-        public const int SERVER_DURDUR = 6;
+        public const int ANSWER_DELETED = 4;
+        public const int ANSWER_COMPUTE_COMPLETE = 5;
+        public const int SERVER_STOP = 6;
 
         // server dinleme işlemi durduruldu
-        public const int CEVAP_DURDURULDU = 7;
-        public const int SERVER_SINAMA = 8;
-        public const int CEVAP_SINAMA = 9;
-        public const int SERVER_AYGIT_SAYISI = 10;
-        public const int CEVAP_AYGIT_SAYISI = 11;
+        public const int ANSWER_STOPPED = 7;
+        public const int SERVER_CONTROL = 8;
+        public const int ANSWER_CONTROL = 9;
+        public const int SERVER_NUMBER_OF_DEVICES = 10;
+        public const int ANSWER_NUMBER_OF_DEVICES = 11;
         public class HashIndisSiraDizi
         {
             public int hash_; // dizilerin hash kodu(client tarafında)
             public int indis_;// dizilerin serialize edilmiş nesnedeki byte adresi
             public int sira_; // dizilerin api için kullanım sırası
-            public object dizi_;
+            public object backingArray;
         }
         /// <summary>
         /// gelen buffer bilgisinden Dictionary üretir, dizileri sırasıyla list halinde döndürür
@@ -122,7 +122,7 @@ namespace ClCluster
             if (System.Text.Encoding.ASCII.GetString(b, 0, 8).Equals("Cekirdek"))
             {
                 bool endiannessAyniMi = (b[8] == Convert.ToByte(!BitConverter.IsLittleEndian));
-                int toplamByte = bufferBoyuOku(b);
+                int toplamByte = readLengthOfBuffer(b);
                 if (bBuf == null || bBuf.Length < toplamByte)
                     bBuf = new byte[toplamByte];
                 Buffer.BlockCopy(b, 0, bBuf, 0, toplamByte);
@@ -151,7 +151,7 @@ namespace ClCluster
                         hash_ = hash,
                         indis_ = indis,
                         sira_ = sira,
-                        dizi_ = nesneOku(
+                        backingArray = nesneOku(
                             bBuf, indis, 
                             endiannessAyniMi, turu, 
                             hash, uzunlugu, 
@@ -175,7 +175,7 @@ namespace ClCluster
             return liste;
         }
 
-        public int bufferBoyuOku(byte[] b)
+        public int readLengthOfBuffer(byte[] b)
         {
             if (System.Text.Encoding.ASCII.GetString(b, 0, 8).Equals("Cekirdek"))
             {
@@ -624,7 +624,7 @@ namespace ClCluster
 
 
 
-        public void ekle(byte[] l, int hash, int byteSayisi = 0,
+        public void addArray(byte[] l, int hash, int byteSayisi = 0,
                     int threadReferans_ = 0, int toplamMenzil_ = -1,
                     int enKucukElemanGrubundakiElemanSayisi = 1)
         {
@@ -645,7 +645,7 @@ namespace ClCluster
         }
 
 
-        public void guncelle(byte[] l, int hash)
+        public void update(byte[] l, int hash)
         {
 
             int indis = data2[hash];
@@ -654,19 +654,19 @@ namespace ClCluster
 
 
 
-        public void guncelle(char[] l, int hash)
+        public void update(char[] l, int hash)
         {
             int indis = data2[hash];
             Buffer.BlockCopy(l, 0, bBuf, indis, l.Length * 2);
         }
 
-        public void guncelle(int[] l, int hash)
+        public void update(int[] l, int hash)
         {
             int indis = data2[hash];
             Buffer.BlockCopy(l, 0, bBuf, indis, l.Length * 4);
         }
         object oKilit = new object();
-        public void guncelle(float[] l, int hash,
+        public void update(float[] l, int hash,
                              int  threadReferans=0, int toplamMenzil=-1, 
                              int enKucukElemanGrubundakiElemanSayisi=1)
         {
@@ -689,13 +689,13 @@ namespace ClCluster
             }
         }
 
-        public void guncelle(long[] l, int hash)
+        public void update(long[] l, int hash)
         {
             int indis = data2[hash];
             Buffer.BlockCopy(l, 0, bBuf, indis, l.Length * 8);
         }
 
-        public void guncelle(double[] l, int hash)
+        public void update(double[] l, int hash)
         {
             int indis = data2[hash];
             Buffer.BlockCopy(l, 0, bBuf, indis, l.Length * 8);
@@ -707,7 +707,7 @@ namespace ClCluster
             Buffer.BlockCopy(l, 0, bBuf, indis, l.Length);
         }
 
-        public void ekle(char[] l, int hash,
+        public void addCompute(char[] l, int hash,
                     int threadReferans_ = 0, int toplamMenzil_ = -1,
                     int enKucukElemanGrubundakiElemanSayisi = 1)
         {
@@ -725,7 +725,7 @@ namespace ClCluster
             buffer.AddRange(tmp);
         }
 
-        public void ekle(int[] l, int hash,
+        public void addComputeSteps(int[] l, int hash,
                     int threadReferans_ = 0, int toplamMenzil_ = -1,
                     int enKucukElemanGrubundakiElemanSayisi = 1)
         {
@@ -743,7 +743,7 @@ namespace ClCluster
             buffer.AddRange(tmp);
         }
 
-        public void ekle(float[] l, int hash,
+        public void addArray(float[] l, int hash,
                     int threadReferans_=0, int toplamMenzil_=-1, 
                     int enKucukElemanGrubundakiElemanSayisi=1)
         {
@@ -772,7 +772,7 @@ namespace ClCluster
 
         }
 
-        public void ekle(long[] l, int hash,
+        public void addArray(long[] l, int hash,
                     int threadReferans_ = 0, int toplamMenzil_ = -1,
                     int enKucukElemanGrubundakiElemanSayisi = 1)
         {
@@ -790,7 +790,7 @@ namespace ClCluster
             buffer.AddRange(tmp);
         }
 
-        public void ekle(double[] l, int hash,
+        public void addArray(double[] l, int hash,
                     int threadReferans_ = 0, int toplamMenzil_ = -1,
                     int enKucukElemanGrubundakiElemanSayisi = 1)
         {
@@ -808,7 +808,7 @@ namespace ClCluster
             buffer.AddRange(tmp);
         }
 
-        public void ekle(bool[] l, int hash,
+        public void addPipeline(bool[] l, int hash,
                     int threadReferans_ = 0, int toplamMenzil_ = -1,
                     int enKucukElemanGrubundakiElemanSayisi = 1)
         {

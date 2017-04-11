@@ -230,7 +230,7 @@ namespace ClCluster
         /// <param name="adim"></param>
         /// <param name="anaBilgisayarThread"></param>
         /// <returns></returns>
-        public int dengelePerformansaGore(
+        public int balanceOnPerformances(
             double[] sureler, int toplamMenzil,
             int[] menziller, int[] adim,
             int anaBilgisayarThread,
