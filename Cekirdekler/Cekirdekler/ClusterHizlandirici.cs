@@ -354,95 +354,95 @@ namespace ClCluster
             Console.WriteLine("Hesap süresi="+swCompute.ElapsedMilliseconds+"ms");
         }
 
-        public double hesapSuresi()
+        public double computeTiming()
         {
             throw new NotImplementedException();
         }
 
 
 
-        public void kur(string aygitTurleri, string kerneller_, 
-                        string[] kernelIsimleri_,int localThreadSayisi = 256, 
-                        int kullanilacakGPUSayisi = -1, bool GPU_STREAM = true, 
+        public void setupNodes(string deviceTypes, string kernelsString, 
+                        string[] kernelNamesStringArray,int localRangeValue = 256, 
+                        int numGPUsToUse = -1, bool GPU_STREAM = true, 
                         int MAX_CPU = -1)
         {
-            localRangeValue = localThreadSayisi;
-            aygitTurleri = aygitTurleri.ToLower();
-            kullanilacakGPUSayisi = 1;
-            string anaBilgisayarClAygit = "";
+            this.localRangeValue = localRangeValue;
+            deviceTypes = deviceTypes.ToLower();
+            numGPUsToUse = 1;
+            string mainframeDevices = "";
 
             
-            if (aygitTurleri.Contains("node0_g"))
-                anaBilgisayarClAygit = "gpu";
-            else if (aygitTurleri.Contains("node0_c"))
-                anaBilgisayarClAygit = "cpu";
-            int anaBilgisayarGPUSayisi = 1;
-            mainframeComputer = new Cores(anaBilgisayarClAygit, kerneller_, kernelIsimleri_,
-                           localThreadSayisi, anaBilgisayarGPUSayisi, GPU_STREAM, MAX_CPU);
-            List<int>portlar=new List<int>();
-            if(aygitTurleri.Contains("cluster:"))
+            if (deviceTypes.Contains("node0_g"))
+                mainframeDevices = "gpu";
+            else if (deviceTypes.Contains("node0_c"))
+                mainframeDevices = "cpu";
+            int mainframeNumberOfGPUs = 1;
+            mainframeComputer = new Cores(mainframeDevices, kernelsString, kernelNamesStringArray,
+                           localRangeValue, mainframeNumberOfGPUs, GPU_STREAM, MAX_CPU);
+            List<int>ports=new List<int>();
+            if(deviceTypes.Contains("cluster:"))
             {
-                string[] strPortlar=aygitTurleri.Split(new string[] { "cluster:" }, StringSplitOptions.RemoveEmptyEntries)[1].Trim().Split(new string[] { "port" }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Split(new string[] { "," },StringSplitOptions.RemoveEmptyEntries);
-                if (strPortlar == null)
+                string[] strPorts=deviceTypes.Split(new string[] { "cluster:" }, StringSplitOptions.RemoveEmptyEntries)[1].Trim().Split(new string[] { "port" }, StringSplitOptions.RemoveEmptyEntries)[0].Trim().Split(new string[] { "," },StringSplitOptions.RemoveEmptyEntries);
+                if (strPorts == null)
                 {
-                    Console.WriteLine("Cluster kullanımı için port no belirtilmelidir.");
+                    Console.WriteLine("Cluster setup needs a port definition");
                     return;
                 }
-                else if(strPortlar.Length>0)
+                else if(strPorts.Length>0)
                 {
-                    for(int i=0;i<strPortlar.Length;i++)
+                    for(int i=0;i<strPorts.Length;i++)
                     {
-                        if(strPortlar[i]!=null && !strPortlar[i].Trim().Equals("") && strPortlar[i].Trim().Length>0)
-                            portlar.Add(int.Parse(strPortlar[i].Trim()));
+                        if(strPorts[i]!=null && !strPorts[i].Trim().Equals("") && strPorts[i].Trim().Length>0)
+                            ports.Add(int.Parse(strPorts[i].Trim()));
                     }
                 }
             }
             else
             {
-                Console.WriteLine("Cluster kullanımı için aygıt türü parametresine, cluster:aaaaa şeklinde port numarası belirtilmelidir.");
+                Console.WriteLine("For cluster seetup, deice type parameter must be 'cluster:aaaaa' where aaaaa is port number.");
                 return;
             }
-            bool hizliArama = (aygitTurleri.Contains("hizli-ara")) ? true : false;
-            List<ServerInfoSimple> clusterServerleri = new List<ServerInfoSimple>();
+            bool fastSearch = (deviceTypes.Contains("fast-search")) ? true : false;
+            List<ServerInfoSimple> clusterServers = new List<ServerInfoSimple>();
 
             if (clients == null)
                 clients = new List<ClCruncherClient>();
-            for (int i = 0; i < portlar.Count; i++)
+            for (int i = 0; i < ports.Count; i++)
             {
-                Console.WriteLine("prt:"+portlar[i]);
-                List<ServerInfoSimple> tmpClusterServerleri = findServer(portlar[i], hizliArama);
-                if (tmpClusterServerleri != null && tmpClusterServerleri.Count > 0)
-                    clusterServerleri.AddRange(tmpClusterServerleri);
+                Console.WriteLine("prt:"+ports[i]);
+                List<ServerInfoSimple> tmpClusterServers = findServer(ports[i], fastSearch);
+                if (tmpClusterServers != null && tmpClusterServers.Count > 0)
+                    clusterServers.AddRange(tmpClusterServers);
             }
             
-            foreach (var item in clusterServerleri)
+            foreach (var item in clusterServers)
             {
                 clients.Add(new ClCruncherClient(item.port, item.ipString));
             }
             stepsNum = new int[clients.Count];
             for(int i=0;i< clients.Count; i++) {
-                string serverAygit = "";
-                if (aygitTurleri.Contains("gpu"))
-                    serverAygit += "gpu";
-                if (aygitTurleri.Contains("cpu"))
-                    serverAygit += "cpu";
-                if (aygitTurleri.Contains("acc"))
-                    serverAygit += "acc";
+                string serverDevice = "";
+                // these can change in future (tree-like cluster: node0_g instead of gpu, for example)
+                if (deviceTypes.Contains("gpu"))
+                    serverDevice += "gpu";
+                if (deviceTypes.Contains("cpu"))
+                    serverDevice += "cpu";
+                if (deviceTypes.Contains("acc"))
+                    serverDevice += "acc";
 
-                clients[i].netSetup(serverAygit, kerneller_,
-                        kernelIsimleri_,localThreadSayisi,
-                        kullanilacakGPUSayisi, GPU_STREAM,
+                clients[i].netSetup(serverDevice, kernelsString,
+                        kernelNamesStringArray,localRangeValue,
+                        numGPUsToUse, GPU_STREAM,
                         MAX_CPU);
 
-                // yapılacak: aygıt sayısı * localThreadSayisi kadar
-                stepsNum[i] = clients[i].numDevices()*localThreadSayisi;
+                stepsNum[i] = clients[i].numDevices()*localRangeValue;
                 if (pipelineEnabled)
                     stepsNum[i] *= pipelineBlobCount;
             }
 
         }
 
-        public void sil()
+        public void dispose()
         {
             Parallel.For(0, clients.Count, i =>
             {

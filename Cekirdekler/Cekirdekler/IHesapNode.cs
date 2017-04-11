@@ -29,33 +29,32 @@ namespace ClCluster
     interface IComputeNode
     {
         // kurulumun verilen parametrelere göre yapılışı
-        void kur(string aygitTurleri, string kerneller_,
-                        string[] kernelIsimleri_, int localThreadSayisi = 256,
-                        int kullanilacakGPUSayisi = -1, bool GPU_STREAM = true,
+        void setupNodes(string deviceTypesParameter, string kernelsStringParameter,
+                        string[] kernelNamesStringArray, int localRangeParameter = 256,
+                        int numGPUsToUse = -1, bool GPU_STREAM = true,
                         int MAX_CPU = -1);
 
         /// <summary>
-        /// parametreli hesap
+        /// compute
         /// </summary>
         /// <returns></returns>
-        void compute(string[] kernelAdi___ = null,
-            int adimSayisi_ = 0, string adimFonksiyonu = "",
-            object[] diziler_ = null, string[] oku_yaz = null,
-            int[] enKucukElemanGrubundakiElemanSayisi = null,
-            int toplamMenzil_ = 1024, int hesapId_ = 1,
-            int threadReferans_ = 0, bool pipelineAcik_ = false,
-            int pipelineParcaSayisi__ = 4, bool pipelineTuru_ = Cores.PIPELINE_EVENT);
+        void compute(string[] kernelNamesStringArray = null,
+            int numSteps = 0, string stepFunction = "",
+            object[] arrays = null, string[] readWrite = null,
+            int[] arrayElementsPerWorkItem = null,
+            int globalRange = 1024, int computeId = 1,
+            int globalOffset = 0, bool pipelineEnabled = false,
+            int pipelineBlobCount = 4, bool pipelineType = Cores.PIPELINE_EVENT);
 
         /// <summary>
-        /// upload + hesap + download süresi
-        /// </summary>
-        /// <returns>milisaniye değeri</returns>
-        double hesapSuresi();
-
-        /// <summary>
-        // tüm C++ kaynaklarını serbest bırakmak için
+        /// total time for read compute write
         /// </summary>
         /// <returns></returns>
-        void sil();
+        double computeTiming();
+
+        /// <summary>
+        /// release C++ resources
+        /// </summary>
+        void dispose();
     }
 }
