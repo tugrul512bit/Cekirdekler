@@ -93,10 +93,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CekirdekClient.cs" />
-    <Compile Include="Cekirdekler.cs" />
-    <Compile Include="CekirdekServer.cs" />
-    <Compile Include="CekirdekServerThread.cs" />
+    <Compile Include="ClCruncherClient.cs" />
+    <Compile Include="Cores.cs" />
+    <Compile Include="ClCruncherServer.cs" />
+    <Compile Include="ClCruncherServerThread.cs" />
     <Compile Include="ClBuffer.cs" />
     <Compile Include="ClCommandQueue.cs" />
     <Compile Include="ClContext.cs" />
@@ -114,7 +114,7 @@
     <Compile Include="ClUserEvent.cs" />
     <Compile Include="CSpaceArrays.cs" />
     <Compile Include="HelperFunctions.cs" />
-    <Compile Include="ClusterHizlandirici.cs" />
+    <Compile Include="ClusterAccelerator.cs" />
     <Compile Include="IHesapNode.cs" />
     <Compile Include="License.cs" />
     <Compile Include="Tester.cs" />
