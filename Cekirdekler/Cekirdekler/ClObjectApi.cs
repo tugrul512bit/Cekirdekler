@@ -686,9 +686,7 @@ namespace Cekirdekler
             /// </summary>
             public void logInfo()
             {
-                if (Console.WindowWidth < 150)
-                    Console.WindowWidth = 150;
-               
+
                 Console.WriteLine("--------------");
                 Console.WriteLine("Selected platforms:");
                 string[][] names = platformVendorNames();
@@ -823,8 +821,7 @@ namespace Cekirdekler
             /// </summary>
             public void logInfo()
             {
-                if (Console.WindowWidth < 150)
-                    Console.WindowWidth = 150;
+
                 Console.WriteLine("---------");
                 Console.WriteLine("Selected devices:");
                 for(int i=0;i<devices.Length;i++)
