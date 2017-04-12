@@ -946,31 +946,73 @@ namespace Cekirdekler
                     return null;
             }
 
+            /// <summary>
+            /// selects devices with Altera in name or vendor name
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesAltera(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                return devicesNameSearch(new string[]{"altera"}, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
             }
 
+            /// <summary>
+            /// selects devices with Amd in name or vendor name
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesAmd(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                return devicesNameSearch(new string[]{"amd","advanced micro devices","advanced mıcro devıces"}, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
             }
 
+            /// <summary>
+            /// get devices with Intel in name or vendor name
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesIntel(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                return devicesNameSearch(new string[]{"intel","ıntel"}, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
             }
 
+            /// <summary>
+            /// get devices with Nvidia(or gtx or titan) in device name or device vendor name
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesNvidia(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
-               return devicesNameSearch(new string[]{"nvidia","nvıdıa"}, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
+               return devicesNameSearch(new string[]{"nvidia","nvıdıa","gtx","titan","tıtan"}, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
             }
 
+            /// <summary>
+            /// get devices with Xilinx in device name or device vendor name
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesXilinx(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                return devicesNameSearch(new string[]{"xilinx","xılınx"}, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
             }
 
+            /// <summary>
+            /// devices with dedicated memory such as discrete graphics cards
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesWithDedicatedMemory(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 int counter = 0;
@@ -996,6 +1038,13 @@ namespace Cekirdekler
                     return null;
             }
 
+            /// <summary>
+            /// reorders devices from highest to lowest memory
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesWithHighestMemoryAvailable(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 ulong[] keys = new ulong[devices.Length];
@@ -1008,6 +1057,14 @@ namespace Cekirdekler
                     return result;
             }
 
+
+            /// <summary>
+            /// generally iGPUs fall into this category
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesWithHostMemorySharing(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 int counter = 0;
