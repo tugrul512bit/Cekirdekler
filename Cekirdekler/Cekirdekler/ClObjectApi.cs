@@ -1176,7 +1176,7 @@ namespace Cekirdekler
             /// <returns></returns>
             public ClDevices devicesWithHighestDirectNbodyPerformance(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
-                long[] keys = new long[devices.Length];
+                long[] keys = new long[devices.Length]; 
                 int error = 0;
                 Stopwatch swBench = new Stopwatch();
                 for (int i = 0; i < devices.Length; i++)
