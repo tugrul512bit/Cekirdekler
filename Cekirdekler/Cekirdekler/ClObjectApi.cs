@@ -1182,7 +1182,7 @@ namespace Cekirdekler
                 for (int i = 0; i < devices.Length; i++)
                 {
                     swBench.Start();
-                    ClDevices tmpDevices = new ClDevices();
+                    ClDevices tmpDevices = new ClDevices(); 
                     tmpDevices.devices = new ClDevice[]
                             {
                                 this.devices[i].copyWithPlatformCopy(devicePartitionEnabled,streamingEnabled,MAX_CPU_CORES)
