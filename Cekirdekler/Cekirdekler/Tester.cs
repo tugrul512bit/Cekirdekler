@@ -637,8 +637,9 @@ namespace Cekirdekler
         /// <param name="n">optional number of particles</param>
         /// <param name="benchDevices">optional benchmark devices</param>
         /// <param name="streamEnabled">use devices as streaming processors or with dedicated memories</param>
+        /// <param name="consoleLog">logs intermediate benchmark information to console</param>
         /// <returns></returns>
-        public static int nBody(int n = 8 * 1024, ClDevices benchDevices = null, bool streamEnabled = false)
+        public static int nBody(int n = 8 * 1024, ClDevices benchDevices = null, bool streamEnabled = false,bool consoleLog=true)
         {
             int err = 0;
             float[] x = new float[n];
@@ -712,15 +713,21 @@ namespace Cekirdekler
                 cruncher.dispose();
                 return 1;
             }
-            cruncher.performanceFeed = true;
-           
-            for(int i=0;i<25;i++)
-                xCl.nextParam(yCl, fxCl_, fyCl_).compute(cruncher,1,"nBody",n,64);
-            
+
+            cruncher.performanceFeed = consoleLog;
+
+            for (int i = 0; i < 150; i++)
+            {
+                if (i % 15 == 0)
+                    Console.WriteLine("Test progress:%"+(100.0f*((float)i)/150.0f));
+
+                xCl.nextParam(yCl, fxCl_, fyCl_).compute(cruncher, 1, "nBody", n, 64);
+            }
             // opencl nbody end
 
             for(int i=0;i<n;i++)
             {
+                if(consoleLog)
                 if((i%1000)==0)
                 {
                     Console.WriteLine("Nbody force: fx["+i+"]=" + fx[i] + " fxCl["+i+"]=" + fxCl[i]);
@@ -729,6 +736,7 @@ namespace Cekirdekler
 
                 if ((fx[i]>fxCl[i]+0.01f) || (fx[i] < fxCl[i]- 0.01f) || (fy[i] > fyCl[i] + 0.01f) || (fy[i] < fyCl[i] - 0.01f))
                 {
+
                     Console.WriteLine("Nbody error. fx["+i+"]=" + fx[i]+" fxCl["+i+"]="+fxCl[i]);
                     Console.WriteLine("             fy["+i+"]=" + fy[i]+" fyCl["+i+"]="+fyCl[i]);
                     cruncher.dispose();
@@ -739,6 +747,7 @@ namespace Cekirdekler
                     return 1;
                 }
             }
+            if(consoleLog)
             Console.WriteLine("releasing nbody resources");
             cruncher.dispose();
             xCl.dispose();

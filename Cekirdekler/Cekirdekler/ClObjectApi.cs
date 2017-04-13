@@ -1181,13 +1181,14 @@ namespace Cekirdekler
                 Stopwatch swBench = new Stopwatch();
                 for (int i = 0; i < devices.Length; i++)
                 {
+                    Console.WriteLine("Testing device-"+i);
                     swBench.Start();
                     ClDevices tmpDevices = new ClDevices(); 
                     tmpDevices.devices = new ClDevice[]
                             {
                                 this.devices[i].copyWithPlatformCopy(devicePartitionEnabled,streamingEnabled,MAX_CPU_CORES)
                             };
-                    error += Tester.nBody(8192, tmpDevices);
+                    error += Tester.nBody(16*1024, tmpDevices, streamingEnabled, false);
                     swBench.Stop();
                     keys[i] = swBench.ElapsedMilliseconds;
                     swBench.Reset();
