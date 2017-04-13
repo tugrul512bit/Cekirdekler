@@ -1210,6 +1210,19 @@ namespace Cekirdekler
                 throw new NotImplementedException();
             }
 
+            /// <summary>
+            /// <para>not implemented(yet)</para>
+            /// <para>intrapolated version of devicesWithHighestDirectNbodyPerformance()</para>
+            /// </summary>
+            /// <param name="devicePartitionEnabled">for each CPU device, this enables or disables device partition</param>
+            /// <param name="streamingEnabled">for each device, enables zero-copy buffer access for C++ array wrapper parameters</param>
+            /// <param name="MAX_CPU_CORES">for each CPU device with device partitioning enabled, limits max number of cores for the sub-device created</param>
+            /// <returns></returns>
+            public ClDevices devicesWithHighestLeastOscillatedNbodyPerformance(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
+            {
+                throw new NotImplementedException();
+            }
+
         }
 
     }
