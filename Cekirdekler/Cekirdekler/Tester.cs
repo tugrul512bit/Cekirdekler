@@ -19,6 +19,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Cekirdekler.ClArrays;
+using Cekirdekler.Hardware;
+
 namespace Cekirdekler
 {
     /// <summary>
@@ -632,9 +634,11 @@ namespace Cekirdekler
         /// <summary>
         /// compares an nbody all-pairs(bruteforce) implementation for a C# vs opencl (2D-forces within (+/-)0.01f)
         /// </summary>
-        /// <param name="n"></param>
+        /// <param name="n">optional number of particles</param>
+        /// <param name="benchDevices">optional benchmark devices</param>
+        /// <param name="streamEnabled">use devices as streaming processors or with dedicated memories</param>
         /// <returns></returns>
-        public static int nBody(int n=8*1024)
+        public static int nBody(int n = 8 * 1024, ClDevices benchDevices = null, bool streamEnabled = false)
         {
             int err = 0;
             float[] x = new float[n];
@@ -677,13 +681,14 @@ namespace Cekirdekler
             ClArray<float> yCl = y;
             ClArray<float> fxCl_ = fxCl;
             ClArray<float> fyCl_ = fyCl;
-            ClNumberCruncher cruncher = new ClNumberCruncher(AcceleratorType.CPU | AcceleratorType.GPU, @"
+            ClNumberCruncher cruncher = null;
+            string kernelString = @"
                 __kernel void nBody(__global float * x,__global float * y,__global float * fx,__global float * fy)
                 {
                     int i=get_global_id(0);    
                     float fx0 = 0;
                     float fy0 = 0;
-                    for (int j = 0; j < "+n+@"; j++)
+                    for (int j = 0; j < " + n + @"; j++)
                     {
                         float dx = x[i] - x[j];
                         float dy = y[i] - y[j];
@@ -694,8 +699,13 @@ namespace Cekirdekler
                     fx[i] = fx0;
                     fy[i] = fy0;
                 }
-                ", -1, -1, false);
-            if(cruncher.numberCruncher.errorCode()!=0)
+                ";
+            if(benchDevices==null)
+                cruncher = new ClNumberCruncher(AcceleratorType.CPU | AcceleratorType.GPU,kernelString , -1, -1, streamEnabled);
+            else
+                cruncher = new ClNumberCruncher(benchDevices, kernelString, streamEnabled);
+
+            if (cruncher.numberCruncher.errorCode()!=0)
             {
                 Console.WriteLine(cruncher.numberCruncher.errorMessage());
                 Console.WriteLine("nbody error.");
@@ -704,7 +714,7 @@ namespace Cekirdekler
             }
             cruncher.performanceFeed = true;
            
-            for(int i=0;i<10;i++)
+            for(int i=0;i<25;i++)
                 xCl.nextParam(yCl, fxCl_, fyCl_).compute(cruncher,1,"nBody",n,64);
             
             // opencl nbody end

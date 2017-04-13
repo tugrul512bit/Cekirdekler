@@ -342,6 +342,10 @@ namespace Cekirdekler
 
         int counterAffinity = 0;
 
+        // for load balancer
+        internal int[] tmpGlobalRanges;
+        internal double[] tmpThroughputs;
+
         // to protect unmanaged arrays being garbage collected before its opencl buffer is released
         // in a LRU manner(later will be implemented)
         private Dictionary<object,bool> strongReferences { get; set; }
@@ -391,6 +395,7 @@ namespace Cekirdekler
 
             if (errorCode() != 0)
             {
+                Console.WriteLine("Cores class compute error.");
                 Console.WriteLine(errorMessage());
                 return;
             }
@@ -403,7 +408,6 @@ namespace Cekirdekler
                     arrs[i] = ((IBufferOptimization)arrs[i]).array;
                 }
             }
-
 
 
             // not only adds device fission to limit cpu usage, but also alters processor affinity too.
@@ -459,6 +463,7 @@ namespace Cekirdekler
                     break;
                 }
             }
+
             if (first)
             {
                 bool b1 = true;
@@ -485,7 +490,7 @@ namespace Cekirdekler
                 }
 
 
-                Functions.loadBalance(benchmarkInitVal,smooth,performanceHistory(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange));
+                Functions.loadBalance(benchmarkInitVal,smooth,performanceHistory(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange),this);
             }
             else
             {
@@ -494,8 +499,9 @@ namespace Cekirdekler
                 {
                     b1 &= (selectedGlobalRanges[i] >= (numberOfPipelineStages * this.localRange));
                 }
-                Functions.loadBalance(benchmarks(computeId),smooth, performanceHistory(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange));
+                Functions.loadBalance(benchmarks(computeId),smooth, performanceHistory(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange),this);
             }
+
             int totalGlobalRanges = 0;
             for (int i = 0; i < workers.Length; i++)
             {
@@ -860,11 +866,12 @@ namespace Cekirdekler
                 if (workers[i] != null)
                     workers[i].dispose();
                 workers[i] = null;
+                Console.WriteLine("Workers dispose finished.");
             }
 
             //if(platform!=null)
             //     platform.sil();
-            Console.WriteLine("Workers dispose finished.");
+            
             for (int i = 0; i < platforms.Count; i++)
             {
                 if (platforms[i] != null)

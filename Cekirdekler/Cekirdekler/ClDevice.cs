@@ -110,7 +110,7 @@ namespace ClObject
 
         internal ClDevice copy(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
         {
-            ClDevice result = new ClDevice(clPlatformForCopy,
+            ClDevice result = new ClDevice(clPlatformForCopy.copy(),
                 deviceTypeCodeInClPlatformForCopy,
                 iForCopy,
                 devicePartitionForCopy | devicePartitionEnabled,
@@ -121,9 +121,29 @@ namespace ClObject
             return result;
         }
 
+        /// <summary>
+        /// copies platform too, to stop different ClNumberCruncher instances destroying their common platform
+        /// </summary>
+        /// <param name="devicePartitionEnabled"></param>
+        /// <param name="streamingEnabled"></param>
+        /// <param name="MAX_CPU_CORES"></param>
+        /// <returns></returns>
+        internal ClDevice copyWithPlatformCopy(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
+        {
+            ClDevice result = new ClDevice(clPlatformForCopy.copy(),
+                deviceTypeCodeInClPlatformForCopy,
+                iForCopy,
+                devicePartitionForCopy | devicePartitionEnabled,
+                GPU_STREAMForCopy | streamingEnabled,
+                ((MAX_CPU_CORES <= 0) ? MAX_CPUForCopy : MAX_CPU_CORES));
+
+
+            return result;
+        }
+
         internal ClDevice copyExact()
         {
-            ClDevice result = new ClDevice(clPlatformForCopy,
+            ClDevice result = new ClDevice(clPlatformForCopy.copy(),
                 deviceTypeCodeInClPlatformForCopy,
                 iForCopy,
                 devicePartitionForCopy,

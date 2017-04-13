@@ -1,6 +1,7 @@
 ﻿using ClObject;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -552,6 +553,13 @@ namespace Cekirdekler
                 return clDevices;
             }
 
+            /// <summary>
+            /// sort devices by memory size in descending order
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesWithHighestMemoryAvailable(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 int totalDevices = 0;
@@ -656,26 +664,61 @@ namespace Cekirdekler
                     return null;
             }
 
+            /// <summary>
+            /// get devices with Amd or Advanced Micro Devices in name or vendor name
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesAmd(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 return devicesNameSearch(new string[] { "amd", "advanced micro devices", "advanced mıcro devıces" },devicePartitionEnabled, streamingEnabled,MAX_CPU_CORES);
             }
 
+            /// <summary>
+            /// get devices with Nvidia or Gtx or Titan in name or vendor name
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesNvidia(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 return devicesNameSearch(new string[] { "nvidia", "nvıdıa", "gtx","titan","tıtan" }, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
             }
 
+            /// <summary>
+            /// get devices with Intel in name or vendor name
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesIntel(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 return devicesNameSearch(new string[] { "intel", "ıntel" }, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
             }
 
+            /// <summary>
+            /// get devices with Altera in name or vendor name
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesAltera(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 return devicesNameSearch(new string[] { "altera" }, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
             }
 
+            /// <summary>
+            /// get devices with Xilinx in name or vendor name 
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices devicesXilinx(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 return devicesNameSearch(new string[] { "xilinx", "xılınx" }, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
@@ -839,6 +882,11 @@ namespace Cekirdekler
                 Console.WriteLine("---------");
             }
 
+            /// <summary>
+            /// get all accelerators(such as fpgas) from list
+            /// </summary>
+            /// <param name="streamingEnabled"></param>
+            /// <returns></returns>
             public ClDevices accelerators(bool streamingEnabled = false)
             {
                 int counter = 0;
@@ -864,6 +912,13 @@ namespace Cekirdekler
                     return null;
             }
 
+            /// <summary>
+            /// get all cpus from list
+            /// </summary>
+            /// <param name="devicePartitionEnabled"></param>
+            /// <param name="streamingEnabled"></param>
+            /// <param name="MAX_CPU_CORES"></param>
+            /// <returns></returns>
             public ClDevices cpus(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
             {
                 int counter = 0;
@@ -889,6 +944,11 @@ namespace Cekirdekler
                     return null;
             }
 
+            /// <summary>
+            /// get all gpus from list
+            /// </summary>
+            /// <param name="streamingEnabled"></param>
+            /// <returns></returns>
             public ClDevices gpus(bool streamingEnabled = false)
             {
                 int counter = 0;
@@ -1107,7 +1167,48 @@ namespace Cekirdekler
             }
 
 
+            /// <summary>
+            /// get devices ordered by decreasing number of compute units
+            /// </summary>
+            /// <param name="devicePartitionEnabled">for each CPU device, this enables or disables device partition</param>
+            /// <param name="streamingEnabled">for each device, enables zero-copy buffer access for C++ array wrapper parameters</param>
+            /// <param name="MAX_CPU_CORES">for each CPU device with device partitioning enabled, limits max number of cores for the sub-device created</param>
+            /// <returns></returns>
+            public ClDevices devicesWithHighestDirectNbodyPerformance(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
+            {
+                long[] keys = new long[devices.Length];
+                int error = 0;
+                Stopwatch swBench = new Stopwatch();
+                for (int i = 0; i < devices.Length; i++)
+                {
+                    swBench.Start();
+                    ClDevices tmpDevices = new ClDevices();
+                    tmpDevices.devices = new ClDevice[]
+                            {
+                                this.devices[i].copyWithPlatformCopy(devicePartitionEnabled,streamingEnabled,MAX_CPU_CORES)
+                            };
+                    error += Tester.nBody(8192, tmpDevices);
+                    swBench.Stop();
+                    keys[i] = swBench.ElapsedMilliseconds;
+                    swBench.Reset();
+                }
+                ClDevices result = this.copy(null, devicePartitionEnabled, streamingEnabled, MAX_CPU_CORES);
+                Array.Sort(keys, result.devices);
+                return result;
+            }
 
+            /// <summary>
+            /// <para>not implemented(yet)</para>
+            /// <para>intrapolated version of devicesWithHighestDirectNbodyPerformance()</para>
+            /// </summary>
+            /// <param name="devicePartitionEnabled">for each CPU device, this enables or disables device partition</param>
+            /// <param name="streamingEnabled">for each device, enables zero-copy buffer access for C++ array wrapper parameters</param>
+            /// <param name="MAX_CPU_CORES">for each CPU device with device partitioning enabled, limits max number of cores for the sub-device created</param>
+            /// <returns></returns>
+            public ClDevices devicesWithHighestIntrapolatedNbodyPerformance(bool devicePartitionEnabled = false, bool streamingEnabled = false, int MAX_CPU_CORES = -1)
+            {
+                throw new NotImplementedException();
+            }
 
         }
 

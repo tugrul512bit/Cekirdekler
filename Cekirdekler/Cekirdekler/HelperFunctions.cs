@@ -75,8 +75,8 @@ namespace ClObject
             }
             return result_;
         }
-        private static int[] tmpGlobalRanges;
-        private static double[] tmpThroughputs;
+
+
 
 
         /// <summary>
@@ -153,20 +153,26 @@ namespace ClObject
         /// <param name="totalRange">global range of kernel</param>
         /// <param name="globalRanges">global range per device</param>
         /// <param name="step">minimum exchange rate of workitems between devices to balance the load</param>
-        public static void loadBalance(double[] benchmark,bool smooth,double[][]throughputHistory, int totalRange, int[] globalRanges, int step)
+        public static void loadBalance(double[] benchmark,bool smooth,double[][]throughputHistory, int totalRange, int[] globalRanges, int step,Cores cores)
         {
-            if (tmpGlobalRanges == null)
+            if (cores.tmpGlobalRanges == null)
             {
-                tmpGlobalRanges = new int[globalRanges.Length];
-                tmpThroughputs = new double[globalRanges.Length];
+                cores.tmpGlobalRanges = new int[globalRanges.Length];
             }
+
+            if(cores.tmpThroughputs ==null)
+            {
+                cores.tmpThroughputs = new double[globalRanges.Length];
+
+            }
+
             double totalBenchmark = benchmark.Sum() + 0.01 * globalRanges.Length;
             double totalThroughput = 0;
             for (int i = 0; i < benchmark.Length; i++)
             {
-                tmpThroughputs[i] = ((totalBenchmark / (benchmark[i] + 0.01))) * (globalRanges[i] + 1);
-                totalThroughput += tmpThroughputs[i];
-                tmpGlobalRanges[i] = 0;
+                cores.tmpThroughputs[i] = ((totalBenchmark / (benchmark[i] + 0.01))) * (globalRanges[i] + 1);
+                totalThroughput += cores.tmpThroughputs[i];
+                cores.tmpGlobalRanges[i] = 0;
             }
 
 
@@ -183,7 +189,7 @@ namespace ClObject
             {
                 for (int i = 0; i < benchmark.Length; i++)
                 {
-                    tmpNormalizedThroughputs[i] = tmpThroughputs[i] / totalThroughput;
+                    tmpNormalizedThroughputs[i] = cores.tmpThroughputs[i] / totalThroughput;
                 }
 
                 // push from newest, oldest pops
@@ -196,7 +202,7 @@ namespace ClObject
             for (int i = 0; i < benchmark.Length; i++)
             {
                 // if load balancer smoothing is on
-                double normalizedThrougput = (smooth&& throughputHistory[0][0]>0.00001) ? tmpNormalizedThroughputs[i] : (tmpThroughputs[i] / totalThroughput);
+                double normalizedThrougput = (smooth&& throughputHistory[0][0]>0.00001) ? tmpNormalizedThroughputs[i] : (cores.tmpThroughputs[i] / totalThroughput);
 
                 if (globalRanges[i] != 0)
                 {
@@ -204,7 +210,7 @@ namespace ClObject
 
                     
                     int tmp1 =globalRanges[i] - (int)((globalRanges[i]- (totalRange * normalizedThrougput ))*0.3);
-                    tmpGlobalRanges[i] = tmp1;
+                    cores.tmpGlobalRanges[i] = tmp1;
      
                 }
                 else
@@ -212,7 +218,7 @@ namespace ClObject
                     int tmp0 = globalRanges[i];
 
                     int tmp1 = (int)((((totalRange * (totalBenchmark / (benchmark[i] + 0.01)) / totalThroughput))));
-                    tmpGlobalRanges[i] = tmp1;
+                    cores.tmpGlobalRanges[i] = tmp1;
 
                 }
 
@@ -221,11 +227,11 @@ namespace ClObject
             int remains = 0;
             for (int i = 0; i < benchmark.Length; i++)
             {
-                int remains0 = (tmpGlobalRanges[i]) % step;
+                int remains0 = (cores.tmpGlobalRanges[i]) % step;
                 if (remains0 < step / 2)
-                    globalRanges[i] = tmpGlobalRanges[i] - remains0;
+                    globalRanges[i] = cores.tmpGlobalRanges[i] - remains0;
                 else
-                    globalRanges[i] = tmpGlobalRanges[i] + (step - remains0);
+                    globalRanges[i] = cores.tmpGlobalRanges[i] + (step - remains0);
             }
 
             while (globalRanges.Sum() > totalRange)
