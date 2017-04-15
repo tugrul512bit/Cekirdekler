@@ -456,14 +456,17 @@ namespace Cekirdekler
                 int[] elemPerWorkItem_ = arrayElementsPerWorkItem.ToArray();
                 for (int ar = 0; ar < arrs_.Length; ar++)
                 {
-                    
-                    if ( lengths_[ar] < (globalRange * elemPerWorkItem_[ar]))
+                    // if there is only "full read"s, no need to check number of elements. Simply whole array is copied
+                    if ((partialReads_[ar].Length != 0) || (writes_[ar].Length != 0))
                     {
-                        Console.WriteLine();
-                        Console.WriteLine("Array-size error: (global range)*(number of array elements per work item)=(" + (globalRange * elemPerWorkItem_[ar]) + ") must be equal to or less than array length (" + (lengths_[ar]) + ").");
-                        Console.WriteLine();
-                        cruncher.numberOfErrorsHappened++;
-                        return;
+                        if (lengths_[ar] < (globalRange * elemPerWorkItem_[ar]))
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine("Array-size error: (global range)*(number of array elements per work item)=(" + (globalRange * elemPerWorkItem_[ar]) + ") must be equal to or less than array length (" + (lengths_[ar]) + ").");
+                            Console.WriteLine();
+                            cruncher.numberOfErrorsHappened++;
+                            return;
+                        }
                     }
                 }
                 cruncher.numberCruncher.compute(
@@ -1353,13 +1356,17 @@ namespace Cekirdekler
                         return;
                     }
                 }
-                if(Length<(globalRange * numberOfElementsPerWorkItem))
+                // if there is only "full read"s, no need to check number of elements. Simply whole array is copied
+                if (partialRead || write)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine("Array-size error: (global range)*(number of array elements per work item)=(" + (globalRange * numberOfElementsPerWorkItem) + ") must be equal to or less than array length (" + (Length) + ").");
-                    Console.WriteLine();
-                    cruncher.numberOfErrorsHappened++;
-                    return;
+                    if (Length < (globalRange * numberOfElementsPerWorkItem))
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Array-size error: (global range)*(number of array elements per work item)=(" + (globalRange * numberOfElementsPerWorkItem) + ") must be equal to or less than array length (" + (Length) + ").");
+                        Console.WriteLine();
+                        cruncher.numberOfErrorsHappened++;
+                        return;
+                    }
                 }
                 string[] kernellerTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -1380,14 +1387,17 @@ namespace Cekirdekler
 
                 for (int ar = 0; ar < arrs_.Length; ar++)
                 {
-
-                    if (lengths_[ar] < (globalRange * elemsPerWorkItem_[ar]))
+                    // if there is only "full read"s, no need to check number of elements. Simply whole array is copied
+                    if ((partialReads_[ar].Length != 0) || (writes_[ar].Length != 0))
                     {
-                        Console.WriteLine();
-                        Console.WriteLine("Array-size error: (global range)*(number of array elements per work item)=(" + (globalRange * elemsPerWorkItem_[ar]) + ") must be equal to or less than array length (" + (lengths_[ar]) + ").");
-                        Console.WriteLine();
-                        cruncher.numberOfErrorsHappened++;
-                        return;
+                        if (lengths_[ar] < (globalRange * elemsPerWorkItem_[ar]))
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine("Array-size error: (global range)*(number of array elements per work item)=(" + (globalRange * elemsPerWorkItem_[ar]) + ") must be equal to or less than array length (" + (lengths_[ar]) + ").");
+                            Console.WriteLine();
+                            cruncher.numberOfErrorsHappened++;
+                            return;
+                        }
                     }
                 }
                 cruncher.numberCruncher.compute(
