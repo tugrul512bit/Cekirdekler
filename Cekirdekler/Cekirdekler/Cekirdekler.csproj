@@ -95,6 +95,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ClBuiltInAuxilliaryFunctions.cs" />
     <Compile Include="ClCruncherClient.cs" />
     <Compile Include="Cores.cs" />
     <Compile Include="ClCruncherServer.cs" />
