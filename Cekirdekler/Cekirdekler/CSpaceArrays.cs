@@ -251,7 +251,22 @@ namespace Cekirdekler
             /// ClBuffer connection compatibility variable
             /// </summary>
             public int sizeOfEnum { get; set; }
-
+            
+            /// <summary>
+            /// byte array only, for the array of struct support
+            /// </summary>
+            /// <param name="pinnedStructArrayPointer"></param>
+            /// <param name="n"></param>
+            /// <param name="align"></param>
+            internal FastArr(IntPtr pinnedStructArrayPointer,int n)
+            {
+                n_ = n;
+                hArr = IntPtr.Zero; // will not attempt to delete it later
+                hAArr = pinnedStructArrayPointer;
+                arrType = CSpaceArrays.ARR_BYTE;
+                sizeOfEnum = (int)SizeOf.cl_char;
+                sizeOf = CSpaceArrays.sizeOf(arrType);
+            }
 
             internal FastArr(int n, int alignment = 4096)
             {
@@ -348,17 +363,20 @@ namespace Cekirdekler
             {
                 return hAArr;
             }
+            internal bool pinnedCSharpArrayWrapper = false;
 
             /// <summary>
             /// deletes C++ array, can be called multiple times
             /// </summary>
             public void dispose()
             {
-
-                if (hArr != IntPtr.Zero)
+                if (!pinnedCSharpArrayWrapper)
                 {
-                    CSpaceArrays.deleteArray(hArr);
-                    hArr = IntPtr.Zero;
+                    if (hArr != IntPtr.Zero)
+                    {
+                        CSpaceArrays.deleteArray(hArr);
+                        hArr = IntPtr.Zero;
+                    }
                 }
             }
 
@@ -533,7 +551,6 @@ namespace Cekirdekler
         public unsafe class ClByteArray : FastArr<byte>
         {
             private byte* pByte;
-
             /// <summary>
             /// allocates a byte array in "C" space for faster opencl computations
             /// </summary>
@@ -543,6 +560,38 @@ namespace Cekirdekler
             {
                 pByte = (byte*)hAArr.ToPointer();
             }
+
+            private GCHandle gcHandle { get; set; }
+            private bool gcHandleFreed = false;
+            
+            /// <summary>
+            /// constructs from IntPtr of GcHandle.Alloc(pinned)
+            /// </summary>
+            /// <param name="pinnedStructArrayPointer"></param>
+            /// <param name="n"></param>
+            /// <param name="handleGC"></param>
+            public ClByteArray(IntPtr pinnedStructArrayPointer,int n,GCHandle handleGC) : base(pinnedStructArrayPointer,n)
+            {
+                pByte = (byte*)pinnedStructArrayPointer.ToPointer();
+                pinnedCSharpArrayWrapper = true;
+                gcHandle = handleGC;
+            }
+
+            /// <summary>
+            /// release pinned array
+            /// </summary>
+            ~ClByteArray()
+            {
+                if (pinnedCSharpArrayWrapper)
+                {
+                    if (!gcHandleFreed)
+                    {
+                        gcHandleFreed = true;
+                        gcHandle.Free();
+                    }
+                }
+            }
+           
 
             /// <summary>
             /// access just like a C# array
@@ -659,6 +708,9 @@ namespace Cekirdekler
                 throw new NotImplementedException();
             }
         }
+
+
+
 
         /// <summary>
         /// C++ float array

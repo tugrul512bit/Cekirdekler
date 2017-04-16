@@ -21,6 +21,8 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using Cekirdekler;
+using ClObject;
+
 namespace Cekirdekler
 {
     namespace ClArrays
@@ -647,6 +649,8 @@ namespace Cekirdekler
                     else if (typeof(T) == typeof(byte))
                         array = new ClByteArray(n_, a_);
 
+
+
                     arrayAsIList = array_ as IList<T>;
                 }
                 isCSharpArr = false;
@@ -856,6 +860,31 @@ namespace Cekirdekler
                 clArray.array = b;
                 clArray.isCSharpArr = false;
                 return clArray;
+            }
+
+            // todo: float int double, ... can work too, with checked boundaries.
+            /// <summary>
+            /// <para>since there is not array of struct to generic implicit conversion</para>
+            /// <para>needs this method to generate a byte array wrapper</para>
+            /// <para>pins the wrapped array</para>
+            /// </summary>
+            /// <param name="s"></param>
+            /// <returns></returns>
+            public static ClArray<byte> wrapArrayOfStructs(object s)
+            {
+                if (Functions.isUserDefinedStructArray(s))
+                {
+                    GCHandle gc = GCHandle.Alloc(s, GCHandleType.Pinned);
+                    var asList = s as IList;
+                    int n = Marshal.SizeOf(asList[0].GetType()) * asList.Count; // number of total bytes
+                    ClArray<byte> result = new ClByteArray(gc.AddrOfPinnedObject(), n,gc);
+                    return result;
+                }
+                else
+                {
+                    Console.WriteLine("Error: parameter is not a user-defined struct array");
+                    return null;
+                }
             }
 
 

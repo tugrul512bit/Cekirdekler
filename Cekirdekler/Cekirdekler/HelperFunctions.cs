@@ -20,7 +20,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Cekirdekler;
-using Cekirdekler.ClArrays; 
+using Cekirdekler.ClArrays;
+using System.Collections;
+using System.Runtime.InteropServices;
+
 namespace ClObject
 {
     /// <summary>
@@ -45,6 +48,37 @@ namespace ClObject
                 return false;
             else
                 return (o.GetType().BaseType.GetGenericTypeDefinition() == typeof(FastArr<>));
+        }
+
+        public static int sizeOfUserDefinedStruct(object sParameter)
+        {
+            return Marshal.SizeOf(sParameter.GetType());
+        }
+
+        public static bool isUserDefinedStructArray(object o)
+        {
+            if (o.GetType().IsArray)
+            {
+                var oa = o as IList;
+                if ((oa != null) && (oa.Count > 0))
+                {
+                    if (!oa[0].GetType().IsPrimitive)
+                    {
+                        if (oa[0].GetType().IsValueType)
+                        {
+                            return true;
+                        }
+                        else
+                            return false;
+                    }
+                    else
+                        return false;
+                }
+                else
+                    return false;
+            }
+            else
+                return false;
         }
 
         static int maxIndex(int[] arr)
@@ -105,7 +139,7 @@ namespace ClObject
         public static double[] performanceHistoryAverage(double[][] hist)
         {
             double[] result = new double[hist[0].Length];
-            for(int i=0;i<hist.Length;i++)
+            for (int i = 0; i < hist.Length; i++)
             {
                 for (int j = 0; j < hist[i].Length; j++)
                 {
@@ -137,7 +171,7 @@ namespace ClObject
         /// </summary>
         /// <param name="hist"></param>
         /// <returns></returns>
-        public static double[] performanceHistoryDerivative5pStencil(double [][] hist)
+        public static double[] performanceHistoryDerivative5pStencil(double[][] hist)
         {
             double[] result = null;
             return result;
@@ -153,14 +187,14 @@ namespace ClObject
         /// <param name="totalRange">global range of kernel</param>
         /// <param name="globalRanges">global range per device</param>
         /// <param name="step">minimum exchange rate of workitems between devices to balance the load</param>
-        public static void loadBalance(double[] benchmark,bool smooth,double[][]throughputHistory, int totalRange, int[] globalRanges, int step,Cores cores)
+        public static void loadBalance(double[] benchmark, bool smooth, double[][] throughputHistory, int totalRange, int[] globalRanges, int step, Cores cores)
         {
             if (cores.tmpGlobalRanges == null)
             {
                 cores.tmpGlobalRanges = new int[globalRanges.Length];
             }
 
-            if(cores.tmpThroughputs ==null)
+            if (cores.tmpThroughputs == null)
             {
                 cores.tmpThroughputs = new double[globalRanges.Length];
 
@@ -202,16 +236,16 @@ namespace ClObject
             for (int i = 0; i < benchmark.Length; i++)
             {
                 // if load balancer smoothing is on
-                double normalizedThrougput = (smooth&& throughputHistory[0][0]>0.00001) ? tmpNormalizedThroughputs[i] : (cores.tmpThroughputs[i] / totalThroughput);
+                double normalizedThrougput = (smooth && throughputHistory[0][0] > 0.00001) ? tmpNormalizedThroughputs[i] : (cores.tmpThroughputs[i] / totalThroughput);
 
                 if (globalRanges[i] != 0)
                 {
                     int tmp0 = globalRanges[i];
 
-                    
-                    int tmp1 =globalRanges[i] - (int)((globalRanges[i]- (totalRange * normalizedThrougput ))*0.3);
+
+                    int tmp1 = globalRanges[i] - (int)((globalRanges[i] - (totalRange * normalizedThrougput)) * 0.3);
                     cores.tmpGlobalRanges[i] = tmp1;
-     
+
                 }
                 else
                 {
