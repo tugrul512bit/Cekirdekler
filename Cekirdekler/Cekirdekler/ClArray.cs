@@ -878,6 +878,7 @@ namespace Cekirdekler
                     var asList = s as IList;
                     int n = Marshal.SizeOf(asList[0].GetType()) * asList.Count; // number of total bytes
                     ClArray<byte> result = new ClByteArray(gc.AddrOfPinnedObject(), n,gc);
+                    result.numberOfElementsPerWorkItem = Marshal.SizeOf(asList[0].GetType());
                     return result;
                 }
                 else
