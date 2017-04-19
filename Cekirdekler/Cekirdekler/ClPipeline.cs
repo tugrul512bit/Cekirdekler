@@ -11,13 +11,11 @@ namespace Cekirdekler
     {
         /// <summary>
         /// <para>Explicit pipelining where each device works on a different stage of pipeline, concurrently, after each push()</para>
-        /// <para>1 push      = 1 operation (read)</para>
-        /// <para>1 more push = 2 operations(read + compute)</para>
-        /// <para>1 more push = 3 operations(read + compute + write)</para>
-        /// <para>1 more push = 4 operations(read + compute + write)+(read on next stage)</para>
-        /// <para>1 more push = 5 operations(read + compute + write)+(read on next stage + compute)</para>
-        /// <para>1 more push = 6 operations(read + compute + write)+(read on next stage + compute + write)</para>
-        /// <para>1 more push = 7 operations(read + compute + write)+(read on next stage + compute + write)+(...)</para>
+        /// <para>To be able to push at each iteration, double-buffering is used for inputs</para>
+        /// <para>1 push      (1 thread) = (switch buffer):false</para>
+        /// <para>1 more push (1 thread) = (switch buffer)(read+compute+write)[stage-0]:false</para>
+        /// <para>1 more push (2 threads)= (switch buffer)(read+compute+write)[stage-0] ++ (switch buffer):false</para>
+        /// <para>1 more push (2 threads)= (switch buffer)(read+compute+write)[stage-0] ++ (switch buffer)(read+compute+write)[stage-1]:true</para>
         /// </summary>
         public class ClPipeline
         {
