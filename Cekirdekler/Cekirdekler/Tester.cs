@@ -704,7 +704,7 @@ namespace Cekirdekler
             if(benchDevices==null)
                 cruncher = new ClNumberCruncher(AcceleratorType.CPU | AcceleratorType.GPU,kernelString , -1, -1, streamEnabled);
             else
-                cruncher = new ClNumberCruncher(benchDevices, kernelString, streamEnabled);
+                cruncher = new ClNumberCruncher(benchDevices, kernelString);
 
             if (cruncher.numberCruncher.errorCode()!=0)
             {

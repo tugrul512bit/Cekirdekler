@@ -97,6 +97,7 @@
   <ItemGroup>
     <Compile Include="ClBuiltInAuxilliaryFunctions.cs" />
     <Compile Include="ClCruncherClient.cs" />
+    <Compile Include="ClPipeline.cs" />
     <Compile Include="Cores.cs" />
     <Compile Include="ClCruncherServer.cs" />
     <Compile Include="ClCruncherServerThread.cs" />

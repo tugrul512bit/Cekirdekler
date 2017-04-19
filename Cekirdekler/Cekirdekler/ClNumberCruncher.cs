@@ -130,8 +130,7 @@ namespace Cekirdekler
         /// </summary>
         /// <param name="devicesForGPGPU">one or more devices for GPGPU</param>
         /// <param name="kernelString">something like: @"multi-line C# string that has multiple kernel definitions"</param>
-        /// <param name="stream">devices that share RAM with CPU will not do extra copies. Devices that don't share RAM will directly access RAM and reduce number of copies</param>
-        public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,bool stream = true)
+        public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString)
         {
             numberOfErrorsHappened = 0;
             List<string> kernelNames_ = new List<string>();
