@@ -49,6 +49,18 @@ namespace Cekirdekler
         public class ClPipelineStage
         {
 
+            // if this is true, it will compute after the input switch
+            internal bool inputHasData = false;
+
+            // just to inform push() of whole pipeline
+            internal bool outputHasData = false;
+
+            // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
+            internal void run()
+            {
+
+            }
+
             /// <summary>
             /// creates a pipeline out of all bound stages, ready to compute 
             /// </summary>
