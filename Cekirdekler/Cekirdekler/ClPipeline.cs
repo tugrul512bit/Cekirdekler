@@ -61,6 +61,12 @@ namespace Cekirdekler
 
             }
 
+            // double buffering for overlapped stages for multi device usage
+            internal void switchInputBuffers()
+            {
+
+            }
+
             /// <summary>
             /// creates a pipeline out of all bound stages, ready to compute 
             /// </summary>
