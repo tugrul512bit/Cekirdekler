@@ -173,6 +173,8 @@ namespace Cekirdekler
             /// <param name="array"></param>
             /// <param name="arrayIndex"></param>
             void CopyTo_(FastArr<T> array, int arrayIndex);
+
+
         }
 
         /// <summary>
@@ -206,6 +208,14 @@ namespace Cekirdekler
             /// </summary>
             void dispose();
 
+            /// <summary>
+            /// <para>C++ array type compatible to C# side as</para>
+            /// <para>CSpaceArrays.Arr_FLOAT</para>
+            /// <para>CSpaceArrays.Arr_INT</para>
+            /// <para>CSpaceArrays.Arr_BYTE</para>
+            /// </summary>
+            int arrType { get; set; }
+
         }
 
 
@@ -234,13 +244,7 @@ namespace Cekirdekler
             /// </summary>
             protected int n_;
 
-            /// <summary>
-            /// <para>C++ array type compatible to C# side as</para>
-            /// <para>CSpaceArrays.Arr_FLOAT</para>
-            /// <para>CSpaceArrays.Arr_INT</para>
-            /// <para>CSpaceArrays.Arr_BYTE</para>
-            /// </summary>
-            public int arrType { get; set; }
+
 
             /// <summary> 
             /// size of each array element
@@ -414,6 +418,19 @@ namespace Cekirdekler
                 {
                     throw new NotImplementedException();
                 }
+            }
+
+            /// <summary>
+            /// <para>C++ array type compatible to C# side as</para>
+            /// <para>CSpaceArrays.Arr_FLOAT</para>
+            /// <para>CSpaceArrays.Arr_INT</para>
+            /// <para>CSpaceArrays.Arr_BYTE</para>
+            /// </summary>
+            public  int arrType
+            {
+                get;
+
+                set;
             }
 
             /// <summary>

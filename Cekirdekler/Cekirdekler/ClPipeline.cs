@@ -39,6 +39,8 @@ namespace Cekirdekler
            
         }
 
+
+
         /// <summary>
         /// <para>used to build stages of a pipeline</para>
         /// <para>inputs are interpreted as read-only(partial if multi device stage), outputs are interpreted as write-only</para>
@@ -54,6 +56,8 @@ namespace Cekirdekler
 
             // just to inform push() of whole pipeline
             internal bool outputHasData = false;
+
+            internal ClPipelineStageBuffer[] buffers;
 
             // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
             internal void run()
@@ -121,7 +125,7 @@ namespace Cekirdekler
             /// <summary>
             /// not used for input or output, just for keeping sequential logic states (such as coordinates of particles)
             /// </summary>
-            public void addHiddenBuffer(params Array[] inputsParameter)
+            public void addHiddenBuffers(params Array[] inputsParameter)
             {
 
             }
@@ -129,7 +133,7 @@ namespace Cekirdekler
             /// <summary>
             /// not used for input or output, just for keeping sequential logic states (such as coordinates of particles)
             /// </summary>
-            public void addHiddenBuffer(params IBufferOptimization[] inputsParameter)
+            public void addHiddenBuffers(params IBufferOptimization[] inputsParameter)
             {
 
             }
@@ -137,7 +141,7 @@ namespace Cekirdekler
             /// <summary>
             /// not used for input or output, just for keeping sequential logic states (such as coordinates of particles)
             /// </summary>
-            public void addHiddenBuffer(params IMemoryHandle[] inputsParameter)
+            public void addHiddenBuffers(params IMemoryHandle[] inputsParameter)
             {
 
             }
@@ -145,7 +149,7 @@ namespace Cekirdekler
             /// <summary>
             /// input arrays (ClArray, ClByteArray, byte[], ... ) to be pushed by user or to be connect to another stage's output
             /// </summary>
-            public void addInputs(params Array [] inputsParameter)
+            public void addInputBuffers(params Array [] inputsParameter)
             {
 
             }
@@ -153,7 +157,7 @@ namespace Cekirdekler
             /// <summary>
             /// input arrays (ClArray, ClByteArray, byte[], ... ) to be pushed by user or to be connect to another stage's output
             /// </summary>
-            public void addInputs(params IBufferOptimization[] inputsParameter)
+            public void addInputBuffers(params IBufferOptimization[] inputsParameter)
             {
 
             }
@@ -161,7 +165,7 @@ namespace Cekirdekler
             /// <summary>
             /// input arrays (ClArray, ClByteArray, byte[], ... ) to be pushed by user or to be connect to another stage's output
             /// </summary>
-            public void addInputs(params IMemoryHandle[] inputsParameter)
+            public void addInputBuffers(params IMemoryHandle[] inputsParameter)
             {
 
             }
@@ -171,7 +175,7 @@ namespace Cekirdekler
             /// <summary>
             /// output arrays (ClArray, ClByteArray, byte[], ... ) to be popped to user or to be connected another stage's input
             /// </summary>
-            public void addOutputs(params Array[] inputsParameter)
+            public void addOutputBuffers(params Array[] inputsParameter)
             {
 
             }
@@ -179,7 +183,7 @@ namespace Cekirdekler
             /// <summary>
             /// output arrays (ClArray, ClByteArray, byte[], ... ) to be popped to user or to be connected another stage's input
             /// </summary>
-            public void addOutputs(params IMemoryHandle[] inputsParameter)
+            public void addOutputBuffers(params IMemoryHandle[] inputsParameter)
             {
 
             }
@@ -187,10 +191,77 @@ namespace Cekirdekler
             /// <summary>
             /// output arrays (ClArray, ClByteArray, byte[], ... ) to be popped to user or to be connected another stage's input
             /// </summary>
-            public void addOutputs(params IBufferOptimization[] inputsParameter)
+            public void addOutputBuffers(params IBufferOptimization[] inputsParameter)
             {
 
             }
+        }
+
+
+        internal enum BufferType:int
+        {
+            BUF_ARRAY=0, BUF_FAST_ARRAY=1, BUF_CL_ARRAY=2
+        }
+
+        /// <summary>
+        /// Wraps Array, FastArr, ClArray types so that it can be switched by its duplicate, read, write, ...
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        internal class ClPipelineStageBuffer
+        {
+            private BufferType type;
+            private object buf;
+            private Array bufAsArray;
+            private IMemoryHandle bufAsFastArr;
+            private IBufferOptimization bufAsClArray;
+            private object bufDuplicate;
+            public  ClPipelineStageBuffer(object p)
+            {
+                buf = p;
+                bufAsArray = buf as Array;
+                if (bufAsArray != null)
+                    type = BufferType.BUF_ARRAY;
+                bufAsFastArr = buf as IMemoryHandle;
+                if (bufAsFastArr != null)
+                    type = BufferType.BUF_FAST_ARRAY;
+                bufAsClArray = buf as IBufferOptimization;
+                if (bufAsClArray != null)
+                    type = BufferType.BUF_CL_ARRAY;
+
+                if(type==BufferType.BUF_ARRAY)
+                {
+
+                }
+                else if(type==BufferType.BUF_FAST_ARRAY)
+                {
+
+                }
+                else if(type==BufferType.BUF_CL_ARRAY)
+                {
+
+                }
+            }
+
+            public void switchBuffers()
+            {
+                object tmp = buf;
+                buf = bufDuplicate;
+                bufDuplicate= tmp;
+            }
+
+
+            public object buffer()
+            {
+                return buf;
+            }
+
+           
+
+            public object switchedBuffer()
+            {
+                return bufDuplicate;
+            }
+
         }
     }
 }
