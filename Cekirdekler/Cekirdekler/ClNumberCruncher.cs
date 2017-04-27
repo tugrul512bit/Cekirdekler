@@ -171,6 +171,15 @@ namespace Cekirdekler
         }
 
         /// <summary>
+        /// list of devices' names
+        /// </summary>
+        /// <returns></returns>
+        public string[] deviceNames()
+        {
+            return numberCruncher.deviceNames();
+        }
+
+        /// <summary>
         /// <para>prepares devices and compiles kernels in the kernel string</para>
         /// <para>does optionally pipelined kernel execution load balancing between multiple devices</para>
         /// </summary>
