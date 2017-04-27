@@ -148,6 +148,29 @@ namespace Cekirdekler
         }
 
         /// <summary>
+        /// returns relative global range of each device
+        /// </summary>
+        /// <returns></returns>
+        public double[] normalizedGlobalRangesOfDevices(int id)
+        {
+            if ((numberCruncher != null) && (numberCruncher.tmpThroughputs != null) && (numberCruncher.tmpThroughputs.Length > 0))
+            {
+                double[] result = new double[numberCruncher.tmpThroughputs.Length];
+                double total = 0;
+                for (int i = 0; i < numberCruncher.tmpThroughputs.Length; i++)
+                {
+                    result[i] = numberCruncher.globalRanges[id][i];
+                    total += numberCruncher.globalRanges[id][i];
+                }
+                for (int i = 0; i < numberCruncher.tmpThroughputs.Length; i++)
+                    result[i] /= total;
+                return result;
+            }
+            else
+                return null;
+        }
+
+        /// <summary>
         /// <para>prepares devices and compiles kernels in the kernel string</para>
         /// <para>does optionally pipelined kernel execution load balancing between multiple devices</para>
         /// </summary>
