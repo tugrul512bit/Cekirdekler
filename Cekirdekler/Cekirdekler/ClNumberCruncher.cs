@@ -125,6 +125,29 @@ namespace Cekirdekler
         }
 
         /// <summary>
+        /// returns relative compute power of each device
+        /// </summary>
+        /// <returns></returns>
+        public double[] normalizedComputePowersOfDevices()
+        {
+            if ((numberCruncher != null) && (numberCruncher.tmpThroughputs != null) && (numberCruncher.tmpThroughputs.Length > 0))
+            {
+                double[] result = new double[numberCruncher.tmpThroughputs.Length];
+                double total = 0;
+                for(int i=0;i<numberCruncher.tmpThroughputs.Length;i++)
+                {
+                    result[i] = numberCruncher.tmpThroughputs[i];
+                    total += numberCruncher.tmpThroughputs[i];
+                }
+                for (int i = 0; i < numberCruncher.tmpThroughputs.Length; i++)
+                    result[i] /= total;
+                    return result;
+            }
+            else
+                return null;
+        }
+
+        /// <summary>
         /// <para>prepares devices and compiles kernels in the kernel string</para>
         /// <para>does optionally pipelined kernel execution load balancing between multiple devices</para>
         /// </summary>
