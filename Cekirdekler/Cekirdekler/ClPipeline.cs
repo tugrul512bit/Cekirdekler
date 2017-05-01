@@ -203,6 +203,11 @@ namespace Cekirdekler
             BUF_ARRAY=0, BUF_FAST_ARRAY=1, BUF_CL_ARRAY=2
         }
 
+        internal enum ElementType:int
+        {
+            ELM_FLOAT=0, ELM_DOUBLE = 1, ELM_BYTE = 2, ELM_CHAR = 3, ELM_INT = 4, ELM_LONG = 5, ELM_UINT = 6, ELM_STRUCT = 7,
+        }
+
         /// <summary>
         /// Wraps Array, FastArr, ClArray types so that it can be switched by its duplicate, read, write, ...
         /// </summary>
@@ -210,6 +215,7 @@ namespace Cekirdekler
         internal class ClPipelineStageBuffer
         {
             private BufferType type;
+            private ElementType eType;
             private object buf;
             private Array bufAsArray;
             private IMemoryHandle bufAsFastArr;
@@ -220,7 +226,22 @@ namespace Cekirdekler
                 buf = p;
                 bufAsArray = buf as Array;
                 if (bufAsArray != null)
+                {
                     type = BufferType.BUF_ARRAY;
+                    if (buf.GetType() == typeof(float[]))
+                        eType = ElementType.ELM_FLOAT;
+                    else if (buf.GetType() == typeof(double[]))
+                        eType = ElementType.ELM_DOUBLE;
+                    else if (buf.GetType() == typeof(byte[]))
+                        eType = ElementType.ELM_BYTE;
+                    else if (buf.GetType() == typeof(char[]))
+                        eType = ElementType.ELM_CHAR;
+                    else if (buf.GetType() == typeof(int[]))
+                        eType = ElementType.ELM_INT;
+                    else if (buf.GetType() == typeof(long[]))
+                        eType = ElementType.ELM_LONG;
+                    /* to do: add struct array checking */
+                }
                 bufAsFastArr = buf as IMemoryHandle;
                 if (bufAsFastArr != null)
                     type = BufferType.BUF_FAST_ARRAY;
@@ -231,6 +252,7 @@ namespace Cekirdekler
                 if(type==BufferType.BUF_ARRAY)
                 {
 
+                    bufDuplicate = new float[bufAsArray.Length];
                 }
                 else if(type==BufferType.BUF_FAST_ARRAY)
                 {
