@@ -93,6 +93,11 @@ namespace Cekirdekler
             /// <para>number of local workitems * elements per work item * number of pipeline blob must not be greater than buffer size  </para>
             /// </summary>
             int numberOfElementsPerWorkItem { get; set; }
+
+            /// <summary>
+            /// if contained array is a C++ array, this value is the address alignment of it in bytes
+            /// </summary>
+            int alignmentBytes { get; set; }
         }
 
 
@@ -631,6 +636,7 @@ namespace Cekirdekler
             public ClArray(int n_ = -1, int a_ = 4096)
             {
                 isDeleted = false;
+                alignmentBytes = a_;
                 N = n_;
                 if (n_ > 0)
                 {
@@ -780,19 +786,19 @@ namespace Cekirdekler
                     arrayElements = N;
 
                 if (typeof(T) == typeof(float))
-                    return new ClFloatArray(arrayElements);
+                    return new ClFloatArray(arrayElements, alignmentBytes);
                 else if (typeof(T) == typeof(double))
-                    return new ClDoubleArray(arrayElements);
+                    return new ClDoubleArray(arrayElements, alignmentBytes);
                 else if (typeof(T) == typeof(int))
-                    return new ClIntArray(arrayElements);
+                    return new ClIntArray(arrayElements, alignmentBytes);
                 else if (typeof(T) == typeof(uint))
-                    return new ClUIntArray(arrayElements);
+                    return new ClUIntArray(arrayElements, alignmentBytes);
                 else if (typeof(T) == typeof(long))
-                    return new ClLongArray(arrayElements);
+                    return new ClLongArray(arrayElements, alignmentBytes);
                 else if (typeof(T) == typeof(char))
-                    return new ClCharArray(arrayElements);
+                    return new ClCharArray(arrayElements, alignmentBytes);
                 else if (typeof(T) == typeof(byte))
-                    return new ClByteArray(arrayElements);
+                    return new ClByteArray(arrayElements, alignmentBytes);
                 else
                     return null;
             }
@@ -1472,6 +1478,14 @@ namespace Cekirdekler
                 {
                     return Length;
                 }
+            }
+
+            /// <summary>
+            ///  address alignment in bytes, if contained array is a C++ array
+            /// </summary>
+            public int alignmentBytes
+            {
+                get; set;
             }
 
             /// <summary>

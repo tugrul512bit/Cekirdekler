@@ -267,15 +267,27 @@ namespace Cekirdekler
                 }
                 else if(type==BufferType.BUF_FAST_ARRAY)
                 {
-                    if(bufAsFastArr.arrType == CSpaceArrays.ARR_FLOAT)
-                    {
-                        Console.WriteLine("debug pipeline: alignment = "+ bufAsFastArr.alignmentBytes);
+                    Console.WriteLine("debug pipeline: alignment = "+ bufAsFastArr.alignmentBytes);
+                    if (bufAsFastArr.arrType == CSpaceArrays.ARR_FLOAT)
                         bufDuplicate = new ClFloatArray(bufAsFastArr.Length,bufAsFastArr.alignmentBytes);
-                    }
+                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_DOUBLE)
+                        bufDuplicate = new ClDoubleArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
+                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_INT)
+                        bufDuplicate = new ClIntArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
+                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_LONG)
+                        bufDuplicate = new ClLongArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
+                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_BYTE)
+                        bufDuplicate = new ClByteArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
+                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_CHAR)
+                        bufDuplicate = new ClCharArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
                 }
                 else if(type==BufferType.BUF_CL_ARRAY)
                 {
-
+                    Console.WriteLine("debug pipeline: array length = "+bufAsClArray.arrayLength);
+                    if (bufAsClArray.GetType() == typeof(ClArray<float>))
+                        bufDuplicate = new ClArray<float>(bufAsClArray.arrayLength);
+                    else if (bufAsClArray.GetType() == typeof(ClArray<double>))
+                        bufDuplicate = new ClArray<double>(bufAsClArray.arrayLength);
                 }
             }
 
