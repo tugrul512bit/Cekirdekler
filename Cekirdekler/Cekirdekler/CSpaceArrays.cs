@@ -216,6 +216,11 @@ namespace Cekirdekler
             /// </summary>
             int arrType { get; set; }
 
+            /// <summary>
+            /// address alignment value of the internal shifter array in bytes
+            /// </summary>
+            int alignmentBytes { get; set; }
+
         }
 
 
@@ -271,9 +276,9 @@ namespace Cekirdekler
                 sizeOfEnum = (int)SizeOf.cl_char;
                 sizeOf = CSpaceArrays.sizeOf(arrType);
             }
-
             internal FastArr(int n, int alignment = 4096)
             {
+                alignmentBytes = alignment;
                 n_ = n;
                 if (typeof(T) == typeof(float))
                 {
@@ -430,6 +435,15 @@ namespace Cekirdekler
             {
                 get;
 
+                set;
+            }
+
+            /// <summary>
+            /// address alignment of internal shifted array in bytes
+            /// </summary>
+            public int alignmentBytes
+            {
+                get;
                 set;
             }
 

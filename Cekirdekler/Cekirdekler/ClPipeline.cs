@@ -240,7 +240,7 @@ namespace Cekirdekler
                         eType = ElementType.ELM_INT;
                     else if (buf.GetType() == typeof(long[]))
                         eType = ElementType.ELM_LONG;
-                    /* to do: add struct array checking */
+                    /* to do: add struct array checking (maybe byte array) */
                 }
                 bufAsFastArr = buf as IMemoryHandle;
                 if (bufAsFastArr != null)
@@ -251,12 +251,27 @@ namespace Cekirdekler
 
                 if(type==BufferType.BUF_ARRAY)
                 {
+                    if(eType==ElementType.ELM_FLOAT)
+                        bufDuplicate = new float[bufAsArray.Length];
+                    else if (eType == ElementType.ELM_DOUBLE)
+                        bufDuplicate = new double[bufAsArray.Length];
+                    else if (eType == ElementType.ELM_BYTE)
+                        bufDuplicate = new byte[bufAsArray.Length];
+                    else if (eType == ElementType.ELM_CHAR)
+                        bufDuplicate = new char[bufAsArray.Length];
+                    else if (eType == ElementType.ELM_INT)
+                        bufDuplicate = new int[bufAsArray.Length];
+                    else if (eType == ElementType.ELM_LONG)
+                        bufDuplicate = new long[bufAsArray.Length];
 
-                    bufDuplicate = new float[bufAsArray.Length];
                 }
                 else if(type==BufferType.BUF_FAST_ARRAY)
                 {
-
+                    if(bufAsFastArr.arrType == CSpaceArrays.ARR_FLOAT)
+                    {
+                        Console.WriteLine("debug pipeline: alignment = "+ bufAsFastArr.alignmentBytes);
+                        bufDuplicate = new ClFloatArray(bufAsFastArr.Length,bufAsFastArr.alignmentBytes);
+                    }
                 }
                 else if(type==BufferType.BUF_CL_ARRAY)
                 {
