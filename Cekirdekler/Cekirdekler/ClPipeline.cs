@@ -57,7 +57,16 @@ namespace Cekirdekler
             // just to inform push() of whole pipeline
             internal bool outputHasData = false;
 
-            internal ClPipelineStageBuffer[] buffers;
+            internal ClPipelineStageBuffer[] inputBuffers; // todo: List?
+            internal List<ClPipelineStageBuffer> inputBuffersList;
+
+            /// <summary>
+            /// creates a stage to form a pipeline with other stages
+            /// </summary>
+            public ClPipelineStage()
+            {
+                inputBuffersList = new List<ClPipelineStageBuffer>();
+            }
 
             // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
             internal void run()
@@ -159,7 +168,10 @@ namespace Cekirdekler
             /// </summary>
             public void addInputBuffers(params IBufferOptimization[] inputsParameter)
             {
+                for(int i=0;i<inputsParameter.Length;i++)
+                  inputBuffersList.Add(new ClPipelineStageBuffer(inputsParameter[i]));
 
+                inputBuffers = inputBuffersList.ToArray();
             }
 
             /// <summary>
@@ -211,7 +223,6 @@ namespace Cekirdekler
         /// <summary>
         /// Wraps Array, FastArr, ClArray types so that it can be switched by its duplicate, read, write, ...
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         internal class ClPipelineStageBuffer
         {
             private BufferType type;
@@ -221,6 +232,11 @@ namespace Cekirdekler
             private IMemoryHandle bufAsFastArr;
             private IBufferOptimization bufAsClArray;
             private object bufDuplicate;
+
+            /// <summary>
+            /// p: buffer to duplicate and double buffered in pipeline stages
+            /// </summary>
+            /// <param name="p"></param>
             public  ClPipelineStageBuffer(object p)
             {
                 buf = p;
@@ -263,6 +279,8 @@ namespace Cekirdekler
                         bufDuplicate = new int[bufAsArray.Length];
                     else if (eType == ElementType.ELM_LONG)
                         bufDuplicate = new long[bufAsArray.Length];
+                    else if (eType == ElementType.ELM_UINT)
+                        bufDuplicate = new uint[bufAsArray.Length];
 
                 }
                 else if(type==BufferType.BUF_FAST_ARRAY)
@@ -280,18 +298,33 @@ namespace Cekirdekler
                         bufDuplicate = new ClByteArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
                     else if (bufAsFastArr.arrType == CSpaceArrays.ARR_CHAR)
                         bufDuplicate = new ClCharArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
+                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_UINT)
+                        bufDuplicate = new ClUIntArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
                 }
                 else if(type==BufferType.BUF_CL_ARRAY)
                 {
                     Console.WriteLine("debug pipeline: array length = "+bufAsClArray.arrayLength);
                     if (bufAsClArray.GetType() == typeof(ClArray<float>))
-                        bufDuplicate = new ClArray<float>(bufAsClArray.arrayLength);
+                        bufDuplicate = new ClArray<float>(bufAsClArray.arrayLength,bufAsClArray.alignmentBytes);
                     else if (bufAsClArray.GetType() == typeof(ClArray<double>))
-                        bufDuplicate = new ClArray<double>(bufAsClArray.arrayLength);
+                        bufDuplicate = new ClArray<double>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
+                    else if (bufAsClArray.GetType() == typeof(ClArray<byte>))
+                        bufDuplicate = new ClArray<byte>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
+                    else if (bufAsClArray.GetType() == typeof(ClArray<char>))
+                        bufDuplicate = new ClArray<char>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
+                    else if (bufAsClArray.GetType() == typeof(ClArray<int>))
+                        bufDuplicate = new ClArray<int>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
+                    else if (bufAsClArray.GetType() == typeof(ClArray<long>))
+                        bufDuplicate = new ClArray<long>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
+                    else if (bufAsClArray.GetType() == typeof(ClArray<uint>))
+                        bufDuplicate = new ClArray<uint>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
                 }
             }
 
-            public void switchBuffers()
+            /// <summary>
+            /// double buffering for pipelining(overlap pci-e reads and writes on all pci-e bridges)
+            /// </summary>
+            internal void switchBuffers()
             {
                 object tmp = buf;
                 buf = bufDuplicate;
