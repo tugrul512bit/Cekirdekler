@@ -39,7 +39,11 @@ namespace Cekirdekler
            
         }
 
-
+        internal class GlobalLocalRanges
+        {
+            public int globalRange;
+            public int localRange;
+        }
 
         /// <summary>
         /// <para>used to build stages of a pipeline</para>
@@ -57,15 +61,30 @@ namespace Cekirdekler
             // just to inform push() of whole pipeline
             internal bool outputHasData = false;
 
-            internal ClPipelineStageBuffer[] inputBuffers; // todo: List?
+            internal ClPipelineStageBuffer[] inputBuffers; 
             internal List<ClPipelineStageBuffer> inputBuffersList;
 
+            internal ClPipelineStageBuffer[] outputBuffers; 
+            internal List<ClPipelineStageBuffer> outputBuffersList;
+
+            internal ClPipelineStageBuffer[] hiddenBuffers;
+            internal List<ClPipelineStageBuffer> hiddenBuffersList;
+
+            internal Dictionary<string, string> kernelNameToBody;
+            internal Dictionary<string,  GlobalLocalRanges> kernelNameToGlobalLocalRanges;
+
+            internal string initKernelName;
+            internal string initKernelBody;
+            
             /// <summary>
             /// creates a stage to form a pipeline with other stages
             /// </summary>
             public ClPipelineStage()
             {
                 inputBuffersList = new List<ClPipelineStageBuffer>();
+                outputBuffersList = new List<ClPipelineStageBuffer>();
+                hiddenBuffersList = new List<ClPipelineStageBuffer>();
+                kernelNameToBody = new Dictionary<string, string>();
             }
 
             // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
@@ -134,25 +153,34 @@ namespace Cekirdekler
             /// <summary>
             /// not used for input or output, just for keeping sequential logic states (such as coordinates of particles)
             /// </summary>
-            public void addHiddenBuffers(params Array[] inputsParameter)
+            public void addHiddenBuffers(params Array[] hiddensParameter)
             {
+                for (int i = 0; i < hiddensParameter.Length; i++)
+                    hiddenBuffersList.Add(new ClPipelineStageBuffer(hiddensParameter[i]));
 
+                hiddenBuffers = hiddenBuffersList.ToArray();
             }
 
             /// <summary>
             /// not used for input or output, just for keeping sequential logic states (such as coordinates of particles)
             /// </summary>
-            public void addHiddenBuffers(params IBufferOptimization[] inputsParameter)
+            public void addHiddenBuffers(params IBufferOptimization[] hiddensParameter)
             {
+                for (int i = 0; i < hiddensParameter.Length; i++)
+                    hiddenBuffersList.Add(new ClPipelineStageBuffer(hiddensParameter[i]));
 
+                hiddenBuffers = hiddenBuffersList.ToArray();
             }
 
             /// <summary>
             /// not used for input or output, just for keeping sequential logic states (such as coordinates of particles)
             /// </summary>
-            public void addHiddenBuffers(params IMemoryHandle[] inputsParameter)
+            public void addHiddenBuffers(params IMemoryHandle[] hiddensParameter)
             {
+                for (int i = 0; i < hiddensParameter.Length; i++)
+                    hiddenBuffersList.Add(new ClPipelineStageBuffer(hiddensParameter[i]));
 
+                hiddenBuffers = hiddenBuffersList.ToArray();
             }
 
             /// <summary>
@@ -160,7 +188,10 @@ namespace Cekirdekler
             /// </summary>
             public void addInputBuffers(params Array [] inputsParameter)
             {
+                for (int i = 0; i < inputsParameter.Length; i++)
+                    inputBuffersList.Add(new ClPipelineStageBuffer(inputsParameter[i]));
 
+                inputBuffers = inputBuffersList.ToArray();
             }
 
             /// <summary>
@@ -179,7 +210,10 @@ namespace Cekirdekler
             /// </summary>
             public void addInputBuffers(params IMemoryHandle[] inputsParameter)
             {
+                for (int i = 0; i < inputsParameter.Length; i++)
+                    inputBuffersList.Add(new ClPipelineStageBuffer(inputsParameter[i]));
 
+                inputBuffers = inputBuffersList.ToArray();
             }
 
 
@@ -187,25 +221,34 @@ namespace Cekirdekler
             /// <summary>
             /// output arrays (ClArray, ClByteArray, byte[], ... ) to be popped to user or to be connected another stage's input
             /// </summary>
-            public void addOutputBuffers(params Array[] inputsParameter)
+            public void addOutputBuffers(params Array[] outputsParameter)
             {
+                for (int i = 0; i < outputsParameter.Length; i++)
+                    outputBuffersList.Add(new ClPipelineStageBuffer(outputsParameter[i]));
 
+                outputBuffers = outputBuffersList.ToArray();
             }
 
             /// <summary>
             /// output arrays (ClArray, ClByteArray, byte[], ... ) to be popped to user or to be connected another stage's input
             /// </summary>
-            public void addOutputBuffers(params IMemoryHandle[] inputsParameter)
+            public void addOutputBuffers(params IMemoryHandle[] outputsParameter)
             {
+                for (int i = 0; i < outputsParameter.Length; i++)
+                    outputBuffersList.Add(new ClPipelineStageBuffer(outputsParameter[i]));
 
+                outputBuffers = outputBuffersList.ToArray();
             }
 
             /// <summary>
             /// output arrays (ClArray, ClByteArray, byte[], ... ) to be popped to user or to be connected another stage's input
             /// </summary>
-            public void addOutputBuffers(params IBufferOptimization[] inputsParameter)
+            public void addOutputBuffers(params IBufferOptimization[] outputsParameter)
             {
+                for (int i = 0; i < outputsParameter.Length; i++)
+                    outputBuffersList.Add(new ClPipelineStageBuffer(outputsParameter[i]));
 
+                outputBuffers = outputBuffersList.ToArray();
             }
         }
 
