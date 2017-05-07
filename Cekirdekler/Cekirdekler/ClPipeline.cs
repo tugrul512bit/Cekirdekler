@@ -41,9 +41,9 @@ namespace Cekirdekler
 
         internal class KernelParameters
         {
-            public string kernelBody { get; set; }
             public int globalRange { get; set; }
             public int localRange { get; set; }
+            public object[] buffers { get; set; } // kernel parameters ClArray Array ClFastArray(ClByteArray,ClFloatArray,...)
         }
 
         /// <summary>
@@ -55,6 +55,7 @@ namespace Cekirdekler
         /// </summary>
         public class ClPipelineStage
         {
+            internal ClNumberCruncher numberCruncher;
 
             // if this is true, it will compute after the input switch
             internal bool inputHasData = false;
@@ -72,26 +73,55 @@ namespace Cekirdekler
             internal List<ClPipelineStageBuffer> hiddenBuffersList;
 
             internal Dictionary<string,  KernelParameters> kernelNameToParameters;
+            internal Dictionary<string,  KernelParameters> initKernelNameToParameters;
+            internal ClDevices devices;
 
-            internal string initKernelName;
-            internal string initKernelBody;
-            
+            internal string kernelsToRun;
+            internal string kernelsToCompile;
+
+            internal ClPipelineStage previousStage;
+            internal ClPipelineStage[] nextStages;
+            internal List<ClPipelineStage> nextStagesList;
+            internal static object syncObj;
+            internal bool initComplete;
             /// <summary>
             /// creates a stage to form a pipeline with other stages
             /// </summary>
             public ClPipelineStage()
             {
+                initComplete = false;
+                if (syncObj == null)
+                    syncObj = new object();
+                nextStagesList = new List<ClPipelineStage>();
                 inputBuffersList = new List<ClPipelineStageBuffer>();
                 outputBuffersList = new List<ClPipelineStageBuffer>();
                 hiddenBuffersList = new List<ClPipelineStageBuffer>();
                 kernelNameToParameters = new Dictionary<string, KernelParameters>();
             }
 
+
             // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
             internal void run()
             {
+                if (!initComplete)
+                {
+                    lock (syncObj)
+                    {
+                        if (numberCruncher == null)
+                            numberCruncher = new ClNumberCruncher(devices, kernelsToCompile);
+
+                        // todo: input: only reads
+                        // hidden: no read write
+                        // output: only writes
+                        //for(int i=0;i<inputBuffers.Length;i++)
+                        //    inputBuffers[i].buffer().write=false;
+                        initComplete = true;
+                    }
+                }
 
             }
+
+            
 
             // double buffering for overlapped stages for multi device usage
             internal void switchInputBuffers()
@@ -121,7 +151,12 @@ namespace Cekirdekler
             /// </summary>
             public void prependToStage(ClPipelineStage stage)
             {
+                // this stage
+                nextStagesList.Add(stage);
+                nextStages = nextStagesList.ToArray();
 
+                // next stage
+                stage.previousStage = this;
             }
 
             /// <summary>
@@ -129,25 +164,35 @@ namespace Cekirdekler
             /// </summary>
             public void appendToStage(ClPipelineStage stage)
             {
+                // this stage
+                previousStage = stage;
 
+                // previous stage
+                previousStage.nextStagesList.Add(this);
+                previousStage.nextStages = previousStage.nextStagesList.ToArray();
             }
 
             /// <summary>
-            /// setup devices that will run this stage(as parallel to speed-up this stage only, duplicated devices allowed too)
+            /// <para>setup devices that will compute this stage(as parallel to speed-up this stage only, duplicated devices allowed too)</para>
+            /// <para>copies device object</para>
             /// </summary>
             public void addDevices(ClDevices devicesParameter)
             {
-
+                devices = devicesParameter.copyExact();
             }
 
             /// <summary>
             /// setup kernels to be used by this stage
+            /// 
             /// </summary>
             /// <param name="kernels">string containing auxiliary functions, kernel functions and constants</param>
             /// <param name="kernelNames">names of kernels to be used(in the order they run)</param>
-            public void addKernels(string kernels, string kernelNames)
+            /// <param name="globalRanges">total workitems per kernel name in kernelNames parameter</param>
+            /// <param name="localRanges">workgroup workitems per kernel name in kernelNames parameter</param>
+            public void addKernels(string kernels, string kernelNames, int [] globalRanges, int localRanges)
             {
-
+                kernelsToCompile = new StringBuilder(kernels).ToString();
+                kernelsToRun = new StringBuilder(kernelNames).ToString();
             }
 
             /// <summary>

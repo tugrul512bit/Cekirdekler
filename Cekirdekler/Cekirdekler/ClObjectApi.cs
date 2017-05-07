@@ -797,6 +797,11 @@ namespace Cekirdekler
                 return result; 
             }
 
+            /// <summary>
+            /// copies devices with same parameters
+            /// </summary>
+            /// <param name="j"></param>
+            /// <returns></returns>
             internal ClDevices copyExact(int[] j = null)
             {
                 ClDevices tmp = new ClDevices();
