@@ -39,10 +39,11 @@ namespace Cekirdekler
            
         }
 
-        internal class GlobalLocalRanges
+        internal class KernelParameters
         {
-            public int globalRange;
-            public int localRange;
+            public string kernelBody { get; set; }
+            public int globalRange { get; set; }
+            public int localRange { get; set; }
         }
 
         /// <summary>
@@ -70,8 +71,7 @@ namespace Cekirdekler
             internal ClPipelineStageBuffer[] hiddenBuffers;
             internal List<ClPipelineStageBuffer> hiddenBuffersList;
 
-            internal Dictionary<string, string> kernelNameToBody;
-            internal Dictionary<string,  GlobalLocalRanges> kernelNameToGlobalLocalRanges;
+            internal Dictionary<string,  KernelParameters> kernelNameToParameters;
 
             internal string initKernelName;
             internal string initKernelBody;
@@ -84,7 +84,7 @@ namespace Cekirdekler
                 inputBuffersList = new List<ClPipelineStageBuffer>();
                 outputBuffersList = new List<ClPipelineStageBuffer>();
                 hiddenBuffersList = new List<ClPipelineStageBuffer>();
-                kernelNameToBody = new Dictionary<string, string>();
+                kernelNameToParameters = new Dictionary<string, KernelParameters>();
             }
 
             // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
