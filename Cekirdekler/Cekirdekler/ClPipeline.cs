@@ -298,10 +298,6 @@ namespace Cekirdekler
         }
 
 
-        internal enum BufferType:int
-        {
-            BUF_ARRAY=0, BUF_FAST_ARRAY=1, BUF_CL_ARRAY=2
-        }
 
         internal enum ElementType:int
         {
@@ -313,13 +309,22 @@ namespace Cekirdekler
         /// </summary>
         internal class ClPipelineStageBuffer
         {
-            private BufferType type;
+            // buffers are always wrapped as ClArray
             private ElementType eType;
-            private object buf;
-            private Array bufAsArray;
-            private IMemoryHandle bufAsFastArr;
-            private IBufferOptimization bufAsClArray;
-            private object bufDuplicate;
+            private ClArray<byte> bufByte;
+            private ClArray<byte> bufByteDuplicate;
+            private ClArray<char> bufChar;
+            private ClArray<char> bufCharDuplicate;
+            private ClArray<int> bufInt;
+            private ClArray<int> bufIntDuplicate;
+            private ClArray<long> bufLong;
+            private ClArray<long> bufLongDuplicate;
+            private ClArray<float> bufFloat;
+            private ClArray<float> bufFloatDuplicate;
+            private ClArray<double> bufDouble;
+            private ClArray<double> bufDoubleDuplicate;
+            private ClArray<uint> bufUInt;
+            private ClArray<uint> bufUIntDuplicate;
 
             /// <summary>
             /// p: buffer to duplicate and double buffered in pipeline stages
@@ -327,85 +332,158 @@ namespace Cekirdekler
             /// <param name="p"></param>
             public  ClPipelineStageBuffer(object p)
             {
-                buf = p;
-                bufAsArray = buf as Array;
+                var bufAsArray = p as Array;
                 if (bufAsArray != null)
                 {
-                    type = BufferType.BUF_ARRAY;
-                    if (buf.GetType() == typeof(float[]))
+                    if (p.GetType() == typeof(float[]))
+                    {
                         eType = ElementType.ELM_FLOAT;
-                    else if (buf.GetType() == typeof(double[]))
+                        bufFloat = (float[])p;
+                        bufFloatDuplicate = new ClArray<float>(bufFloat.Length, bufFloat.alignmentBytes);
+                    }
+                    else if (p.GetType() == typeof(double[]))
+                    {
                         eType = ElementType.ELM_DOUBLE;
-                    else if (buf.GetType() == typeof(byte[]))
+                        bufDouble = (double[])p;
+                        bufDoubleDuplicate = new ClArray<double>(bufDouble.Length, bufDouble.alignmentBytes);
+                    }
+                    else if (p.GetType() == typeof(byte[]))
+                    {
                         eType = ElementType.ELM_BYTE;
-                    else if (buf.GetType() == typeof(char[]))
+                        bufByte = (byte[])p;
+                        bufByteDuplicate = new ClArray<byte>(bufByte.Length, bufByte.alignmentBytes);
+                    }
+                    else if (p.GetType() == typeof(char[]))
+                    {
                         eType = ElementType.ELM_CHAR;
-                    else if (buf.GetType() == typeof(int[]))
+                        bufChar = (char[])p;
+                        bufCharDuplicate = new ClArray<char>(bufChar.Length, bufChar.alignmentBytes);
+                    }
+                    else if (p.GetType() == typeof(int[]))
+                    {
                         eType = ElementType.ELM_INT;
-                    else if (buf.GetType() == typeof(long[]))
+                        bufInt = (int[])p;
+                        bufIntDuplicate = new ClArray<int>(bufInt.Length, bufInt.alignmentBytes);
+                    }
+                    else if (p.GetType() == typeof(uint[]))
+                    {
+                        eType = ElementType.ELM_UINT;
+                        bufUInt = (uint[])p;
+                        bufUIntDuplicate = new ClArray<uint>(bufUInt.Length, bufUInt.alignmentBytes);
+                    }
+                    else if (p.GetType() == typeof(long[]))
+                    {
                         eType = ElementType.ELM_LONG;
-                    /* to do: add struct array checking (maybe byte array) */
+                        bufLong = (long[])p;
+                        bufLongDuplicate = new ClArray<long>(bufLong.Length, bufLong.alignmentBytes);
+                    }
+                    else
+                    {
+                        // then it has to be a struct array
+                        eType = ElementType.ELM_BYTE;
+                        bufByte = ClArray<byte>.wrapArrayOfStructs(p);
+                        bufByteDuplicate = new ClArray<byte>(bufByte.Length, bufByte.alignmentBytes);
+                        bufByteDuplicate.numberOfElementsPerWorkItem = bufByte.numberOfElementsPerWorkItem;
+                    }
                 }
-                bufAsFastArr = buf as IMemoryHandle;
+                var bufAsFastArr = p as IMemoryHandle;
                 if (bufAsFastArr != null)
-                    type = BufferType.BUF_FAST_ARRAY;
-                bufAsClArray = buf as IBufferOptimization;
+                {
+                    if(p.GetType()==typeof(ClByteArray))
+                    {
+                        eType = ElementType.ELM_BYTE;
+                        bufByte = (ClByteArray)p;
+                        bufByteDuplicate = new ClArray<byte>(bufByte.Length,bufByte.alignmentBytes>0? bufByte.alignmentBytes:4096);
+                    }
+                    else if (p.GetType() == typeof(ClCharArray))
+                    {
+                        eType = ElementType.ELM_CHAR;
+                        bufChar = (ClCharArray)p;
+                        bufCharDuplicate = new ClArray<char>(bufChar.Length, bufChar.alignmentBytes > 0 ? bufChar.alignmentBytes : 4096);
+                    }
+                    else if (p.GetType() == typeof(ClIntArray))
+                    {
+                        eType = ElementType.ELM_INT;
+                        bufInt = (ClIntArray)p;
+                        bufIntDuplicate = new ClArray<int>(bufInt.Length, bufInt.alignmentBytes > 0 ? bufInt.alignmentBytes : 4096);
+                    }
+                    else if (p.GetType() == typeof(ClUIntArray))
+                    {
+                        eType = ElementType.ELM_UINT;
+                        bufUInt = (ClUIntArray)p;
+                        bufUIntDuplicate = new ClArray<uint>(bufUInt.Length, bufUInt.alignmentBytes > 0 ? bufUInt.alignmentBytes : 4096);
+                    }
+                    else if (p.GetType() == typeof(ClLongArray))
+                    {
+                        eType = ElementType.ELM_LONG;
+                        bufLong = (ClLongArray)p;
+                        bufLongDuplicate = new ClArray<long>(bufLong.Length, bufLong.alignmentBytes > 0 ? bufLong.alignmentBytes : 4096);
+                    }
+                    else if (p.GetType() == typeof(ClFloatArray))
+                    {
+                        eType = ElementType.ELM_FLOAT;
+                        bufFloat = (ClFloatArray)p;
+                        bufFloatDuplicate = new ClArray<float>(bufFloat.Length, bufFloat.alignmentBytes > 0 ? bufFloat.alignmentBytes : 4096);
+                    }
+                    else if (p.GetType() == typeof(ClDoubleArray))
+                    {
+                        eType = ElementType.ELM_DOUBLE;
+                        bufDouble = (ClDoubleArray)p;
+                        bufDoubleDuplicate = new ClArray<double>(bufDouble.Length, bufDouble.alignmentBytes > 0 ? bufDouble.alignmentBytes : 4096);
+                    }
+                }
+                var bufAsClArray = p as IBufferOptimization;
                 if (bufAsClArray != null)
-                    type = BufferType.BUF_CL_ARRAY;
-
-                if(type==BufferType.BUF_ARRAY)
                 {
-                    if(eType==ElementType.ELM_FLOAT)
-                        bufDuplicate = new float[bufAsArray.Length];
-                    else if (eType == ElementType.ELM_DOUBLE)
-                        bufDuplicate = new double[bufAsArray.Length];
-                    else if (eType == ElementType.ELM_BYTE)
-                        bufDuplicate = new byte[bufAsArray.Length];
-                    else if (eType == ElementType.ELM_CHAR)
-                        bufDuplicate = new char[bufAsArray.Length];
-                    else if (eType == ElementType.ELM_INT)
-                        bufDuplicate = new int[bufAsArray.Length];
-                    else if (eType == ElementType.ELM_LONG)
-                        bufDuplicate = new long[bufAsArray.Length];
-                    else if (eType == ElementType.ELM_UINT)
-                        bufDuplicate = new uint[bufAsArray.Length];
-
-                }
-                else if(type==BufferType.BUF_FAST_ARRAY)
-                {
-                    Console.WriteLine("debug pipeline: alignment = "+ bufAsFastArr.alignmentBytes);
-                    if (bufAsFastArr.arrType == CSpaceArrays.ARR_FLOAT)
-                        bufDuplicate = new ClFloatArray(bufAsFastArr.Length,bufAsFastArr.alignmentBytes);
-                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_DOUBLE)
-                        bufDuplicate = new ClDoubleArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
-                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_INT)
-                        bufDuplicate = new ClIntArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
-                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_LONG)
-                        bufDuplicate = new ClLongArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
-                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_BYTE)
-                        bufDuplicate = new ClByteArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
-                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_CHAR)
-                        bufDuplicate = new ClCharArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
-                    else if (bufAsFastArr.arrType == CSpaceArrays.ARR_UINT)
-                        bufDuplicate = new ClUIntArray(bufAsFastArr.Length, bufAsFastArr.alignmentBytes);
-                }
-                else if(type==BufferType.BUF_CL_ARRAY)
-                {
-                    Console.WriteLine("debug pipeline: array length = "+bufAsClArray.arrayLength);
-                    if (bufAsClArray.GetType() == typeof(ClArray<float>))
-                        bufDuplicate = new ClArray<float>(bufAsClArray.arrayLength,bufAsClArray.alignmentBytes);
-                    else if (bufAsClArray.GetType() == typeof(ClArray<double>))
-                        bufDuplicate = new ClArray<double>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
-                    else if (bufAsClArray.GetType() == typeof(ClArray<byte>))
-                        bufDuplicate = new ClArray<byte>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
-                    else if (bufAsClArray.GetType() == typeof(ClArray<char>))
-                        bufDuplicate = new ClArray<char>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
-                    else if (bufAsClArray.GetType() == typeof(ClArray<int>))
-                        bufDuplicate = new ClArray<int>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
-                    else if (bufAsClArray.GetType() == typeof(ClArray<long>))
-                        bufDuplicate = new ClArray<long>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
-                    else if (bufAsClArray.GetType() == typeof(ClArray<uint>))
-                        bufDuplicate = new ClArray<uint>(bufAsClArray.arrayLength, bufAsClArray.alignmentBytes);
+                    if(p.GetType() == typeof(ClArray<byte>))
+                    {
+                        eType = ElementType.ELM_BYTE;
+                        bufByte = (ClArray<byte>)p;
+                        bufByteDuplicate = new ClArray<byte>(bufByte.Length, bufByte.alignmentBytes > 0 ? bufByte.alignmentBytes : 4096);
+                        bufByteDuplicate.numberOfElementsPerWorkItem = bufByte.numberOfElementsPerWorkItem;
+                    }
+                    else if (p.GetType() == typeof(ClArray<char>))
+                    {
+                        eType = ElementType.ELM_CHAR;
+                        bufChar = (ClArray<char>)p;
+                        bufCharDuplicate = new ClArray<char>(bufChar.Length, bufChar.alignmentBytes > 0 ? bufChar.alignmentBytes : 4096);
+                        bufCharDuplicate.numberOfElementsPerWorkItem = bufChar.numberOfElementsPerWorkItem;
+                    }
+                    else if (p.GetType() == typeof(ClArray<int>))
+                    {
+                        eType = ElementType.ELM_INT; 
+                        bufInt = (ClArray<int>)p;
+                        bufIntDuplicate = new ClArray<int>(bufInt.Length, bufInt.alignmentBytes > 0 ? bufInt.alignmentBytes : 4096);
+                        bufIntDuplicate.numberOfElementsPerWorkItem = bufInt.numberOfElementsPerWorkItem;
+                    }
+                    else if (p.GetType() == typeof(ClArray<uint>))
+                    {
+                        eType = ElementType.ELM_UINT;
+                        bufUInt = (ClArray<uint>)p;
+                        bufUIntDuplicate = new ClArray<uint>(bufUInt.Length, bufUInt.alignmentBytes > 0 ? bufUInt.alignmentBytes : 4096);
+                        bufUIntDuplicate.numberOfElementsPerWorkItem = bufUInt.numberOfElementsPerWorkItem;
+                    }
+                    else if (p.GetType() == typeof(ClArray<long>))
+                    {
+                        eType = ElementType.ELM_LONG;
+                        bufLong = (ClArray<long>)p;
+                        bufLongDuplicate = new ClArray<long>(bufLong.Length, bufLong.alignmentBytes > 0 ? bufLong.alignmentBytes : 4096);
+                        bufLongDuplicate.numberOfElementsPerWorkItem = bufLong.numberOfElementsPerWorkItem;
+                    }
+                    else if (p.GetType() == typeof(ClArray<float>))
+                    {
+                        eType = ElementType.ELM_FLOAT;
+                        bufFloat = (ClArray<float>)p;
+                        bufFloatDuplicate = new ClArray<float>(bufFloat.Length, bufFloat.alignmentBytes > 0 ? bufFloat.alignmentBytes : 4096);
+                        bufFloatDuplicate.numberOfElementsPerWorkItem = bufFloat.numberOfElementsPerWorkItem;
+                    }
+                    else if (p.GetType() == typeof(ClArray<double>))
+                    {
+                        eType = ElementType.ELM_DOUBLE;
+                        bufDouble = (ClArray<double>)p;
+                        bufDoubleDuplicate = new ClArray<double>(bufDouble.Length, bufDouble.alignmentBytes > 0 ? bufDouble.alignmentBytes : 4096);
+                        bufDoubleDuplicate.numberOfElementsPerWorkItem = bufDouble.numberOfElementsPerWorkItem;
+                    }
                 }
             }
 
@@ -414,22 +492,70 @@ namespace Cekirdekler
             /// </summary>
             internal void switchBuffers()
             {
-                object tmp = buf;
-                buf = bufDuplicate;
-                bufDuplicate= tmp;
+                object tmp = bufByte;
+                bufByte = bufByteDuplicate;
+                bufByteDuplicate = (ClArray<byte>)tmp;
+                tmp = bufChar;
+                bufChar = bufCharDuplicate;
+                bufCharDuplicate = (ClArray<char>)tmp;
+                tmp = bufInt;
+                bufInt = bufIntDuplicate;
+                bufIntDuplicate = (ClArray<int>)tmp;
+                tmp = bufUInt;
+                bufUInt = bufUIntDuplicate;
+                bufUIntDuplicate = (ClArray<uint>)tmp;
+                tmp = bufLong;
+                bufLong = bufLongDuplicate;
+                bufLongDuplicate = (ClArray<long>)tmp;
+                tmp = bufFloat;
+                bufFloat = bufFloatDuplicate;
+                bufFloatDuplicate = (ClArray<float>)tmp;
+                tmp = bufDouble;
+                bufDouble = bufDoubleDuplicate;
+                bufDoubleDuplicate = (ClArray<double>)tmp;
             }
 
 
             public object buffer()
             {
-                return buf;
+                if (bufByte != null)
+                    return bufByte;
+                else if (bufChar != null)
+                    return bufChar;
+                else if (bufInt != null)
+                    return bufInt;
+                else if (bufUInt != null)
+                    return bufUInt;
+                else if (bufLong != null)
+                    return bufLong;
+                else if (bufFloat != null)
+                    return bufFloat;
+                else if (bufDouble != null)
+                    return bufDouble;
+                else
+                    return null;
             }
 
            
 
             public object switchedBuffer()
             {
-                return bufDuplicate;
+                if (bufByteDuplicate != null)
+                    return bufByteDuplicate;
+                else if (bufCharDuplicate != null)
+                    return bufCharDuplicate;
+                else if (bufIntDuplicate != null)
+                    return bufIntDuplicate;
+                else if (bufUIntDuplicate != null)
+                    return bufUIntDuplicate;
+                else if (bufLongDuplicate != null)
+                    return bufLongDuplicate;
+                else if (bufFloatDuplicate != null)
+                    return bufFloatDuplicate;
+                else if (bufDoubleDuplicate != null)
+                    return bufDoubleDuplicate;
+                else
+                    return null;
             }
 
         }
