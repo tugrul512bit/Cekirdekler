@@ -23,31 +23,46 @@ namespace Cekirdekler
             internal static object syncObj = new object();
 
             /// <summary>
-            /// pushes data from entrance stage, returns true if exit stage has result data on its output(and its target arrays)
+            /// pushes data(arrays) from entrance stage, returns true if exit stage has result data on its output(and its target arrays)
             /// </summary>
             /// <returns></returns>
-            public bool pushData()
+            public bool pushData(object [] data)
             {
                 if (debug)
                 {
                     Console.WriteLine("Pipeline running.");
-                    if (stages.Length == 0)
+                    if ((stages==null)||(stages.Length == 0))
+                    {
                         Console.WriteLine("Zero pipeline stages.");
+                        return false;
+                    }
                 }
 
 
-                Parallel.For(0, stages.Length, i => {
-                    for (int j = 0; j < stages[i].Length; j++)
+                Parallel.For(0, stages.Length*2, i => {
+                    if (i < stages.Length)
                     {
-                        stages[i][j].run();
-                        // to do: copy from output(duplicate, from last iteration) to next stage's input(duplicate, for next iteration)
+                        for (int j = 0; j < stages[i].Length; j++)
+                        {
+                            stages[i][j].run();
+                            // to do: copy from output(duplicate, from last iteration) to next stage's input(duplicate, for next iteration)
+                        }
+                    }
+                    else
+                    {
+                        int k = i - stages.Length;
+                        for (int j = 0; j < stages[k].Length; j++)
+                        {
+                            stages[k][j].forwardResults(); // duplicate output --> duplicate input
+                            // to do: copy from output(duplicate, from last iteration) to next stage's input(duplicate, for next iteration)
+                        }
                     }
                 });
 
                 Parallel.For(0, stages.Length, i => {
                     for (int j = 0; j < stages[i].Length; j++)
                     {
-                        stages[i][j].switchInputBuffers();
+                        stages[i][j].switchInputBuffers(); // switch all duplicates with real buffers
                     }
                 });
                 return false;
@@ -70,7 +85,6 @@ namespace Cekirdekler
         {
             public int globalRange { get; set; }
             public int localRange { get; set; }
-            public object[] buffers { get; set; } // kernel parameters ClArray Array ClFastArray(ClByteArray,ClFloatArray,...)
         }
 
         /// <summary>
@@ -147,28 +161,55 @@ namespace Cekirdekler
                             if (debug)
                             {
                                 numberCruncher.performanceFeed = true;
+                                Console.WriteLine("number cruncher setup complete");
                             }
                         }
 
-                        for (int i = 0; i < inputBuffers.Length; i++)
-                            inputBuffers[i].write = false;
-
-                        for (int i = 0; i < outputBuffers.Length; i++)
+                        if (inputBuffers != null)
                         {
-                            outputBuffers[i].read = false;
-                            outputBuffers[i].partialRead = false;
+                            for (int i = 0; i < inputBuffers.Length; i++)
+                            {
+                                inputBuffers[i].write = false;
+                                inputBuffers[i].partialRead = false;
+                                inputBuffers[i].read = true;
+                            }
+
+                            if (debug)
+                                Console.WriteLine("input buffer write flag is unset, read is set, partialread is unset");
                         }
 
-                        // hidden buffers don't write/read unless its multi gpu
-                        // todo: multi-gpu stage buffers will sync
-                        for (int i = 0; i < hiddenBuffers.Length; i++)
+                        if (outputBuffers != null)
                         {
-                            hiddenBuffers[i].read = false;
-                            hiddenBuffers[i].partialRead = false;
-                            hiddenBuffers[i].write = false;
+                            for (int i = 0; i < outputBuffers.Length; i++)
+                            {
+                                outputBuffers[i].write = true;
+                                outputBuffers[i].read = false;
+                                outputBuffers[i].partialRead = false;
+                            }
+
+                            if (debug)
+                                Console.WriteLine("output buffer read-partialread flag is unset, write is set");
+                        }
+
+                        if (hiddenBuffers != null)
+                        {
+                            // hidden buffers don't write/read unless its multi gpu
+                            // todo: multi-gpu stage buffers will sync
+                            for (int i = 0; i < hiddenBuffers.Length; i++)
+                            {
+                                hiddenBuffers[i].read = false;
+                                hiddenBuffers[i].partialRead = false;
+                                hiddenBuffers[i].write = false;
+                            }
+
+                            if (debug)
+                                Console.WriteLine("hidden buffer read-partialread-write flag is unset");
                         }
 
                         initComplete = true;
+
+                        if (debug)
+                            Console.WriteLine("pipeline initialization complete.");
                     }
                 }
 
@@ -176,75 +217,125 @@ namespace Cekirdekler
                 ClParameterGroup bufferParameters = null;
                 ClPipelineStageBuffer ib = null;
                 int inputStart = 0, hiddenStart = 0, outputStart = 0;
-                if (inputBuffers.Length > 0)
+                if ((inputBuffers!=null) && (inputBuffers.Length > 0))
                 {
                     ib = inputBuffers[0];
                     inputStart = 1;
                 }
-                else if (hiddenBuffers.Length > 0)
+                else if ((hiddenBuffers!=null)&&(hiddenBuffers.Length > 0))
                 {
                     ib = hiddenBuffers[0];
                     hiddenStart = 1;
                 }
-                else if (outputBuffers.Length > 0)
+                else if ((outputBuffers!=null)&&(outputBuffers.Length > 0))
                 {
                     ib = outputBuffers[0];
                     outputStart = 1;
                 }
+                else
+                {
+                    Console.WriteLine("no buffer found.");
+                }
+
+                if(debug)
+                {
+                    Console.WriteLine("input start = "+inputStart);
+                    Console.WriteLine("hidden start = "+hiddenStart);
+                    Console.WriteLine("output start = "+outputStart);
+                }
 
                 bool parameterStarted = false;
+                bool moreThanOneParameter = false;
 
-
-
-                for (int i = inputStart; i < inputBuffers.Length; i++)
+                if (inputBuffers != null)
                 {
-                    if (!parameterStarted)
+                    for (int i = inputStart; i < inputBuffers.Length; i++)
                     {
-                        bufferParameters = ib.nextParam(inputBuffers[i].buf);
-                        parameterStarted = true;
-                    }
-                    else
-                    {
-                        bufferParameters = bufferParameters.nextParam(inputBuffers[i].buf);
+                        if (!parameterStarted)
+                        {
+                            bufferParameters = ib.nextParam(inputBuffers[i].buf);
+
+                            parameterStarted = true;
+                        }
+                        else
+                        {
+                            bufferParameters = bufferParameters.nextParam(inputBuffers[i].buf);
+                        }
+                        moreThanOneParameter = true;
                     }
                 }
 
-                for (int i = hiddenStart; i < hiddenBuffers.Length; i++)
+                if (hiddenBuffers != null)
                 {
-                    if (!parameterStarted)
+                    for (int i = hiddenStart; i < hiddenBuffers.Length; i++)
                     {
-                        bufferParameters = ib.nextParam(hiddenBuffers[i].buf);
-                        parameterStarted = true;
-                    }
-                    else
-                    {
-                        bufferParameters = bufferParameters.nextParam(hiddenBuffers[i].buf);
+                        if (!parameterStarted)
+                        {
+                            bufferParameters = ib.nextParam(hiddenBuffers[i].buf);
+                            parameterStarted = true;
+                        }
+                        else
+                        {
+                            bufferParameters = bufferParameters.nextParam(hiddenBuffers[i].buf);
+                        }
+                        moreThanOneParameter = true;
                     }
                 }
 
-                for (int i = outputStart; i < outputBuffers.Length; i++)
+                if (outputBuffers != null)
                 {
-                    if (!parameterStarted)
+                    for (int i = outputStart; i < outputBuffers.Length; i++)
                     {
-                        bufferParameters = ib.nextParam(outputBuffers[i].buf);
-                        parameterStarted = true;
-                    }
-                    else
-                    {
-                        bufferParameters = bufferParameters.nextParam(outputBuffers[i].buf);
+                        if (!parameterStarted)
+                        {
+                            bufferParameters = ib.nextParam(outputBuffers[i].buf);
+                            parameterStarted = true;
+                        }
+                        else
+                        {
+                            bufferParameters = bufferParameters.nextParam(outputBuffers[i].buf);
+                        }
+                        moreThanOneParameter = true;
                     }
                 }
+
+                if (debug)
+                    Console.WriteLine("kernel parameters are set");
+
                 // parameter building end
 
                 // running kernel
-                for (int i = 0; i < kernelNamesToRun.Length; i++)
+                if (kernelNamesToRun != null)
                 {
-                    bufferParameters.compute(numberCruncher, 1,
-                        kernelNamesToRun[i],
-                        kernelNameToParameters[kernelNamesToRun[i]].globalRange,
-                        kernelNameToParameters[kernelNamesToRun[i]].localRange);
+                    for (int i = 0; i < kernelNamesToRun.Length; i++)
+                    {
+                        if (debug)
+                        {
+                            Console.WriteLine("running kernel: " + i);
+                            Console.WriteLine("more than one parameter: "+moreThanOneParameter);
+                        }
+                        if (moreThanOneParameter)
+                        {
+                            bufferParameters.compute(numberCruncher, i + 1,
+                                kernelNamesToRun[i],
+                                kernelNameToParameters[kernelNamesToRun[i]].globalRange,
+                                kernelNameToParameters[kernelNamesToRun[i]].localRange);
+                        }
+                        else
+                        {
+                            (ib.buf as ICanCompute).compute(numberCruncher, i*123456 + 1,
+                                kernelNamesToRun[i],
+                                kernelNameToParameters[kernelNamesToRun[i]].globalRange,
+                                kernelNameToParameters[kernelNamesToRun[i]].localRange);
+                        }
+                        if (debug)
+                            Console.WriteLine("kernel complete: " + i);
+                    }
+                }
+                else
+                {
                     if (debug)
-                        Console.WriteLine("kernel complete: "+i);
+                        Console.WriteLine("no kernel names to run");
                 }
             }
 
@@ -257,6 +348,12 @@ namespace Cekirdekler
                     inputBuffers[0].switchBuffers();
             }
 
+            // copy from output duplicates to input duplicates
+            internal void forwardResults()
+            {
+
+            }
+
             /// <summary>
             /// creates a pipeline out of all bound stages, ready to compute, currently only 1 stage per layer (as parallel)
             /// </summary>
@@ -267,7 +364,7 @@ namespace Cekirdekler
                     Console.WriteLine("Creating a pipeline from a group of stages");
                 // find starting stages with tracking back
                 ClPipelineStage currentStage = findInputStages();
-                int numberOfLayers = currentStage.findOutputStagesCount(0);
+                int numberOfLayers = currentStage.findOutputStagesCount(1);
                 int currentOrder = 0;
                 if (debug)
                     Console.WriteLine("Number of stages="+ numberOfLayers);
@@ -324,7 +421,7 @@ namespace Cekirdekler
                             valuesToCompare[i] = currentStage.nextStages[i].findOutputStagesCount(startValue);
                         }
                         Array.Sort(valuesToCompare);
-                        return valuesToCompare[0];
+                        return startValue+valuesToCompare[0];
                     }
                     else
                         return startValue;
@@ -386,10 +483,34 @@ namespace Cekirdekler
             /// <param name="kernelNames">names of kernels to be used(in the order they run)</param>
             /// <param name="globalRanges">total workitems per kernel name in kernelNames parameter</param>
             /// <param name="localRanges">workgroup workitems per kernel name in kernelNames parameter</param>
-            public void addKernels(string kernels, string kernelNames, int [] globalRanges, int localRanges)
+            public void addKernels(string kernels, string kernelNames, int [] globalRanges, int[] localRanges)
             {
                 kernelsToCompile = new StringBuilder(kernels).ToString();
                 kernelNamesToRun = kernelNames.Split(new string[] {" ",",",";","-",Environment.NewLine },StringSplitOptions.RemoveEmptyEntries);
+                if (debug)
+                {
+                    Console.WriteLine(kernelNamesToRun != null ? (kernelNamesToRun.Length > 0 ? kernelNamesToRun[0] : ("kernel name error: " + kernelNames)) : ("kernel name error: " + kernelNames));
+                    if (globalRanges.Length < kernelNamesToRun.Length)
+                        Console.WriteLine("number of global ranges is not equal to kernel names listed in \"kernels\" parameter ");
+
+                    if (localRanges.Length < kernelNamesToRun.Length)
+                        Console.WriteLine("number of local ranges is not equal to kernel names listed in \"kernels\" parameter ");
+                }
+
+                for (int i=0;i<kernelNamesToRun.Length;i++)
+                {
+                    if(kernelNameToParameters.ContainsKey(kernelNamesToRun[i]))
+                    {
+
+                    }
+                    else
+                    {
+                        KernelParameters kernelParameters = new KernelParameters();
+                        kernelParameters.globalRange = globalRanges[i];
+                        kernelParameters.localRange = localRanges[i];
+                        kernelNameToParameters.Add(kernelNamesToRun[i], kernelParameters);
+                    }
+                }
             }
 
             /// <summary>
@@ -442,7 +563,7 @@ namespace Cekirdekler
             public void addInputBuffers(params IBufferOptimization[] inputsParameter)
             {
                 for(int i=0;i<inputsParameter.Length;i++)
-                  inputBuffersList.Add(new ClPipelineStageBuffer(inputsParameter[i]));
+                    inputBuffersList.Add(new ClPipelineStageBuffer(inputsParameter[i]));
 
                 inputBuffers = inputBuffersList.ToArray();
             }
