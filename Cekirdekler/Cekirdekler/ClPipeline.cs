@@ -76,7 +76,7 @@ namespace Cekirdekler
             internal Dictionary<string,  KernelParameters> initKernelNameToParameters;
             internal ClDevices devices;
 
-            internal string kernelsToRun;
+            internal string [] kernelNamesToRun;
             internal string kernelsToCompile;
 
             internal ClPipelineStage previousStage;
@@ -96,12 +96,14 @@ namespace Cekirdekler
                 hiddenBuffersList = new List<ClPipelineStageBuffer>();
                 kernelNameToParameters = new Dictionary<string, KernelParameters>();
                 initKernelNameToParameters = new Dictionary<string, KernelParameters>();
+                stageOrder = -1;
             }
 
 
             // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
             internal void run()
             {
+                // initialize buffers and number cruncher
                 if (!initComplete)
                 {
                     lock (syncObj)
@@ -131,10 +133,78 @@ namespace Cekirdekler
                     }
                 }
 
-                var bufferParameters = inputBuffers[0];
-                //for (int i = 0; i < inputBuffers.Length; i++)
-                    //bufferParameters=bufferParameters.nex
+                // to do: move parameter building to initializing
+                ClParameterGroup bufferParameters = null;
+                ClPipelineStageBuffer ib = null;
+                int inputStart = 0, hiddenStart = 0, outputStart = 0;
+                if (inputBuffers.Length > 0)
+                {
+                    ib = inputBuffers[0];
+                    inputStart = 1;
+                }
+                else if (hiddenBuffers.Length > 0)
+                {
+                    ib = hiddenBuffers[0];
+                    hiddenStart = 1;
+                }
+                else if (outputBuffers.Length > 0)
+                {
+                    ib = outputBuffers[0];
+                    outputStart = 1;
+                }
 
+                bool parameterStarted = false;
+
+
+
+                for (int i = inputStart; i < inputBuffers.Length; i++)
+                {
+                    if (!parameterStarted)
+                    {
+                        bufferParameters = ib.nextParam(inputBuffers[i].buf);
+                        parameterStarted = true;
+                    }
+                    else
+                    {
+                        bufferParameters = bufferParameters.nextParam(inputBuffers[i].buf);
+                    }
+                }
+
+                for (int i = hiddenStart; i < hiddenBuffers.Length; i++)
+                {
+                    if (!parameterStarted)
+                    {
+                        bufferParameters = ib.nextParam(hiddenBuffers[i].buf);
+                        parameterStarted = true;
+                    }
+                    else
+                    {
+                        bufferParameters = bufferParameters.nextParam(hiddenBuffers[i].buf);
+                    }
+                }
+
+                for (int i = outputStart; i < outputBuffers.Length; i++)
+                {
+                    if (!parameterStarted)
+                    {
+                        bufferParameters = ib.nextParam(outputBuffers[i].buf);
+                        parameterStarted = true;
+                    }
+                    else
+                    {
+                        bufferParameters = bufferParameters.nextParam(outputBuffers[i].buf);
+                    }
+                }
+                // parameter building end
+
+                // running kernel
+                for (int i = 0; i < kernelNamesToRun.Length; i++)
+                {
+                    bufferParameters.compute(numberCruncher, 1,
+                        kernelNamesToRun[i],
+                        kernelNameToParameters[kernelNamesToRun[i]].globalRange,
+                        kernelNameToParameters[kernelNamesToRun[i]].localRange);
+                }
             }
 
 
@@ -142,7 +212,8 @@ namespace Cekirdekler
             // double buffering for overlapped stages for multi device usage
             internal void switchInputBuffers()
             {
-
+                for (int i = 0; i < inputBuffers.Length; i++)
+                    inputBuffers[0].switchBuffers();
             }
 
             /// <summary>
@@ -151,8 +222,70 @@ namespace Cekirdekler
             /// <returns></returns>
             public ClPipeline makePipeline()
             {
+                // find starting stages with tracking back
+                ClPipelineStage currentStage = findInputStages();
+                int numberOfLayers = currentStage.findOutputStagesCount(0);
+                int currentOrder = 0;
+
+                ClPipelineStage[][] pipelineStages = new ClPipelineStage[numberOfLayers][];
+                // enumerate orders
+
+                for(int i=0;i<numberOfLayers;i++)
+                {
+                    // currently supports only linear-horizontal bound stages, only 1 stage per layer, no parallel stages (yet)
+                    currentStage.stageOrder = i;
+                    pipelineStages[i] = new ClPipelineStage[1];
+
+                }
+
+                // add all stages as array elements for pipeline
+
+                // initialize stage buffers
+
                 return null;
             }
+
+            /// <summary>
+            /// finds all stages and puts them in layers to be computed in parallel
+            /// </summary>
+            /// <param name="root"></param>
+            /// <returns></returns>
+            internal ClPipelineStage findInputStages()
+            {
+                if (previousStage != null)
+                {
+                    return previousStage.findInputStages();
+                }
+                else
+                    return this;
+            }
+
+            /// <summary>
+            /// finds total number of horizontally bound stages (also number of steps before output has data)
+            /// </summary>
+            /// <returns></returns>
+            internal int findOutputStagesCount(int startValue)
+            {
+                if (nextStages != null)
+                {
+                    if (nextStages.Length > 0)
+                    {
+                        int[] valuesToCompare = new int[nextStages.Length];
+                        for (int i = 0; i < nextStages.Length; i++)
+                        {
+                            valuesToCompare[i] = findOutputStagesCount(startValue);
+                        }
+                        Array.Sort(valuesToCompare);
+                        return valuesToCompare[0];
+                    }
+                    else
+                        return startValue;
+                }
+                else
+                    return startValue;
+            }
+
+            internal int stageOrder { get; set; }
 
             /// <summary>
             /// kernel function name to run once before beginning, empty string = no initializing needed
@@ -208,7 +341,7 @@ namespace Cekirdekler
             public void addKernels(string kernels, string kernelNames, int [] globalRanges, int localRanges)
             {
                 kernelsToCompile = new StringBuilder(kernels).ToString();
-                kernelsToRun = new StringBuilder(kernelNames).ToString();
+                kernelNamesToRun = kernelNames.Split(new string[] {" ",",",";","-",Environment.NewLine },StringSplitOptions.RemoveEmptyEntries);
             }
 
             /// <summary>
@@ -591,6 +724,46 @@ namespace Cekirdekler
                     buf.numberOfElementsPerWorkItem = value;
                     bufDuplicate.numberOfElementsPerWorkItem = value;
                 }
+            }
+
+            internal ClParameterGroup nextParam(params IBufferOptimization[] bufs)
+            {
+                if (bufByte != null)
+                    return bufByte.nextParam(bufs);
+                else if (bufChar != null)
+                    return bufChar.nextParam(bufs);
+                else if (bufInt != null)
+                    return bufInt.nextParam(bufs);
+                else if (bufUInt != null)
+                    return bufUInt.nextParam(bufs);
+                else if (bufLong != null)
+                    return bufLong.nextParam(bufs);
+                else if (bufFloat != null)
+                    return bufFloat.nextParam(bufs);
+                else if (bufDouble != null)
+                    return bufDouble.nextParam(bufs);
+                else
+                    return null;
+            }
+
+            internal ClParameterGroup nextParamDuplicate(params IBufferOptimization[] bufs)
+            {
+                if (bufByteDuplicate != null)
+                    return bufByteDuplicate.nextParam(bufs);
+                else if (bufCharDuplicate != null)
+                    return bufCharDuplicate.nextParam(bufs);
+                else if (bufIntDuplicate != null)
+                    return bufIntDuplicate.nextParam(bufs);
+                else if (bufUIntDuplicate != null)
+                    return bufUIntDuplicate.nextParam(bufs);
+                else if (bufLongDuplicate != null)
+                    return bufLongDuplicate.nextParam(bufs);
+                else if (bufFloatDuplicate != null)
+                    return bufFloatDuplicate.nextParam(bufs);
+                else if (bufDoubleDuplicate != null)
+                    return bufDoubleDuplicate.nextParam(bufs);
+                else
+                    return null;
             }
 
             public bool read
