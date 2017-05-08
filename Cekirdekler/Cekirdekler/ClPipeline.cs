@@ -82,7 +82,7 @@ namespace Cekirdekler
             internal ClPipelineStage previousStage;
             internal ClPipelineStage[] nextStages;
             internal List<ClPipelineStage> nextStagesList;
-            internal static object syncObj;
+            internal static object syncObj=new object();
             internal bool initComplete;
             /// <summary>
             /// creates a stage to form a pipeline with other stages
@@ -90,13 +90,12 @@ namespace Cekirdekler
             public ClPipelineStage()
             {
                 initComplete = false;
-                if (syncObj == null)
-                    syncObj = new object();
                 nextStagesList = new List<ClPipelineStage>();
                 inputBuffersList = new List<ClPipelineStageBuffer>();
                 outputBuffersList = new List<ClPipelineStageBuffer>();
                 hiddenBuffersList = new List<ClPipelineStageBuffer>();
                 kernelNameToParameters = new Dictionary<string, KernelParameters>();
+                initKernelNameToParameters = new Dictionary<string, KernelParameters>();
             }
 
 
@@ -110,18 +109,35 @@ namespace Cekirdekler
                         if (numberCruncher == null)
                             numberCruncher = new ClNumberCruncher(devices, kernelsToCompile);
 
-                        // todo: input: only reads
-                        // hidden: no read write
-                        // output: only writes
-                        //for(int i=0;i<inputBuffers.Length;i++)
-                        //    inputBuffers[i].buffer().write=false;
+                        for (int i = 0; i < inputBuffers.Length; i++)
+                            inputBuffers[i].write = false;
+
+                        for (int i = 0; i < outputBuffers.Length; i++)
+                        {
+                            outputBuffers[i].read = false;
+                            outputBuffers[i].partialRead = false;
+                        }
+
+                        // hidden buffers don't write/read unless its multi gpu
+                        // todo: multi-gpu stage buffers will sync
+                        for (int i = 0; i < hiddenBuffers.Length; i++)
+                        {
+                            hiddenBuffers[i].read = false;
+                            hiddenBuffers[i].partialRead = false;
+                            hiddenBuffers[i].write = false;
+                        }
+
                         initComplete = true;
                     }
                 }
 
+                var bufferParameters = inputBuffers[0];
+                //for (int i = 0; i < inputBuffers.Length; i++)
+                    //bufferParameters=bufferParameters.nex
+
             }
 
-            
+
 
             // double buffering for overlapped stages for multi device usage
             internal void switchInputBuffers()
@@ -325,7 +341,8 @@ namespace Cekirdekler
             private ClArray<double> bufDoubleDuplicate;
             private ClArray<uint> bufUInt;
             private ClArray<uint> bufUIntDuplicate;
-
+            internal IBufferOptimization buf;
+            internal IBufferOptimization bufDuplicate;
             /// <summary>
             /// p: buffer to duplicate and double buffered in pipeline stages
             /// </summary>
@@ -340,42 +357,56 @@ namespace Cekirdekler
                         eType = ElementType.ELM_FLOAT;
                         bufFloat = (float[])p;
                         bufFloatDuplicate = new ClArray<float>(bufFloat.Length, bufFloat.alignmentBytes);
+                        buf = bufFloat as IBufferOptimization;
+                        bufDuplicate = bufFloatDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(double[]))
                     {
                         eType = ElementType.ELM_DOUBLE;
                         bufDouble = (double[])p;
                         bufDoubleDuplicate = new ClArray<double>(bufDouble.Length, bufDouble.alignmentBytes);
+                        buf = bufDouble as IBufferOptimization;
+                        bufDuplicate = bufDoubleDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(byte[]))
                     {
                         eType = ElementType.ELM_BYTE;
                         bufByte = (byte[])p;
                         bufByteDuplicate = new ClArray<byte>(bufByte.Length, bufByte.alignmentBytes);
+                        buf = bufByte as IBufferOptimization;
+                        bufDuplicate = bufByteDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(char[]))
                     {
                         eType = ElementType.ELM_CHAR;
                         bufChar = (char[])p;
                         bufCharDuplicate = new ClArray<char>(bufChar.Length, bufChar.alignmentBytes);
+                        buf = bufChar as IBufferOptimization;
+                        bufDuplicate = bufCharDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(int[]))
                     {
                         eType = ElementType.ELM_INT;
                         bufInt = (int[])p;
                         bufIntDuplicate = new ClArray<int>(bufInt.Length, bufInt.alignmentBytes);
+                        buf = bufInt as IBufferOptimization;
+                        bufDuplicate = bufIntDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(uint[]))
                     {
                         eType = ElementType.ELM_UINT;
                         bufUInt = (uint[])p;
                         bufUIntDuplicate = new ClArray<uint>(bufUInt.Length, bufUInt.alignmentBytes);
+                        buf = bufUInt as IBufferOptimization;
+                        bufDuplicate = bufUIntDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(long[]))
                     {
                         eType = ElementType.ELM_LONG;
                         bufLong = (long[])p;
                         bufLongDuplicate = new ClArray<long>(bufLong.Length, bufLong.alignmentBytes);
+                        buf = bufLong as IBufferOptimization;
+                        bufDuplicate = bufLongDuplicate as IBufferOptimization;
                     }
                     else
                     {
@@ -384,6 +415,8 @@ namespace Cekirdekler
                         bufByte = ClArray<byte>.wrapArrayOfStructs(p);
                         bufByteDuplicate = new ClArray<byte>(bufByte.Length, bufByte.alignmentBytes);
                         bufByteDuplicate.numberOfElementsPerWorkItem = bufByte.numberOfElementsPerWorkItem;
+                        buf = bufByte as IBufferOptimization;
+                        bufDuplicate = bufByteDuplicate as IBufferOptimization;
                     }
                 }
                 var bufAsFastArr = p as IMemoryHandle;
@@ -394,42 +427,56 @@ namespace Cekirdekler
                         eType = ElementType.ELM_BYTE;
                         bufByte = (ClByteArray)p;
                         bufByteDuplicate = new ClArray<byte>(bufByte.Length,bufByte.alignmentBytes>0? bufByte.alignmentBytes:4096);
+                        buf = bufByte as IBufferOptimization;
+                        bufDuplicate = bufByteDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClCharArray))
                     {
                         eType = ElementType.ELM_CHAR;
                         bufChar = (ClCharArray)p;
                         bufCharDuplicate = new ClArray<char>(bufChar.Length, bufChar.alignmentBytes > 0 ? bufChar.alignmentBytes : 4096);
+                        buf = bufChar as IBufferOptimization;
+                        bufDuplicate = bufCharDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClIntArray))
                     {
                         eType = ElementType.ELM_INT;
                         bufInt = (ClIntArray)p;
                         bufIntDuplicate = new ClArray<int>(bufInt.Length, bufInt.alignmentBytes > 0 ? bufInt.alignmentBytes : 4096);
+                        buf = bufInt as IBufferOptimization;
+                        bufDuplicate = bufIntDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClUIntArray))
                     {
                         eType = ElementType.ELM_UINT;
                         bufUInt = (ClUIntArray)p;
                         bufUIntDuplicate = new ClArray<uint>(bufUInt.Length, bufUInt.alignmentBytes > 0 ? bufUInt.alignmentBytes : 4096);
+                        buf = bufUInt as IBufferOptimization;
+                        bufDuplicate = bufUIntDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClLongArray))
                     {
                         eType = ElementType.ELM_LONG;
                         bufLong = (ClLongArray)p;
                         bufLongDuplicate = new ClArray<long>(bufLong.Length, bufLong.alignmentBytes > 0 ? bufLong.alignmentBytes : 4096);
+                        buf = bufLong as IBufferOptimization;
+                        bufDuplicate = bufLongDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClFloatArray))
                     {
                         eType = ElementType.ELM_FLOAT;
                         bufFloat = (ClFloatArray)p;
                         bufFloatDuplicate = new ClArray<float>(bufFloat.Length, bufFloat.alignmentBytes > 0 ? bufFloat.alignmentBytes : 4096);
+                        buf = bufFloat as IBufferOptimization;
+                        bufDuplicate = bufFloatDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClDoubleArray))
                     {
                         eType = ElementType.ELM_DOUBLE;
                         bufDouble = (ClDoubleArray)p;
                         bufDoubleDuplicate = new ClArray<double>(bufDouble.Length, bufDouble.alignmentBytes > 0 ? bufDouble.alignmentBytes : 4096);
+                        buf = bufDouble as IBufferOptimization;
+                        bufDuplicate = bufDoubleDuplicate as IBufferOptimization;
                     }
                 }
                 var bufAsClArray = p as IBufferOptimization;
@@ -441,6 +488,8 @@ namespace Cekirdekler
                         bufByte = (ClArray<byte>)p;
                         bufByteDuplicate = new ClArray<byte>(bufByte.Length, bufByte.alignmentBytes > 0 ? bufByte.alignmentBytes : 4096);
                         bufByteDuplicate.numberOfElementsPerWorkItem = bufByte.numberOfElementsPerWorkItem;
+                        buf = bufByte as IBufferOptimization;
+                        bufDuplicate = bufByteDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClArray<char>))
                     {
@@ -448,6 +497,8 @@ namespace Cekirdekler
                         bufChar = (ClArray<char>)p;
                         bufCharDuplicate = new ClArray<char>(bufChar.Length, bufChar.alignmentBytes > 0 ? bufChar.alignmentBytes : 4096);
                         bufCharDuplicate.numberOfElementsPerWorkItem = bufChar.numberOfElementsPerWorkItem;
+                        buf = bufChar as IBufferOptimization;
+                        bufDuplicate = bufCharDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClArray<int>))
                     {
@@ -455,6 +506,8 @@ namespace Cekirdekler
                         bufInt = (ClArray<int>)p;
                         bufIntDuplicate = new ClArray<int>(bufInt.Length, bufInt.alignmentBytes > 0 ? bufInt.alignmentBytes : 4096);
                         bufIntDuplicate.numberOfElementsPerWorkItem = bufInt.numberOfElementsPerWorkItem;
+                        buf = bufInt as IBufferOptimization;
+                        bufDuplicate = bufIntDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClArray<uint>))
                     {
@@ -462,6 +515,8 @@ namespace Cekirdekler
                         bufUInt = (ClArray<uint>)p;
                         bufUIntDuplicate = new ClArray<uint>(bufUInt.Length, bufUInt.alignmentBytes > 0 ? bufUInt.alignmentBytes : 4096);
                         bufUIntDuplicate.numberOfElementsPerWorkItem = bufUInt.numberOfElementsPerWorkItem;
+                        buf = bufUInt as IBufferOptimization;
+                        bufDuplicate = bufUIntDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClArray<long>))
                     {
@@ -469,6 +524,8 @@ namespace Cekirdekler
                         bufLong = (ClArray<long>)p;
                         bufLongDuplicate = new ClArray<long>(bufLong.Length, bufLong.alignmentBytes > 0 ? bufLong.alignmentBytes : 4096);
                         bufLongDuplicate.numberOfElementsPerWorkItem = bufLong.numberOfElementsPerWorkItem;
+                        buf = bufLong as IBufferOptimization;
+                        bufDuplicate = bufLongDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClArray<float>))
                     {
@@ -476,6 +533,8 @@ namespace Cekirdekler
                         bufFloat = (ClArray<float>)p;
                         bufFloatDuplicate = new ClArray<float>(bufFloat.Length, bufFloat.alignmentBytes > 0 ? bufFloat.alignmentBytes : 4096);
                         bufFloatDuplicate.numberOfElementsPerWorkItem = bufFloat.numberOfElementsPerWorkItem;
+                        buf = bufFloat as IBufferOptimization;
+                        bufDuplicate = bufFloatDuplicate as IBufferOptimization;
                     }
                     else if (p.GetType() == typeof(ClArray<double>))
                     {
@@ -483,6 +542,8 @@ namespace Cekirdekler
                         bufDouble = (ClArray<double>)p;
                         bufDoubleDuplicate = new ClArray<double>(bufDouble.Length, bufDouble.alignmentBytes > 0 ? bufDouble.alignmentBytes : 4096);
                         bufDoubleDuplicate.numberOfElementsPerWorkItem = bufDouble.numberOfElementsPerWorkItem;
+                        buf = bufDouble as IBufferOptimization;
+                        bufDuplicate = bufDoubleDuplicate as IBufferOptimization;
                     }
                 }
             }
@@ -513,8 +574,66 @@ namespace Cekirdekler
                 tmp = bufDouble;
                 bufDouble = bufDoubleDuplicate;
                 bufDoubleDuplicate = (ClArray<double>)tmp;
+                tmp = buf;
+                buf = bufDuplicate;
+                bufDuplicate =(IBufferOptimization) tmp;
             }
 
+            public int numberOfElementsPerWorkItem
+            {
+                get
+                {
+                    return buf.numberOfElementsPerWorkItem;
+                }
+
+                set
+                {
+                    buf.numberOfElementsPerWorkItem = value;
+                    bufDuplicate.numberOfElementsPerWorkItem = value;
+                }
+            }
+
+            public bool read
+            {
+                get
+                {
+                    return buf.read;
+                }
+
+                set
+                {
+                    buf.read = value;
+                    bufDuplicate.read = value;
+                }
+            }
+
+            public bool partialRead
+            {
+                get
+                {
+                    return buf.partialRead;
+                }
+
+                set
+                {
+                    buf.partialRead = value;
+                    bufDuplicate.partialRead = value;
+                }
+            }
+
+            public bool write
+            {
+                get
+                {
+                    return buf.write;
+                }
+
+                set
+                {
+                    buf.write = value;
+                    bufDuplicate.write = value;
+                }
+            }
 
             public object buffer()
             {

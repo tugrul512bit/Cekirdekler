@@ -1464,7 +1464,7 @@ namespace Cekirdekler
 
 
             /// <summary>
-            /// <para>gnumber of array elements per workitem, default=1</para>
+            /// <para>number of array elements per workitem, default=1</para>
             /// <para>global range * this number must be smaller than or equal to array size </para>
             /// </summary>
             public int numberOfElementsPerWorkItem { get; set; }

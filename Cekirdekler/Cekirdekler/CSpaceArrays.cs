@@ -148,7 +148,7 @@ namespace Cekirdekler
         }
 
         /// <summary>
-        /// C++ dizileri ile C# veya C++ dizileri arasında kopyalama işlemleri için
+        /// For copying between C++ and C# arrays
         /// </summary>
         /// <typeparam name="T"></typeparam>
         public interface IMemoryOperations<T> : IMemoryHandle
