@@ -28,6 +28,8 @@ namespace Cekirdekler
                 return false;
             }
 
+            // multiple layers per stage, each stage push data to next stage
+            internal ClPipelineStage[][] stages;
 
             /// <summary>
             /// only created by one of the stages that are bound together
@@ -217,7 +219,7 @@ namespace Cekirdekler
             }
 
             /// <summary>
-            /// creates a pipeline out of all bound stages, ready to compute 
+            /// creates a pipeline out of all bound stages, ready to compute, currently only 1 stage per layer (as parallel)
             /// </summary>
             /// <returns></returns>
             public ClPipeline makePipeline()
@@ -228,21 +230,23 @@ namespace Cekirdekler
                 int currentOrder = 0;
 
                 ClPipelineStage[][] pipelineStages = new ClPipelineStage[numberOfLayers][];
-                // enumerate orders
+                // enumerate orders and add all stages as array elements for pipeline
 
-                for(int i=0;i<numberOfLayers;i++)
+                for (int i=0;i<numberOfLayers;i++)
                 {
                     // currently supports only linear-horizontal bound stages, only 1 stage per layer, no parallel stages (yet)
                     currentStage.stageOrder = i;
                     pipelineStages[i] = new ClPipelineStage[1];
-
+                    pipelineStages[i][0] = currentStage;
+                    if(i<numberOfLayers-1)
+                        currentStage = currentStage.nextStages[0];
                 }
 
-                // add all stages as array elements for pipeline
-
+                ClPipeline pipeline = new ClPipeline();
+                pipeline.stages = pipelineStages;
                 // initialize stage buffers
 
-                return null;
+                return pipeline;
             }
 
             /// <summary>
