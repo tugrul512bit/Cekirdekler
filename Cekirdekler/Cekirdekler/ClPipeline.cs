@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Cekirdekler
 {
@@ -19,24 +20,48 @@ namespace Cekirdekler
         /// </summary>
         public class ClPipeline
         {
+            internal static object syncObj = new object();
+
             /// <summary>
             /// pushes data from entrance stage, returns true if exit stage has result data on its output(and its target arrays)
             /// </summary>
             /// <returns></returns>
             public bool pushData()
             {
+                if (debug)
+                {
+                    Console.WriteLine("Pipeline running.");
+                    if (stages.Length == 0)
+                        Console.WriteLine("Zero pipeline stages.");
+                }
+
+
+                Parallel.For(0, stages.Length, i => {
+                    for (int j = 0; j < stages[i].Length; j++)
+                    {
+                        stages[i][j].run();
+                        // to do: copy from output(duplicate, from last iteration) to next stage's input(duplicate, for next iteration)
+                    }
+                });
+
+                Parallel.For(0, stages.Length, i => {
+                    for (int j = 0; j < stages[i].Length; j++)
+                    {
+                        stages[i][j].switchInputBuffers();
+                    }
+                });
                 return false;
             }
 
             // multiple layers per stage, each stage push data to next stage
             internal ClPipelineStage[][] stages;
-
+            internal bool debug { get; set; }
             /// <summary>
             /// only created by one of the stages that are bound together
             /// </summary>
-            internal ClPipeline()
+            internal ClPipeline(bool debugLog=false)
             {
-
+                debug = debugLog;
             }
            
         }
@@ -86,11 +111,15 @@ namespace Cekirdekler
             internal List<ClPipelineStage> nextStagesList;
             internal static object syncObj=new object();
             internal bool initComplete;
+
+            private bool debug { get; set; }
+
             /// <summary>
             /// creates a stage to form a pipeline with other stages
             /// </summary>
-            public ClPipelineStage()
+            public ClPipelineStage(bool debugLog=false)
             {
+                debug = debugLog;
                 initComplete = false;
                 nextStagesList = new List<ClPipelineStage>();
                 inputBuffersList = new List<ClPipelineStageBuffer>();
@@ -105,13 +134,21 @@ namespace Cekirdekler
             // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
             internal void run()
             {
+                if (debug)
+                    Console.WriteLine("pipeline stage running.");
                 // initialize buffers and number cruncher
                 if (!initComplete)
                 {
                     lock (syncObj)
                     {
                         if (numberCruncher == null)
+                        {
                             numberCruncher = new ClNumberCruncher(devices, kernelsToCompile);
+                            if (debug)
+                            {
+                                numberCruncher.performanceFeed = true;
+                            }
+                        }
 
                         for (int i = 0; i < inputBuffers.Length; i++)
                             inputBuffers[i].write = false;
@@ -206,6 +243,8 @@ namespace Cekirdekler
                         kernelNamesToRun[i],
                         kernelNameToParameters[kernelNamesToRun[i]].globalRange,
                         kernelNameToParameters[kernelNamesToRun[i]].localRange);
+                    if (debug)
+                        Console.WriteLine("kernel complete: "+i);
                 }
             }
 
@@ -224,10 +263,14 @@ namespace Cekirdekler
             /// <returns></returns>
             public ClPipeline makePipeline()
             {
+                if (debug)
+                    Console.WriteLine("Creating a pipeline from a group of stages");
                 // find starting stages with tracking back
                 ClPipelineStage currentStage = findInputStages();
                 int numberOfLayers = currentStage.findOutputStagesCount(0);
                 int currentOrder = 0;
+                if (debug)
+                    Console.WriteLine("Number of stages="+ numberOfLayers);
 
                 ClPipelineStage[][] pipelineStages = new ClPipelineStage[numberOfLayers][];
                 // enumerate orders and add all stages as array elements for pipeline
@@ -242,7 +285,7 @@ namespace Cekirdekler
                         currentStage = currentStage.nextStages[0];
                 }
 
-                ClPipeline pipeline = new ClPipeline();
+                ClPipeline pipeline = new ClPipeline(debug);
                 pipeline.stages = pipelineStages;
                 // initialize stage buffers
 
@@ -270,14 +313,15 @@ namespace Cekirdekler
             /// <returns></returns>
             internal int findOutputStagesCount(int startValue)
             {
-                if (nextStages != null)
+                ClPipelineStage currentStage = this;
+                if (currentStage.nextStages != null)
                 {
-                    if (nextStages.Length > 0)
+                    if (currentStage.nextStages.Length > 0)
                     {
-                        int[] valuesToCompare = new int[nextStages.Length];
-                        for (int i = 0; i < nextStages.Length; i++)
+                        int[] valuesToCompare = new int[currentStage.nextStages.Length];
+                        for (int i = 0; i < currentStage.nextStages.Length; i++)
                         {
-                            valuesToCompare[i] = findOutputStagesCount(startValue);
+                            valuesToCompare[i] = currentStage.nextStages[i].findOutputStagesCount(startValue);
                         }
                         Array.Sort(valuesToCompare);
                         return valuesToCompare[0];
