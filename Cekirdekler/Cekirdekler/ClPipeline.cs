@@ -63,6 +63,7 @@ namespace Cekirdekler
                     for (int j = 0; j < stages[i].Length; j++)
                     {
                         stages[i][j].switchInputBuffers(); // switch all duplicates with real buffers
+                        stages[i][j].switchOutputBuffers(); // switch all duplicates with real buffers
                     }
                 });
                 return false;
@@ -345,13 +346,47 @@ namespace Cekirdekler
             internal void switchInputBuffers()
             {
                 for (int i = 0; i < inputBuffers.Length; i++)
-                    inputBuffers[0].switchBuffers();
+                    inputBuffers[i].switchBuffers();
             }
 
-            // copy from output duplicates to input duplicates
+            // double buffering for overlapped stages for multi device usage
+            internal void switchOutputBuffers()
+            {
+                for (int i = 0; i < outputBuffers.Length; i++)
+                    outputBuffers[i].switchBuffers();
+            }
+
+            // copy from output duplicates to input duplicates while real outputs and real inputs are computed concurrently
             internal void forwardResults()
             {
+                // to do: complete this method
+                if ((nextStages != null) && (nextStages.Length > 0))
+                {
 
+                    for (int i = 0; i < outputBuffers.Length; i++)
+                    {
+                        if (outputBuffers[i].eType == ElementType.ELM_FLOAT)
+                        {
+                            var source = outputBuffers[i].bufDuplicate as ClArray<float>;
+                            // to do: if number of free threads greater than nextStages length, use parallel.for loop
+                            for (int j = 0; j < nextStages.Length; j++)
+                            {
+                                if(source.GetType()!=nextStages[j].inputBuffers[j].switchedBuffer().GetType())
+                                {
+                                    Console.WriteLine("output - input buffer type mismatch");
+                                    return;
+                                }
+
+                                if(source.Length!= nextStages[j].inputBuffers[j].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("output - input buffer length mismatch");
+                                    return;
+                                }
+                                source.CopyTo((ClArray<float>)nextStages[j].inputBuffers[j].bufDuplicate,0);
+                            }
+                        }
+                    }
+                }
             }
 
             /// <summary>
@@ -628,7 +663,7 @@ namespace Cekirdekler
         internal class ClPipelineStageBuffer
         {
             // buffers are always wrapped as ClArray
-            private ElementType eType;
+            internal ElementType eType;
             private ClArray<byte> bufByte;
             private ClArray<byte> bufByteDuplicate;
             private ClArray<char> bufChar;
