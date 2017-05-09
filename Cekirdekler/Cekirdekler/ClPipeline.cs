@@ -550,13 +550,233 @@ namespace Cekirdekler
                                 var destination = inputBuffers[i].switchedBuffer() as ClArray<float>;
                                 destination.CopyFrom((ClFloatArray)asFastArray, 0);
                             }
+                            else if (data[i].GetType() == typeof(ClDoubleArray))
+                            {
+                                if (asFastArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_DOUBLE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<double>;
+                                destination.CopyFrom((ClDoubleArray)asFastArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClByteArray))
+                            {
+                                if (asFastArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_BYTE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<byte>;
+                                destination.CopyFrom((ClByteArray)asFastArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClCharArray))
+                            {
+                                if (asFastArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_CHAR)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<char>;
+                                destination.CopyFrom((ClCharArray)asFastArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClIntArray))
+                            {
+                                if (asFastArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_INT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<int>;
+                                destination.CopyFrom((ClIntArray)asFastArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClUIntArray))
+                            {
+                                if (asFastArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_UINT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<uint>;
+                                destination.CopyFrom((ClUIntArray)asFastArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClLongArray))
+                            {
+                                if (asFastArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_LONG)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<long>;
+                                destination.CopyFrom((ClLongArray)asFastArray, 0);
+                            }
 
                         }
 
                         var asClArray = data[i] as IBufferOptimization;
                         if (asClArray != null)
                         {
+                            if (data[i].GetType() == typeof(ClArray<float>))
+                            {
+                                if (asClArray.arrayLength != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
 
+                                if (inputBuffers[i].eType != ElementType.ELM_FLOAT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<float>;
+                                destination.CopyFrom((ClArray<float>)asClArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClArray<double>))
+                            {
+                                if (asClArray.arrayLength != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_DOUBLE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<double>;
+                                destination.CopyFrom((ClArray<double>)asClArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClArray<byte>))
+                            {
+                                if (asClArray.arrayLength != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_BYTE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<byte>;
+                                destination.CopyFrom((ClArray<byte>)asClArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClArray<char>))
+                            {
+                                if (asClArray.arrayLength != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_CHAR)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<char>;
+                                destination.CopyFrom((ClArray<char>)asClArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClArray<int>))
+                            {
+                                if (asClArray.arrayLength != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_INT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<int>;
+                                destination.CopyFrom((ClArray<int>)asClArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClArray<uint>))
+                            {
+                                if (asClArray.arrayLength != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_UINT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<uint>;
+                                destination.CopyFrom((ClArray<uint>)asClArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(ClArray<long>))
+                            {
+                                if (asClArray.arrayLength != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_LONG)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<long>;
+                                destination.CopyFrom((ClArray<long>)asClArray, 0);
+                            }
                         }
 
 
