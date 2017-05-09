@@ -143,8 +143,8 @@ namespace Cekirdekler
             /// <param name="dest"></param>
             /// <param name="src"></param>
             /// <param name="count">byte number</param>
-            [DllImport("kernel32.dll", EntryPoint = "CopyMemory", SetLastError = false)]
-            public static extern void CopyMemory(IntPtr dest, IntPtr src, uint count);
+            [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+            public static extern void copyMemory(IntPtr dest, IntPtr src, uint count);
         }
 
         /// <summary>
@@ -398,7 +398,7 @@ namespace Cekirdekler
                 T[] f = new T[Length];
                 GCHandle gc = GCHandle.Alloc(f, GCHandleType.Pinned);
                 IntPtr pointerArr = Marshal.UnsafeAddrOfPinnedArrayElement(f, 0);
-                CSpaceArrays.CopyMemory(pointerArr, hAArr, (uint)(Length * sizeOf));
+                CSpaceArrays.copyMemory(pointerArr, hAArr, (uint)(Length * sizeOf));
                 gc.Free();
                 return f;
             }
@@ -712,7 +712,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<byte>)array).ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(((IMemoryOperations<byte>)array).ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -731,7 +731,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(((IMemoryOperations<byte>)array).ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -845,7 +845,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<float>)array).ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(((IMemoryOperations<float>)array).ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -863,7 +863,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(((IMemoryOperations<float>)array).ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -972,7 +972,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<int>)array).ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(((IMemoryOperations<int>)array).ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -990,7 +990,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(((IMemoryOperations<int>)array).ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -1100,7 +1100,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<double>)array).ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(((IMemoryOperations<double>)array).ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -1119,7 +1119,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(((IMemoryOperations<double>)array).ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -1231,7 +1231,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<char>)array).ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(((IMemoryOperations<char>)array).ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -1249,7 +1249,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(((IMemoryOperations<char>)array).ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -1359,7 +1359,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<long>)array).ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(((IMemoryOperations<long>)array).ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -1378,7 +1378,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(((IMemoryOperations<long>)array).ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -1487,7 +1487,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(((IMemoryOperations<uint>)array).ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(((IMemoryOperations<uint>)array).ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
@@ -1505,7 +1505,7 @@ namespace Cekirdekler
                 int dL = Length;
                 if (dL == array.Length)
                 {
-                    CSpaceArrays.CopyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
+                    CSpaceArrays.copyMemory(new IntPtr(ha().ToInt64() + (long)arrayIndex),
                                        new IntPtr(((IMemoryOperations<uint>)array).ha().ToInt64() + (long)arrayIndex),
                                        (uint)((dL - arrayIndex) * sizeOf));
                     return;
