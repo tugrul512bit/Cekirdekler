@@ -26,7 +26,7 @@ namespace Cekirdekler
             /// pushes data(arrays) from entrance stage, returns true if exit stage has result data on its output(and its target arrays)
             /// </summary>
             /// <returns></returns>
-            public bool pushData(object [] data)
+            public bool pushData(object [] data = null)
             {
                 if (debug)
                 {
@@ -62,8 +62,14 @@ namespace Cekirdekler
                 Parallel.For(0, stages.Length, i => {
                     for (int j = 0; j < stages[i].Length; j++)
                     {
-                        stages[i][j].switchInputBuffers(); // switch all duplicates with real buffers
-                        stages[i][j].switchOutputBuffers(); // switch all duplicates with real buffers
+                        if (data == null)
+                        {
+                            if (i != 0)
+                                stages[i][j].switchInputBuffers(); // switch all duplicates with real buffers
+
+                            if (i != (stages.Length - 1))
+                                stages[i][j].switchOutputBuffers(); // switch all duplicates with real buffers
+                        }
                     }
                 });
                 return false;
