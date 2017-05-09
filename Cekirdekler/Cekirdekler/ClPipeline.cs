@@ -44,8 +44,7 @@ namespace Cekirdekler
                     {
                         for (int j = 0; j < stages[i].Length; j++)
                         {
-                            stages[i][j].run();
-                            // to do: copy from output(duplicate, from last iteration) to next stage's input(duplicate, for next iteration)
+                            stages[i][j].run(); // input(stage i) --> output(stage i)
                         }
                     }
                     else
@@ -53,8 +52,7 @@ namespace Cekirdekler
                         int k = i - stages.Length;
                         for (int j = 0; j < stages[k].Length; j++)
                         {
-                            stages[k][j].forwardResults(); // duplicate output --> duplicate input
-                            // to do: copy from output(duplicate, from last iteration) to next stage's input(duplicate, for next iteration)
+                            stages[k][j].forwardResults(k,stages.Length-1,data,popResultsHere); // duplicate output(stage i) --> duplicate input(stage i+1)
                         }
                     }
                 });
@@ -76,6 +74,10 @@ namespace Cekirdekler
                         {
                             if (i != (stages.Length - 1))
                                 stages[i][j].switchOutputBuffers(); // switch all duplicates with real buffers
+                        }
+                        else
+                        {
+                            stages[i][j].switchOutputBuffers(); // switch all duplicates with real buffers
                         }
                         // to do: return true if number of iterations > number of stages (if data==null and result==null)
                         // to do: return true if number of iterations > number of stages+1 (if data!=null and result==null)
@@ -382,8 +384,191 @@ namespace Cekirdekler
             }
 
             // copy from output duplicates to input duplicates while real outputs and real inputs are computed concurrently
-            internal void forwardResults()
+            // index is current index to check against zero or maxIndex
+            // if it is zero and if data is given, gets data to its input (duplicate one)
+            // if it is maxIndex and if result is given, gets output to result
+            internal void forwardResults(int index,int maxIndex,object []data,object [] result)
             {
+                // has data to be pushed to duplicated input because real input is in use
+                if((index==0) && (data!=null))
+                {
+                    if(data.Length!=inputBuffers.Length)
+                    {
+                        Console.WriteLine("error: inconsistent number of input arrays and data arrays.");
+                        // to do: add error code whenever error happened. Then don't run pipeline if error code is not zero
+                        return;
+                    }
+
+                    // to do: if there are enough threads, can make this a parallel.for loop
+                    for(int i=0;i<data.Length;i++)
+                    {
+                        var asArray = data[i] as Array;
+                        if(asArray!=null)
+                        {
+                            // given element is a C# array(of float,int,..byte,struct)
+                            if(data[i].GetType()==typeof(float[]))
+                            {
+                                if(asArray.Length!=inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if(inputBuffers[i].eType!=ElementType.ELM_FLOAT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<float>;
+                                destination.CopyFrom((float [])asArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(double[]))
+                            {
+                                if (asArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_DOUBLE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<double>;
+                                destination.CopyFrom((double[])asArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(byte[]))
+                            {
+                                if (asArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_BYTE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<byte>;
+                                destination.CopyFrom((byte[])asArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(char[]))
+                            {
+                                if (asArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_CHAR)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<char>;
+                                destination.CopyFrom((char[])asArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(int[]))
+                            {
+                                if (asArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_INT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<int>;
+                                destination.CopyFrom((int[])asArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(uint[]))
+                            {
+                                if (asArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_UINT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<uint>;
+                                destination.CopyFrom((uint[])asArray, 0);
+                            }
+                            else if (data[i].GetType() == typeof(long[]))
+                            {
+                                if (asArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_LONG)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<long>;
+                                destination.CopyFrom((long[])asArray, 0);
+                            }
+                            else
+                            {
+                                Console.WriteLine("error: array of structs for device-to-device pipeline not implemented yet.");
+                                throw new NotImplementedException();
+                            }
+
+
+
+
+                        }
+
+                        var asFastArray = data[i] as IMemoryHandle;
+                        if(asFastArray!=null)
+                        {
+                            if (data[i].GetType() == typeof(ClFloatArray))
+                            {
+                                if (asFastArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
+                                    return;
+                                }
+
+                                if (inputBuffers[i].eType != ElementType.ELM_FLOAT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of input and data arrays.");
+                                    return;
+                                }
+
+                                var destination = inputBuffers[i].switchedBuffer() as ClArray<float>;
+                                destination.CopyFrom((ClFloatArray)asFastArray, 0);
+                            }
+
+                        }
+
+                        var asClArray = data[i] as IBufferOptimization;
+                        if (asClArray != null)
+                        {
+
+                        }
+
+
+                    }
+                }
+
+                // has result arrays to be received data from duplicated outputs because real output is in use
+                if((index==maxIndex) && (result!=null))
+                {
+
+                }
+
                 // to do: complete this method
                 if ((nextStages != null) && (nextStages.Length > 0))
                 {
@@ -398,13 +583,13 @@ namespace Cekirdekler
                             {
                                 if(source.GetType()!=nextStages[j].inputBuffers[i].switchedBuffer().GetType())
                                 {
-                                    Console.WriteLine("output - input buffer type mismatch");
+                                    Console.WriteLine("error: output - input buffer type mismatch");
                                     return;
                                 }
 
                                 if(source.Length!= nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
                                 {
-                                    Console.WriteLine("output - input buffer length mismatch");
+                                    Console.WriteLine("error: output - input buffer length mismatch");
                                     return;
                                 }
                                 source.CopyTo((ClArray<float>)nextStages[j].inputBuffers[i].bufDuplicate,0);
@@ -419,13 +604,13 @@ namespace Cekirdekler
                             {
                                 if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
                                 {
-                                    Console.WriteLine("output - input buffer type mismatch");
+                                    Console.WriteLine("error: output - input buffer type mismatch");
                                     return;
                                 }
 
                                 if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
                                 {
-                                    Console.WriteLine("output - input buffer length mismatch");
+                                    Console.WriteLine("error: output - input buffer length mismatch");
                                     return;
                                 }
                                 source.CopyTo((ClArray<double>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
@@ -440,13 +625,13 @@ namespace Cekirdekler
                             {
                                 if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
                                 {
-                                    Console.WriteLine("output - input buffer type mismatch");
+                                    Console.WriteLine("error: output - input buffer type mismatch");
                                     return;
                                 }
 
                                 if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
                                 {
-                                    Console.WriteLine("output - input buffer length mismatch");
+                                    Console.WriteLine("error: output - input buffer length mismatch");
                                     return;
                                 }
                                 source.CopyTo((ClArray<byte>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
@@ -461,13 +646,13 @@ namespace Cekirdekler
                             {
                                 if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
                                 {
-                                    Console.WriteLine("output - input buffer type mismatch");
+                                    Console.WriteLine("error: output - input buffer type mismatch");
                                     return;
                                 }
 
                                 if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
                                 {
-                                    Console.WriteLine("output - input buffer length mismatch");
+                                    Console.WriteLine("error: output - input buffer length mismatch");
                                     return;
                                 }
                                 source.CopyTo((ClArray<char>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
@@ -482,13 +667,13 @@ namespace Cekirdekler
                             {
                                 if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
                                 {
-                                    Console.WriteLine("output - input buffer type mismatch");
+                                    Console.WriteLine("error: output - input buffer type mismatch");
                                     return;
                                 }
 
                                 if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
                                 {
-                                    Console.WriteLine("output - input buffer length mismatch");
+                                    Console.WriteLine("error: output - input buffer length mismatch");
                                     return;
                                 }
                                 source.CopyTo((ClArray<int>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
@@ -503,13 +688,13 @@ namespace Cekirdekler
                             {
                                 if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
                                 {
-                                    Console.WriteLine("output - input buffer type mismatch");
+                                    Console.WriteLine("error: output - input buffer type mismatch");
                                     return;
                                 }
 
                                 if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
                                 {
-                                    Console.WriteLine("output - input buffer length mismatch");
+                                    Console.WriteLine("error: output - input buffer length mismatch");
                                     return;
                                 }
                                 source.CopyTo((ClArray<uint>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
@@ -524,13 +709,13 @@ namespace Cekirdekler
                             {
                                 if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
                                 {
-                                    Console.WriteLine("output - input buffer type mismatch");
+                                    Console.WriteLine("error: output - input buffer type mismatch");
                                     return;
                                 }
 
                                 if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
                                 {
-                                    Console.WriteLine("output - input buffer length mismatch");
+                                    Console.WriteLine("error: output - input buffer length mismatch");
                                     return;
                                 }
                                 source.CopyTo((ClArray<long>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
