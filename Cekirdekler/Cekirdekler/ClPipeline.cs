@@ -786,7 +786,402 @@ namespace Cekirdekler
                 // has result arrays to be received data from duplicated outputs because real output is in use
                 if((index==maxIndex) && (result!=null))
                 {
+                    // to do: convert to output version from this input version
+                    // *******************************************************************************************
+                    // *******************************************************************************************
+                    // *******************************************************************************************
+                    if (result.Length != outputBuffers.Length)
+                    {
+                        Console.WriteLine("error: inconsistent number of output arrays and result arrays.");
+                        // to do: add error code whenever error happened. Then don't run pipeline if error code is not zero
+                        return;
+                    }
 
+                    // to do: if there are enough threads, can make this a parallel.for loop
+                    for (int i = 0; i < result.Length; i++)
+                    {
+                        var asArray = result[i] as Array;
+                        if (asArray != null)
+                        {
+                            // given element is a C# array(of float,int,..byte,struct)
+                            if (result[i].GetType() == typeof(float[]))
+                            {
+                                if (asArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_FLOAT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<float>;
+                                source.CopyTo((float[])asArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(double[]))
+                            {
+                                if (asArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_DOUBLE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<double>;
+                                source.CopyTo((double[])asArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(byte[]))
+                            {
+                                if (asArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_BYTE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<byte>;
+                                source.CopyTo((byte[])asArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(char[]))
+                            {
+                                if (asArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_CHAR)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<char>;
+                                source.CopyTo((char[])asArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(int[]))
+                            {
+                                if (asArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_INT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<int>;
+                                source.CopyTo((int[])asArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(uint[]))
+                            {
+                                if (asArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_UINT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<uint>;
+                                source.CopyTo((uint[])asArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(long[]))
+                            {
+                                if (asArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_LONG)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<long>;
+                                source.CopyTo((long[])asArray, 0);
+                            }
+                            else
+                            {
+                                Console.WriteLine("error: array of structs for device-to-device pipeline not implemented yet.");
+                                throw new NotImplementedException();
+                            }
+
+
+
+
+                        }
+
+                        var asFastArray = result[i] as IMemoryHandle;
+                        if (asFastArray != null)
+                        {
+                            if (result[i].GetType() == typeof(ClFloatArray))
+                            {
+                                if (asFastArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_FLOAT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<float>;
+                                source.CopyTo((ClFloatArray)asFastArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClDoubleArray))
+                            {
+                                if (asFastArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_DOUBLE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<double>;
+                                source.CopyTo((ClDoubleArray)asFastArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClByteArray))
+                            {
+                                if (asFastArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_BYTE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<byte>;
+                                source.CopyTo((ClByteArray)asFastArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClCharArray))
+                            {
+                                if (asFastArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_CHAR)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<char>;
+                                source.CopyTo((ClCharArray)asFastArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClIntArray))
+                            {
+                                if (asFastArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_INT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<int>;
+                                source.CopyTo((ClIntArray)asFastArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClUIntArray))
+                            {
+                                if (asFastArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_UINT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<uint>;
+                                source.CopyTo((ClUIntArray)asFastArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClLongArray))
+                            {
+                                if (asFastArray.Length != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_LONG)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<long>;
+                                source.CopyTo((ClLongArray)asFastArray, 0);
+                            }
+
+                        }
+
+                        var asClArray = result[i] as IBufferOptimization;
+                        if (asClArray != null)
+                        {
+                            if (result[i].GetType() == typeof(ClArray<float>))
+                            {
+                                if (asClArray.arrayLength != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_FLOAT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<float>;
+                                source.CopyTo((ClArray<float>)asClArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClArray<double>))
+                            {
+                                if (asClArray.arrayLength != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_DOUBLE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<double>;
+                                source.CopyTo((ClArray<double>)asClArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClArray<byte>))
+                            {
+                                if (asClArray.arrayLength != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_BYTE)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<byte>;
+                                source.CopyTo((ClArray<byte>)asClArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClArray<char>))
+                            {
+                                if (asClArray.arrayLength != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_CHAR)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<char>;
+                                source.CopyTo((ClArray<char>)asClArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClArray<int>))
+                            {
+                                if (asClArray.arrayLength != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_INT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<int>;
+                                source.CopyTo((ClArray<int>)asClArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClArray<uint>))
+                            {
+                                if (asClArray.arrayLength != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_UINT)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<uint>;
+                                source.CopyTo((ClArray<uint>)asClArray, 0);
+                            }
+                            else if (result[i].GetType() == typeof(ClArray<long>))
+                            {
+                                if (asClArray.arrayLength != outputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("error: inconsistent length of output arrays and length of result arrays.");
+                                    return;
+                                }
+
+                                if (outputBuffers[i].eType != ElementType.ELM_LONG)
+                                {
+                                    Console.WriteLine("error: inconsistent types of output and result arrays.");
+                                    return;
+                                }
+
+                                var source = outputBuffers[i].switchedBuffer() as ClArray<long>;
+                                source.CopyTo((ClArray<long>)asClArray, 0);
+                            }
+                        }
+
+
+                    }
+                    // *********************************************************************************************
+                    // *********************************************************************************************
+                    // *********************************************************************************************
                 }
 
                 // to do: complete this method
