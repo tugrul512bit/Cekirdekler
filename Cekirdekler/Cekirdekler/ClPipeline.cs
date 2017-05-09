@@ -21,12 +21,12 @@ namespace Cekirdekler
         public class ClPipeline
         {
             internal static object syncObj = new object();
-
+            internal int counter { get; set; }
             /// <summary>
             /// pushes data(arrays) from entrance stage, returns true if exit stage has result data on its output(and its target arrays)
             /// </summary>
             /// <returns></returns>
-            public bool pushData(object [] data = null)
+            public bool pushData(object [] data = null, object [] popResultsHere=null)
             {
                 if (debug)
                 {
@@ -66,12 +66,30 @@ namespace Cekirdekler
                         {
                             if (i != 0)
                                 stages[i][j].switchInputBuffers(); // switch all duplicates with real buffers
+                        }
+                        else
+                        {
+                            stages[i][j].switchInputBuffers(); // switch all duplicates with real buffers
+                        }
 
+                        if (popResultsHere == null)
+                        {
                             if (i != (stages.Length - 1))
                                 stages[i][j].switchOutputBuffers(); // switch all duplicates with real buffers
                         }
+                        // to do: return true if number of iterations > number of stages (if data==null and result==null)
+                        // to do: return true if number of iterations > number of stages+1 (if data!=null and result==null)
+                        // to do: return true if number of iterations > number of stages+2 (if data!=null and result!=null)
                     }
                 });
+                counter++;
+                if ((counter > stages.Length) && (data == null) && (popResultsHere == null))
+                    return true;
+                else if ((counter > (stages.Length+1)) && (data != null) && (popResultsHere == null))
+                    return true;
+                else if ((counter > (stages.Length+2)) && (data != null) && (popResultsHere != null))
+                    return true;
+
                 return false;
             }
 
@@ -84,6 +102,7 @@ namespace Cekirdekler
             internal ClPipeline(bool debugLog=false)
             {
                 debug = debugLog;
+                counter = 0;
             }
            
         }
