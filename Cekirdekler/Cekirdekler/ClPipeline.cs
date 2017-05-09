@@ -371,18 +371,144 @@ namespace Cekirdekler
                             // to do: if number of free threads greater than nextStages length, use parallel.for loop
                             for (int j = 0; j < nextStages.Length; j++)
                             {
-                                if(source.GetType()!=nextStages[j].inputBuffers[j].switchedBuffer().GetType())
+                                if(source.GetType()!=nextStages[j].inputBuffers[i].switchedBuffer().GetType())
                                 {
                                     Console.WriteLine("output - input buffer type mismatch");
                                     return;
                                 }
 
-                                if(source.Length!= nextStages[j].inputBuffers[j].bufDuplicate.arrayLength)
+                                if(source.Length!= nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
                                 {
                                     Console.WriteLine("output - input buffer length mismatch");
                                     return;
                                 }
-                                source.CopyTo((ClArray<float>)nextStages[j].inputBuffers[j].bufDuplicate,0);
+                                source.CopyTo((ClArray<float>)nextStages[j].inputBuffers[i].bufDuplicate,0);
+                            }
+                        }
+
+                        if (outputBuffers[i].eType == ElementType.ELM_DOUBLE)
+                        {
+                            var source = outputBuffers[i].bufDuplicate as ClArray<double>;
+                            // to do: if number of free threads greater than nextStages length, use parallel.for loop
+                            for (int j = 0; j < nextStages.Length; j++)
+                            {
+                                if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
+                                {
+                                    Console.WriteLine("output - input buffer type mismatch");
+                                    return;
+                                }
+
+                                if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("output - input buffer length mismatch");
+                                    return;
+                                }
+                                source.CopyTo((ClArray<double>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
+                            }
+                        }
+
+                        if (outputBuffers[i].eType == ElementType.ELM_BYTE)
+                        {
+                            var source = outputBuffers[i].bufDuplicate as ClArray<byte>;
+                            // to do: if number of free threads greater than nextStages length, use parallel.for loop
+                            for (int j = 0; j < nextStages.Length; j++)
+                            {
+                                if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
+                                {
+                                    Console.WriteLine("output - input buffer type mismatch");
+                                    return;
+                                }
+
+                                if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("output - input buffer length mismatch");
+                                    return;
+                                }
+                                source.CopyTo((ClArray<byte>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
+                            }
+                        }
+
+                        if (outputBuffers[i].eType == ElementType.ELM_CHAR)
+                        {
+                            var source = outputBuffers[i].bufDuplicate as ClArray<char>;
+                            // to do: if number of free threads greater than nextStages length, use parallel.for loop
+                            for (int j = 0; j < nextStages.Length; j++)
+                            {
+                                if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
+                                {
+                                    Console.WriteLine("output - input buffer type mismatch");
+                                    return;
+                                }
+
+                                if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("output - input buffer length mismatch");
+                                    return;
+                                }
+                                source.CopyTo((ClArray<char>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
+                            }
+                        }
+
+                        if (outputBuffers[i].eType == ElementType.ELM_INT)
+                        {
+                            var source = outputBuffers[i].bufDuplicate as ClArray<int>;
+                            // to do: if number of free threads greater than nextStages length, use parallel.for loop
+                            for (int j = 0; j < nextStages.Length; j++)
+                            {
+                                if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
+                                {
+                                    Console.WriteLine("output - input buffer type mismatch");
+                                    return;
+                                }
+
+                                if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("output - input buffer length mismatch");
+                                    return;
+                                }
+                                source.CopyTo((ClArray<int>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
+                            }
+                        }
+
+                        if (outputBuffers[i].eType == ElementType.ELM_UINT)
+                        {
+                            var source = outputBuffers[i].bufDuplicate as ClArray<uint>;
+                            // to do: if number of free threads greater than nextStages length, use parallel.for loop
+                            for (int j = 0; j < nextStages.Length; j++)
+                            {
+                                if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
+                                {
+                                    Console.WriteLine("output - input buffer type mismatch");
+                                    return;
+                                }
+
+                                if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("output - input buffer length mismatch");
+                                    return;
+                                }
+                                source.CopyTo((ClArray<uint>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
+                            }
+                        }
+
+                        if (outputBuffers[i].eType == ElementType.ELM_LONG)
+                        {
+                            var source = outputBuffers[i].bufDuplicate as ClArray<long>;
+                            // to do: if number of free threads greater than nextStages length, use parallel.for loop
+                            for (int j = 0; j < nextStages.Length; j++)
+                            {
+                                if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
+                                {
+                                    Console.WriteLine("output - input buffer type mismatch");
+                                    return;
+                                }
+
+                                if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
+                                {
+                                    Console.WriteLine("output - input buffer length mismatch");
+                                    return;
+                                }
+                                source.CopyTo((ClArray<long>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
                             }
                         }
                     }
