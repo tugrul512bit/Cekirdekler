@@ -85,11 +85,13 @@ namespace Cekirdekler
                     }
                 });
                 counter++;
-                if ((counter > stages.Length) && (data == null) && (popResultsHere == null))
+                if ((counter > (stages.Length * 2 - 2)) && (data == null) && (popResultsHere == null))
                     return true;
-                else if ((counter > (stages.Length+1)) && (data != null) && (popResultsHere == null))
+                else if ( (counter > (stages.Length*2 - 1)) && (data != null) && (popResultsHere == null))
                     return true;
-                else if ((counter > (stages.Length+2)) && (data != null) && (popResultsHere != null))
+                else if ((counter > (stages.Length * 2 - 1)) && (data == null) && (popResultsHere != null))
+                    return true;
+                else if ((counter > (stages.Length*2)) && (data != null) && (popResultsHere != null))
                     return true;
 
                 return false;
