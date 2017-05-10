@@ -84,8 +84,9 @@ namespace Cekirdekler
         /// <param name="numGPUToUse">if pc has 4 gpu, can set this to 4</param>
         /// <param name="MAX_CPU">-1 = MAX - 1, max( min(MAX_CPU,MAX-1),1) </param>
         /// <param name="GPU_STREAM">default is true: map - unmap instead of extra read-write for all devices</param>
+        /// <param name="noPipelining">disables allocation of abundant command queues(can't enable driver-driver pipelining later)</param>
         public Cores(string deviceTypesToUse, string kernelFileString, string[] kernelFunctionNamesInKernelFileString,
-                            int localRangeDeprecated = 256, int numGPUToUse = -1, bool GPU_STREAM = true, int MAX_CPU = -1)
+                            int localRangeDeprecated = 256, int numGPUToUse = -1, bool GPU_STREAM = true, int MAX_CPU = -1, bool noPipelining=false)
         {
             localRange = localRangeDeprecated;
             IntPtr handlePlatformList = platformList();
@@ -181,7 +182,7 @@ namespace Cekirdekler
             {
                 numberOfWorkers = selectedDevicesForGPGPU[platforms[i]].Count;
                 for (int j = 0; j < numberOfWorkers; j++)
-                    tmp.Add(new Worker(selectedDevicesForGPGPU[platforms[i]][j], kernels, kernelNames));
+                    tmp.Add(new Worker(selectedDevicesForGPGPU[platforms[i]][j], kernels, kernelNames, noPipelining));
             }
             workers = tmp.ToArray();
             workerThreads = new Thread[workers.Length];
@@ -207,7 +208,8 @@ namespace Cekirdekler
         /// <param name="numGPUToUse">if pc has 4 gpu, can set this to 4</param>
         /// <param name="MAX_CPU">-1 = MAX - 1, max( min(MAX_CPU,MAX-1),1) </param>
         /// <param name="GPU_STREAM">default is true: map - unmap instead of extra read-write for all devices</param>
-        public Cores(ClDevices devicesForGPGPU, string kernelFileString, string[] kernelFunctionNamesInKernelFileString)
+        /// <param name="noPipelining">disables allocation of abundant command queues(can't enable driver-driver pipelining later)</param>
+        public Cores(ClDevices devicesForGPGPU, string kernelFileString, string[] kernelFunctionNamesInKernelFileString, bool noPipelining=false)
         {
             localRange = 256;
             Dictionary<ClPlatform, List<ClDevice>> selectedDevicesForGPGPU = new Dictionary<ClPlatform, List<ClDevice>>();
@@ -239,7 +241,7 @@ namespace Cekirdekler
             {
                 numberOfWorkers = selectedDevicesForGPGPU[platforms[i]].Count;
                 for (int j = 0; j < numberOfWorkers; j++)
-                    tmp.Add(new Worker(selectedDevicesForGPGPU[platforms[i]][j], kernels, kernelNames));
+                    tmp.Add(new Worker(selectedDevicesForGPGPU[platforms[i]][j], kernels, kernelNames, noPipelining));
             }
             workers = tmp.ToArray();
             workerThreads = new Thread[workers.Length];
@@ -864,9 +866,11 @@ namespace Cekirdekler
             for (int i = 0; i < workers.Length; i++)
             {
                 if (workers[i] != null)
+                {
                     workers[i].dispose();
-                workers[i] = null;
-                Console.WriteLine("Workers dispose finished.");
+                    workers[i] = null;
+                    Console.WriteLine("Workers dispose finished.");
+                }
             }
 
             //if(platform!=null)

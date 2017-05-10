@@ -187,7 +187,7 @@ namespace Cekirdekler
                     {
                         if (numberCruncher == null)
                         {
-                            numberCruncher = new ClNumberCruncher(devices, kernelsToCompile);
+                            numberCruncher = new ClNumberCruncher(devices, kernelsToCompile,true/* can't enable driver-pipelining but can have more device-pipeline-stages */);
                             if (debug)
                             {
                                 numberCruncher.performanceFeed = true;

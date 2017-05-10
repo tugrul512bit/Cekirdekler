@@ -77,9 +77,10 @@ namespace Cekirdekler
         /// <param name="numberofCPUCoresToUseAsDeviceFission">AcceleratorType.CPU uses number of threads for an N-core CPU(between 1 and N-1)(-1 means N-1)</param>
         /// <param name="numberOfGPUsToUse">AcceleratorType.GPU uses number of GPUs equal to this parameter. Between 1 and N(-1 means N)</param>
         /// <param name="stream">devices that share RAM with CPU will not do extra copies. Devices that don't share RAM will directly access RAM and reduce number of copies</param>
+        /// <param name="noPipelining">disables extra command queue allocation, can't enable driver-driven pipelining later. Useful for device to device pipelining with many stages.</param>
         public ClNumberCruncher(AcceleratorType cpuGpu, string kernelString,
                             int numberofCPUCoresToUseAsDeviceFission = -1,
-                            int numberOfGPUsToUse = -1, bool stream = true)
+                            int numberOfGPUsToUse = -1, bool stream = true, bool noPipelining=false)
         {
             numberOfErrorsHappened = 0;
             StringBuilder cpuGpu_ = new StringBuilder("");
@@ -110,7 +111,7 @@ namespace Cekirdekler
                 return;
             }
             numberCruncher = new Cores(cpuGpu_.ToString(), kernelString, kernelNames_.ToArray(), 256,
-                numberOfGPUsToUse, stream, numberofCPUCoresToUseAsDeviceFission);
+                numberOfGPUsToUse, stream, numberofCPUCoresToUseAsDeviceFission, noPipelining);
             if (numberCruncher.errorCode() != 0)
             {
                 errorMessage_ = numberCruncher.errorMessage();
@@ -185,7 +186,8 @@ namespace Cekirdekler
         /// </summary>
         /// <param name="devicesForGPGPU">one or more devices for GPGPU</param>
         /// <param name="kernelString">something like: @"multi-line C# string that has multiple kernel definitions"</param>
-        public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString)
+        /// <param name="noPipelining">disables extra command queue allocation, can't enable driver-driven pipelining later. Useful for device to device pipelining with many stages.</param>
+        public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,bool noPipelining=false)
         {
             numberOfErrorsHappened = 0;
             List<string> kernelNames_ = new List<string>();
@@ -207,7 +209,7 @@ namespace Cekirdekler
                 errorNotification = 1;
                 return;
             }
-            numberCruncher = new Cores(devicesForGPGPU, kernelString, kernelNames_.ToArray());
+            numberCruncher = new Cores(devicesForGPGPU, kernelString, kernelNames_.ToArray(), noPipelining);
             if (numberCruncher.errorCode() != 0)
             {
                 errorMessage_ = numberCruncher.errorMessage();

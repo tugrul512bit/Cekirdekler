@@ -61,6 +61,7 @@ namespace ClObject
         /// <summary>
         /// <para>horizontal(driver-driven) pipelining opencl queue (read + compute +write)</para>
         /// <para>vertical(event-driven) pipelining opencl kernel execution queue</para>
+        /// <para>and also non-pipelined simple work</para>
         /// </summary>
         public ClCommandQueue commandQueue = null;
 
@@ -195,7 +196,8 @@ namespace ClObject
         /// <param name="device_">opencl device wrapper</param>
         /// <param name="kernels_">string wrapper containing all kernels</param>
         /// <param name="kernelNames_">names of kernels to be compiled on this device</param>
-        public Worker(ClDevice device_, ClString kernels_, ClString[] kernelNames_)
+        /// <param name="noPipelining">if enabled, does not allocate multiple command queues(driver-driven pipelining can't be enabled). Useful for device-to-device pipelining with many stages(to overcome abundant resource usages)</param>
+        public Worker(ClDevice device_, ClString kernels_, ClString[] kernelNames_, bool noPipelining = false)
         {
             {
                 programAndKernelErrorCode = 0;
@@ -203,7 +205,7 @@ namespace ClObject
                 deviceName = device.name();
                 context = new ClContext(device);
 
-                // for event+driver driven pipelines
+                // for event+driver driven pipelines and no-pipeline executions
                 commandQueue = new ClCommandQueue(context);
 
                 // for event driven pipelines
@@ -213,22 +215,24 @@ namespace ClObject
                 commandQueueWrite = new ClCommandQueue(context);
 
                 // for driver-driven pipelines
-                commandQueue2 = new ClCommandQueue(context);
-                commandQueue3 = new ClCommandQueue(context);
-                commandQueue4 = new ClCommandQueue(context);
-                commandQueue5 = new ClCommandQueue(context);
-                commandQueue6 = new ClCommandQueue(context);
-                commandQueue7 = new ClCommandQueue(context);
-                commandQueue8 = new ClCommandQueue(context);
-                commandQueue9 = new ClCommandQueue(context);
-                commandQueue10 = new ClCommandQueue(context);
-                commandQueue11 = new ClCommandQueue(context);
-                commandQueue12 = new ClCommandQueue(context);
-                commandQueue13 = new ClCommandQueue(context);
-                commandQueue14 = new ClCommandQueue(context);
-                commandQueue15 = new ClCommandQueue(context);
-                commandQueue16 = new ClCommandQueue(context);
-
+                if (!noPipelining)
+                {
+                    commandQueue2 = new ClCommandQueue(context);
+                    commandQueue3 = new ClCommandQueue(context);
+                    commandQueue4 = new ClCommandQueue(context);
+                    commandQueue5 = new ClCommandQueue(context);
+                    commandQueue6 = new ClCommandQueue(context);
+                    commandQueue7 = new ClCommandQueue(context);
+                    commandQueue8 = new ClCommandQueue(context);
+                    commandQueue9 = new ClCommandQueue(context);
+                    commandQueue10 = new ClCommandQueue(context);
+                    commandQueue11 = new ClCommandQueue(context);
+                    commandQueue12 = new ClCommandQueue(context);
+                    commandQueue13 = new ClCommandQueue(context);
+                    commandQueue14 = new ClCommandQueue(context);
+                    commandQueue15 = new ClCommandQueue(context);
+                    commandQueue16 = new ClCommandQueue(context);
+                }
                 // for event driven pipelines
                 commandQueueRead2 = new ClCommandQueue(context);
                 commandQueueWrite2 = new ClCommandQueue(context);
