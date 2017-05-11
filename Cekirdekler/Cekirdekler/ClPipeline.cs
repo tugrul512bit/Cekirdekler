@@ -163,6 +163,7 @@ namespace Cekirdekler
             /// </summary>
             public ClPipelineStage(bool debugLog=false)
             {
+                initializerKernelNames = null;
                 debug = debugLog;
                 initComplete = false;
                 nextStagesList = new List<ClPipelineStage>();
@@ -176,7 +177,11 @@ namespace Cekirdekler
 
 
             // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
-            internal void run()
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="initializerKernels">runs only the initializer kernels given by initializerKernel() method</param>
+            internal void run(bool initializerKernels=false)
             {
                 if (debug)
                     Console.WriteLine("pipeline stage running.");
@@ -335,37 +340,87 @@ namespace Cekirdekler
                 // parameter building end
 
                 // running kernel
-                if (kernelNamesToRun != null)
+                if (!initializerKernels)
                 {
-                    for (int i = 0; i < kernelNamesToRun.Length; i++)
+                    // normal kernel execution
+                    if (kernelNamesToRun != null)
+                    {
+                        for (int i = 0; i < kernelNamesToRun.Length; i++)
+                        {
+                            if (debug)
+                            {
+                                Console.WriteLine("running kernel: " + i);
+                                Console.WriteLine("more than one parameter: " + moreThanOneParameter);
+                            }
+
+
+                            // normal run
+                            if (moreThanOneParameter)
+                            {
+                                bufferParameters.compute(numberCruncher, i + 1,
+                                    kernelNamesToRun[i],
+                                    kernelNameToParameters[kernelNamesToRun[i]].globalRange,
+                                    kernelNameToParameters[kernelNamesToRun[i]].localRange);
+                            }
+                            else
+                            {
+                                (ib.buf as ICanCompute).compute(numberCruncher, i * 123456 + 1,
+                                    kernelNamesToRun[i],
+                                    kernelNameToParameters[kernelNamesToRun[i]].globalRange,
+                                    kernelNameToParameters[kernelNamesToRun[i]].localRange);
+                            }
+
+
+                            if (debug)
+                                Console.WriteLine("kernel complete: " + i);
+                        }
+                    }
+                    else
                     {
                         if (debug)
-                        {
-                            Console.WriteLine("running kernel: " + i);
-                            Console.WriteLine("more than one parameter: "+moreThanOneParameter);
-                        }
-                        if (moreThanOneParameter)
-                        {
-                            bufferParameters.compute(numberCruncher, i + 1,
-                                kernelNamesToRun[i],
-                                kernelNameToParameters[kernelNamesToRun[i]].globalRange,
-                                kernelNameToParameters[kernelNamesToRun[i]].localRange);
-                        }
-                        else
-                        {
-                            (ib.buf as ICanCompute).compute(numberCruncher, i*123456 + 1,
-                                kernelNamesToRun[i],
-                                kernelNameToParameters[kernelNamesToRun[i]].globalRange,
-                                kernelNameToParameters[kernelNamesToRun[i]].localRange);
-                        }
-                        if (debug)
-                            Console.WriteLine("kernel complete: " + i);
+                            Console.WriteLine("no kernel names to run");
                     }
                 }
                 else
                 {
-                    if (debug)
-                        Console.WriteLine("no kernel names to run");
+                    // initializing stage
+                    if (initializerKernelNames != null)
+                    {
+                        for (int i = 0; i < initializerKernelNames.Length; i++)
+                        {
+                            if (debug)
+                            {
+                                Console.WriteLine("running kernel: " + i);
+                                Console.WriteLine("more than one parameter: " + moreThanOneParameter);
+                            }
+
+
+                            // normal run
+                            if (moreThanOneParameter)
+                            {
+                                bufferParameters.compute(numberCruncher, i*500 + 1,
+                                    initializerKernelNames[i],
+                                    initializerKernelGlobalRanges[i],
+                                    initializerKernelLocalRanges[i]);
+                            }
+                            else
+                            {
+                                (ib.buf as ICanCompute).compute(numberCruncher, i * 12345678 + 1,
+                                    initializerKernelNames[i],
+                                    initializerKernelGlobalRanges[i],
+                                    initializerKernelLocalRanges[i]);
+                            }
+
+
+                            if (debug)
+                                Console.WriteLine("kernel complete: " + i);
+                        }
+                    }
+                    else
+                    {
+                        if (debug)
+                            Console.WriteLine("no kernel names to run");
+                    }
                 }
             }
 
@@ -1343,7 +1398,8 @@ namespace Cekirdekler
             }
 
             /// <summary>
-            /// creates a pipeline out of all bound stages, ready to compute, currently only 1 stage per layer (as parallel)
+            /// <para>creates a pipeline out of all bound stages, ready to compute, currently only 1 stage per layer (as parallel)</para>
+            /// <para>executes the initializer kernels of each stage once</para>
             /// </summary>
             /// <returns></returns>
             public ClPipeline makePipeline()
@@ -1374,7 +1430,19 @@ namespace Cekirdekler
                 pipeline.stages = pipelineStages;
                 // initialize stage buffers
 
-                return pipeline;
+                for (int i = 0; i < pipeline.stages.Length; i++)
+                {
+                    for (int j = 0; j < pipeline.stages[i].Length; j++)
+                    {
+                        pipeline.stages[i][j].run(true); // initialize normal buffers
+                        pipeline.stages[i][j].switchInputBuffers();
+                        pipeline.stages[i][j].switchOutputBuffers();
+                        pipeline.stages[i][j].run(true); // initialize duplicate buffers
+                        pipeline.stages[i][j].switchInputBuffers();
+                        pipeline.stages[i][j].switchOutputBuffers();
+                    }
+                }
+                    return pipeline;
             }
 
             /// <summary>
@@ -1420,12 +1488,37 @@ namespace Cekirdekler
 
             internal int stageOrder { get; set; }
 
-            /// <summary>
-            /// kernel function name to run once before beginning, empty string = no initializing needed
-            /// </summary>
-            public void initializerKernel(string initKernelNames)
-            {
+            internal string []initializerKernelNames { get; set; }
+            internal int []initializerKernelGlobalRanges { get; set; }
+            internal int []initializerKernelLocalRanges { get; set; }
 
+
+
+            /// <summary>
+            /// <para>kernel function name to run once before beginning, empty string = no initializing needed</para>
+            /// <para></para>
+            /// </summary>
+            public void initializerKernel(string initKernelNames, int[] globalRanges, int [] localRanges)
+            {
+                if (initKernelNames != null)
+                    initializerKernelNames = initKernelNames.Split(new string[] { " ", ",", ";", "-", Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                if ((initKernelNames == null)  || (globalRanges==null) || (localRanges==null) ||
+                    (initializerKernelNames.Length != globalRanges.Length) || (initializerKernelNames.Length != localRanges.Length) || (localRanges.Length != globalRanges.Length))
+                {
+                    initializerKernelNames = null;
+                    Console.WriteLine("Warning: Number of initializer kernels and number of range values do not match or one of them is null. Initializer kernels will not run.");
+                    return;
+                }
+                
+                
+                initializerKernelGlobalRanges = new int[globalRanges.Length];
+                initializerKernelLocalRanges = new int[localRanges.Length];
+
+                for (int i=0;i< initializerKernelGlobalRanges.Length;i++)
+                {
+                    initializerKernelGlobalRanges[i] = globalRanges[i];
+                    initializerKernelLocalRanges[i] = localRanges[i];
+                }
             }
 
             /// <summary>
