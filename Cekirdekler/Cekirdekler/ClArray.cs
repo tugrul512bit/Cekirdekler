@@ -445,7 +445,7 @@ namespace Cekirdekler
                 }
 
 
-                string[] kernelsTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                string[] kernelsTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n","@" }, StringSplitOptions.RemoveEmptyEntries);
 
                 object[] arrs_ = arrays.ToArray();
                 int[] lengths_ = arrayLengths.ToArray();
@@ -1404,7 +1404,7 @@ namespace Cekirdekler
                         return;
                     }
                 }
-                string[] kernellerTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                string[] kernellerTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n","@" }, StringSplitOptions.RemoveEmptyEntries);
 
                 object[] arrs_ = new object[] { this };
                 int[] lengths_ = new int[] {this.Length };

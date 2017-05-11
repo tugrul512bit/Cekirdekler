@@ -2,6 +2,7 @@
 using Cekirdekler.Hardware;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -38,13 +39,19 @@ namespace Cekirdekler
                     }
                 }
 
-
                 Parallel.For(0, stages.Length*2, i => {
                     if (i < stages.Length)
                     {
                         for (int j = 0; j < stages[i].Length; j++)
                         {
                             stages[i][j].run(); // input(stage i) --> output(stage i)
+                            if (debug)
+                            {
+                                lock (syncObj)
+                                {
+                                    Console.WriteLine("stage-"+i+"-"+j+" compute time: "+ stages[i][j].elapsedTime);
+                                }
+                            }
                         }
                     }
                     else
@@ -79,11 +86,10 @@ namespace Cekirdekler
                         {
                             stages[i][j].switchOutputBuffers(); // switch all duplicates with real buffers
                         }
-                        // to do: return true if number of iterations > number of stages (if data==null and result==null)
-                        // to do: return true if number of iterations > number of stages+1 (if data!=null and result==null)
-                        // to do: return true if number of iterations > number of stages+2 (if data!=null and result!=null)
                     }
                 });
+
+                
                 counter++;
                 if ((counter > (stages.Length * 2 - 2)) && (data == null) && (popResultsHere == null))
                     return true;
@@ -175,14 +181,18 @@ namespace Cekirdekler
                 stageOrder = -1;
             }
 
+            internal Stopwatch timer { get; set; }
+            internal double elapsedTime { get; set; }
 
             // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
             /// <summary>
-            /// 
+            /// runs kernels attached to this stage consecutively (one after another)
             /// </summary>
             /// <param name="initializerKernels">runs only the initializer kernels given by initializerKernel() method</param>
             internal void run(bool initializerKernels=false)
             {
+                if (timer == null)
+                    timer = new Stopwatch();
                 if (debug)
                     Console.WriteLine("pipeline stage running.");
                 // initialize buffers and number cruncher
@@ -247,6 +257,8 @@ namespace Cekirdekler
                             Console.WriteLine("pipeline initialization complete.");
                     }
                 }
+
+                timer.Start();
 
                 // to do: move parameter building to initializing
                 ClParameterGroup bufferParameters = null;
@@ -398,6 +410,7 @@ namespace Cekirdekler
                             // normal run
                             if (moreThanOneParameter)
                             {
+                                
                                 bufferParameters.compute(numberCruncher, i*500 + 1,
                                     initializerKernelNames[i],
                                     initializerKernelGlobalRanges[i],
@@ -422,8 +435,10 @@ namespace Cekirdekler
                             Console.WriteLine("no kernel names to run");
                     }
                 }
+                timer.Stop();
+                elapsedTime = timer.Elapsed.TotalMilliseconds;
+                timer.Reset();
             }
-
 
 
             // double buffering for overlapped stages for multi device usage
