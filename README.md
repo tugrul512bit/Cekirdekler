@@ -1,6 +1,8 @@
 # Cekirdekler
 Very simple C# Multi-device GPGPU(OpenCL) compute API with an iterative interdevice-loadbalancing feature using multiple pipelining on read/write/compute operations for developers' custom opencl kernels. 
 
+64-bit only. "project settings -> build -> platform target -> x64"
+
 Needs extra C++ dll built in 64-bit(x86_64) from https://github.com/tugrul512bit/CekirdeklerCPP which must be named KutuphaneCL.dll
 
 The other needed dll is Microsoft's System.Threading.dll and its xml helper for .Net 2.0 - or - you can adjust "using" and use .Net 3.5+ for your own project and don't need System.Threading.dll.
