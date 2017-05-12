@@ -5,11 +5,12 @@ Very simple C# Multi-device GPGPU(OpenCL) compute API with an iterative interdev
 
 Needs extra C++ dll built in 64-bit(x86_64) from https://github.com/tugrul512bit/CekirdeklerCPP which must be named KutuphaneCL.dll
 
+
 The other needed dll is Microsoft's System.Threading.dll and its xml helper for .Net 2.0 - or - you can adjust "using" and use .Net 3.5+ for your own project and don't need System.Threading.dll.
 
 In total, Cekirdekler.dll and KutuphaneCL.dll and using .Net 3.5 should be enough.
 
-Usage: add only Cekirdekler.dll and system.threading.dll as references to your C# projects. Other files needs to exist in same folder with Cekirdekler.dll.
+<b>Usage: add only Cekirdekler.dll and system.threading.dll as references to your C# projects. Other files needs to exist in same folder with Cekirdekler.dll or the executable of main project.</b>
 
 This project is being enhanced using ZenHub: <a href="https://zenhub.com"><img src="https://raw.githubusercontent.com/ZenHubIO/support/master/zenhub-badge.png"></a>
 
