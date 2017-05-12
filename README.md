@@ -1,13 +1,19 @@
 # Cekirdekler
 Very simple C# Multi-device GPGPU(OpenCL) compute API with an iterative interdevice-loadbalancing feature using multiple pipelining on read/write/compute operations for developers' custom opencl kernels. 
 
+64-bit only. "project settings -> build -> platform target -> x64"
+Also configuration manager needs to look like this:
+<img src="https://github.com/tugrul512bit/Cekirdekler/blob/master/opencl64.png">
+
 Needs extra C++ dll built in 64-bit(x86_64) from https://github.com/tugrul512bit/CekirdeklerCPP which must be named KutuphaneCL.dll
+
 
 The other needed dll is Microsoft's System.Threading.dll and its xml helper for .Net 2.0 - or - you can adjust "using" and use .Net 3.5+ for your own project and don't need System.Threading.dll.
 
 In total, Cekirdekler.dll and KutuphaneCL.dll and using .Net 3.5 should be enough.
 
-Usage: add only Cekirdekler.dll and system.threading.dll as references to your C# projects. Other files needs to exist in same folder with Cekirdekler.dll.
+<b>Usage: add only Cekirdekler.dll and system.threading.dll as references to your C# projects. Other files needs to exist in same folder with Cekirdekler.dll or the executable of main project.</b>
+
 
 This project is being enhanced using ZenHub: <a href="https://zenhub.com"><img src="https://raw.githubusercontent.com/ZenHubIO/support/master/zenhub-badge.png"></a>
 
@@ -48,5 +54,5 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
                     }
                 ");
 
-            Cekirdekler.ClArray<byte> array = new Cekirdekler.ClArray<byte>(1000);
+            Cekirdekler.ClArrays.ClArray<byte> array = new Cekirdekler.ClArrays.ClArray<byte>(1000);
             array.compute(cr, 1, "hello", 1000, 100); 
