@@ -482,7 +482,12 @@ namespace Cekirdekler
                     globalRange, computeId, ofsetGlobalRange,
                     pipeline, pipelineBlobs, pipelineType, localRange);
                 if (cruncher.performanceFeed)
-                    cruncher.numberCruncher.performanceReport(computeId);
+                {
+                    if ((cruncher.numberCruncher != null))
+                        cruncher.numberCruncher.performanceReport(computeId);
+                    else
+                        Console.WriteLine("Error: Number cruncher core object was not allocated properly.");
+                }
             }
         }
 
@@ -1442,7 +1447,12 @@ namespace Cekirdekler
                     globalRange, computeId, ofsetGlobalRange,
                     pipeline, pipelineBlobs, pipelineType, localRange);
                 if (cruncher.performanceFeed)
-                    cruncher.numberCruncher.performanceReport(computeId);
+                {
+                    if ((cruncher.numberCruncher != null))
+                        cruncher.numberCruncher.performanceReport(computeId);
+                    else
+                        Console.WriteLine("Error: Number cruncher core object was not allocated properly.");
+                }
             }
 
 

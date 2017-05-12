@@ -721,6 +721,8 @@ namespace Cekirdekler
         /// <returns></returns>
         public string performanceReport(int computeId = 0)
         {
+            // to do: mscorlib argument out of range exception
+            // 'System.ArgumentOutOfRangeException' in mscorlib.dll
             StringBuilder sb = new StringBuilder();
             if (computeId == 0)
             {
@@ -730,7 +732,22 @@ namespace Cekirdekler
                     Console.WriteLine(sb.ToString());
                     return sb.ToString();
                 }
-                computeId = computeIdBenchmarks.Keys.ElementAt(0);
+
+                if((computeIdBenchmarks.Keys!=null) && (computeIdBenchmarks.Keys.Count>0))
+                    computeId = computeIdBenchmarks.Keys.ElementAt(0);
+                else
+                {
+                    sb.Append("Compute benchmark data is not ready. Load balancer needs multiple iterations to be useful.");
+                    Console.WriteLine(sb.ToString());
+                    return sb.ToString();
+                }
+            }
+
+            if(globalRanges==null)
+            {
+                sb.Append("Error: Global range array is not ready.");
+                Console.WriteLine(sb.ToString());
+                return sb.ToString();
             }
             StringBuilder sbPercent = new StringBuilder("----- Load Distributions: ");
             int totalGlobalRange = 0;
@@ -743,8 +760,11 @@ namespace Cekirdekler
             {
                 sbPercent.AppendFormat(CultureInfo.InvariantCulture," [{0:###.0}%] -", 100.0f*((float)globalRanges[computeId][i] / (float)totalGlobalRange));
             }
+
             int count = 50;
             count -= sbPercent.ToString().Length;
+            if (count < 0)
+                count = 0;
             sbPercent.Append(new string('-', count));
 
             sb.AppendLine();
@@ -763,6 +783,7 @@ namespace Cekirdekler
                 sb.Append( strAdd+spaces+ " ||| time: " + String.Format(CultureInfo.InvariantCulture,"{0:###,###.##}", benchmarks(computeId)[i]) + "ms, workitems: " +String.Format(CultureInfo.InvariantCulture,"{0:#,###,###,###}", globalRanges[computeId][i]));
                 sb.AppendLine();
             }
+
             sb.Append("-----------------------------------------------------------------------------------------------------------------");
             sb.AppendLine();
             Console.WriteLine(sb.ToString());
