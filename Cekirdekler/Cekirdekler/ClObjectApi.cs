@@ -727,9 +727,9 @@ namespace Cekirdekler
             /// <summary>
             /// info about platform details
             /// </summary>
-            public void logInfo()
+            public string logInfo()
             {
-
+                StringBuilder result = new StringBuilder("");
                 Console.WriteLine("--------------");
                 Console.WriteLine("Selected platforms:");
                 string[][] names = platformVendorNames();
@@ -739,7 +739,9 @@ namespace Cekirdekler
                     Console.WriteLine("Platform name: "+ names[i][0]);
                     Console.WriteLine("Vendor name..: "+names[i][1]);
                     Console.WriteLine("Devices......: CPUs=" + platforms[i].numberOfCpus()+"      GPUs="+ platforms[i].numberOfGpus()+"        Accelerators="+ platforms[i].numberOfAccelerators());
+                    result.AppendLine(names[i][0] + "(" + names[i][1] + ")");
                 }
+                return result.ToString();
             }
         }
 
@@ -867,8 +869,9 @@ namespace Cekirdekler
             /// <summary>
             /// device details
             /// </summary>
-            public void logInfo()
+            public string logInfo()
             {
+                StringBuilder result = new StringBuilder("");
 
                 Console.WriteLine("---------");
                 Console.WriteLine("Selected devices:");
@@ -883,8 +886,10 @@ namespace Cekirdekler
                         stringToAddForDeviceName = stringToAddForDeviceName.Remove(70);
                     }
                     Console.WriteLine(stringToAddForDeviceName + (new string(' ',spaces))+"  number of compute units: "+String.Format("{0:###,###}", devices[i].numberOfComputeUnits).PadLeft(3,' ')+"    type:"+((devices[i].type()==ClPlatform.CODE_GPU())?"GPU":((devices[i].type() == ClPlatform.CODE_CPU())?"CPU":"ACCELERATOR"))+"      memory: "+String.Format(CultureInfo.InvariantCulture,"{0:###,###.##}",devices[i].memorySize/(1024.0*1024.0*1024.0))+"GB");
+                    result.AppendLine(devices[i].name().Trim() + "(" + devices[i].vendorName().Trim() + ")");
                 }
                 Console.WriteLine("---------");
+                return result.ToString();
             }
 
             /// <summary>
