@@ -56,7 +56,7 @@ namespace Cekirdekler
         internal Worker[] workers = null;
         ClString[] kernelNames = null;
         private int errorNotification;
-
+        public bool enqueueMode { get; set; }
         /// <summary>
         /// global range values for opencl per device per compute id
         /// </summary>
@@ -1096,7 +1096,7 @@ namespace Cekirdekler
                     else
                     {
 
-                        // DRIVER driver pipeline
+                        // DRIVER driven pipeline
                         // events here for future event-constrained pipeline version
                         if (pipelineBlobs % 4 != 0)
                         {

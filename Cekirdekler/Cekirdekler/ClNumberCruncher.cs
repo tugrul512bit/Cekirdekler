@@ -55,6 +55,54 @@ namespace Cekirdekler
     /// </summary>
     public class ClNumberCruncher
     {
+        /// <summary>
+        /// <para>true: no synchronization between host and device so "used arrays" shouldn't be accessed from host(or other devices). </para>
+        /// <para>false: safe to access arrays from host(or other devices) side</para>
+        /// <para>kernel argument change or any change of order of arrays for a kernel will result in an instant synchronization </para>
+        /// </summary>
+        public bool enqueueMode
+        {
+            get { if (numberCruncher != null) return numberCruncher.enqueueMode; else return false; }
+            set { if (numberCruncher != null) numberCruncher.enqueueMode = value; }
+        }
+
+        /// <summary>
+        /// triggers all command queues synchronizations(so they finish all enqueued commands) and completes host-device synchronizations
+        /// </summary>
+        public void sync()
+        {
+
+        }
+
+        private int repeats = 1;
+        /// <summary>
+        /// <para>number of repeats for a kernel or a list of kernels</para> 
+        /// <para>to decrease unnecessary synchronization points</para>
+        /// <para>to make latency better</para>
+        /// <para>disables host-to-device pipelining(which is enabled with compute() parameters)</para>
+        /// <para> when value > 1, it enables repeatKernelName usage </para>
+        /// </summary>
+        public int repeatCount
+        {
+            get { return repeats; }
+            set { if (value < 1) repeats = 1; else repeats = value; }
+        }
+
+        private string repeatFunction = "";
+
+        /// <summary>
+        /// <para> when repeatCount>1, this kernel is added to the end of kernel list in compute()</para>
+        /// <para> enqueued once at each iteration of repeat </para>
+        /// <para> enqueued with global size = local size so it costs minimal latency to alter a few variables between repeats</para>
+        /// <para> when not "", disables host-to-device pipelining(which is enabled with compute() parameters)</para>
+        /// <para> usaes same parameters with main kernel execution </para>
+        /// </summary>
+        public string repeatKernelName
+        {
+            get { return new StringBuilder(repeatFunction).ToString(); }
+            set { if ((value == null) || (value.Equals(""))) repeatFunction = ""; else repeatFunction = new StringBuilder(value).ToString(); }
+        }
+
         internal Cores numberCruncher {get;set;}
         internal int errorNotification { get; set; }
         internal int numberOfErrorsHappened { get; set; }
@@ -82,6 +130,7 @@ namespace Cekirdekler
                             int numberofCPUCoresToUseAsDeviceFission = -1,
                             int numberOfGPUsToUse = -1, bool stream = true, bool noPipelining=false)
         {
+            repeatCount = 1;
             numberOfErrorsHappened = 0;
             StringBuilder cpuGpu_ = new StringBuilder("");
             if (((int)cpuGpu & ((int)AcceleratorType.CPU)) > 0)
@@ -189,6 +238,7 @@ namespace Cekirdekler
         /// <param name="noPipelining">disables extra command queue allocation, can't enable driver-driven pipelining later. Useful for device to device pipelining with many stages.</param>
         public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,bool noPipelining=false)
         {
+            repeatCount = 1;
             numberOfErrorsHappened = 0;
             List<string> kernelNames_ = new List<string>();
 

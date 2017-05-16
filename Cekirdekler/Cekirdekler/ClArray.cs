@@ -477,7 +477,7 @@ namespace Cekirdekler
                     }
                 }
                 cruncher.numberCruncher.compute(
-                    kernelsTmp, 0, "",
+                    kernelsTmp, cruncher.repeatCount, cruncher.repeatCount > 1 ? cruncher.repeatKernelName : "",
                     arrs_, readWrites_, elemPerWorkItem_,
                     globalRange, computeId, ofsetGlobalRange,
                     pipeline, pipelineBlobs, pipelineType, localRange);
@@ -1442,7 +1442,7 @@ namespace Cekirdekler
                     }
                 }
                 cruncher.numberCruncher.compute(
-                    kernellerTmp, 0, "",
+                    kernellerTmp, cruncher.repeatCount, cruncher.repeatCount>1?cruncher.repeatKernelName:"",
                     arrs_, readWrites_, elemsPerWorkItem_,
                     globalRange, computeId, ofsetGlobalRange,
                     pipeline, pipelineBlobs, pipelineType, localRange);
