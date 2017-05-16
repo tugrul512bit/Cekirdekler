@@ -520,7 +520,8 @@ namespace Cekirdekler
 
 
             // repeating stops pipelining. pipelining only works for divisible kernels
-            if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1 )
+            //if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1 )
+            if (numRepeats > 1 )
                 counterCl++;
 
             int pipelineBlobs = numberOfPipelineStages;
@@ -669,15 +670,37 @@ namespace Cekirdekler
                     {
                         lock (workers[i])
                         {
+                            // to do: move repeats to C++ side to reduce interop overhead
                             if (numRepeats > 0)
-                                for (int j0 = 0; j0 < numRepeats; j0++)
-                                {
-                                    for (int str = 0; str < kernelNames.Length; str++)
-                                        workers[i].compute(kernelNames[str], selectedGlobalReferences[i], selectedGlobalRanges[i], this.localRange, computeId);
+                            {
 
-                                    if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1)
-                                        workers[i].compute(syncKernelName, 0, 64, 64, -1);
+                                if (kernelNames.Length > 1)
+                                {
+                                    for (int j0 = 0; j0 < numRepeats; j0++)
+                                    {
+                                        for (int str = 0; str < kernelNames.Length; str++)
+                                            workers[i].compute(kernelNames[str], selectedGlobalReferences[i], selectedGlobalRanges[i], this.localRange, computeId);
+
+                                        if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1)
+                                            workers[i].compute(syncKernelName, 0, this.localRange, this.localRange, -1);
+                                    }
                                 }
+                                else
+                                {
+                                    if (!(syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1))
+                                    {
+                                        workers[i].computeRepeated(
+                                            kernelNames[0], selectedGlobalReferences[i],
+                                            selectedGlobalRanges[i], this.localRange, computeId, numRepeats);
+                                    }
+                                    else
+                                    {
+                                        workers[i].computeRepeatedWithSyncKernel(
+                                            kernelNames[0], selectedGlobalReferences[i],
+                                            selectedGlobalRanges[i], this.localRange, computeId, numRepeats, syncKernelName);
+                                    }
+                                }
+                            }
                             else
                                 for (int str = 0; str < kernelNames.Length; str++)
                                     workers[i].compute(kernelNames[str], selectedGlobalReferences[i], selectedGlobalRanges[i], this.localRange, computeId);

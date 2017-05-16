@@ -37,6 +37,12 @@ namespace ClObject
         private static extern int compute(IntPtr hCommandQueue, IntPtr hKernel, IntPtr hGlobalRangeReference, IntPtr hGlobalRange, IntPtr hLocalRange);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int computeRepeated(IntPtr hCommandQueue, IntPtr hKernel, IntPtr hGlobalRangeReference, IntPtr hGlobalRange, IntPtr hLocalRange, int repeats);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int computeRepeatedWithSyncKernel(IntPtr hCommandQueue, IntPtr hKernel, IntPtr hGlobalRangeReference, IntPtr hGlobalRange, IntPtr hLocalRange, int repeats, IntPtr hSyncKernel, IntPtr hZeroRange);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern int computeEvent(IntPtr hCommandQueue, IntPtr hKernel, IntPtr hGlobalRangeReference, IntPtr hGlobalRange, IntPtr hLocalRange, IntPtr hEventArr, IntPtr hEvt);
 
 
@@ -750,7 +756,7 @@ namespace ClObject
         }
 
         /// <summary>
-        /// compute a kernel
+        /// compute a kernel without events
         /// </summary>
         /// <param name="kernelName"></param>
         /// <param name="reference"></param>
@@ -761,6 +767,41 @@ namespace ClObject
         {
             {
                 int err = compute(commandQueue.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h());
+            }
+        }
+
+        /// <summary>
+        /// compute a kernel without events
+        /// </summary>
+        /// <param name="kernelName"></param>
+        /// <param name="reference"></param>
+        /// <param name="globalRange"></param>
+        /// <param name="localRange"></param>
+        /// <param name="computeId"></param>
+        /// <param name="repeats"></param>
+        public void computeRepeated(string kernelName, int reference, int globalRange, int localRange, int computeId,int repeats)
+        {
+            {
+                int err = computeRepeated(commandQueue.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h(),repeats);
+            }
+        }
+
+        /// <summary>
+        /// compute a kernel without events
+        /// </summary>
+        /// <param name="kernelName"></param>
+        /// <param name="reference"></param>
+        /// <param name="globalRange"></param>
+        /// <param name="localRange"></param>
+        /// <param name="computeId"></param>
+        /// <param name="repeats"></param>
+        public void computeRepeatedWithSyncKernel(string kernelName, int reference, int globalRange, int localRange, int computeId, int repeats,string syncKernelName)
+        {
+            {
+                int err = computeRepeatedWithSyncKernel(commandQueue.h(), kernels[kernelName].h(), 
+                    this.range(reference).h(), this.range(globalRange).h(), 
+                    this.range(localRange).h(), repeats,
+                    kernels[syncKernelName].h(), this.range(0).h());
             }
         }
 
