@@ -56,7 +56,44 @@ namespace Cekirdekler
         internal Worker[] workers = null;
         ClString[] kernelNames = null;
         private int errorNotification;
-        public bool enqueueMode { get; set; }
+
+        private bool enqueueModePrivate = false;
+
+        /// <summary>
+        /// <para>only for single gpu (or device to device pipeline stages) </para>
+        /// <para>not usable with host-device pipeline</para>
+        /// <para>kernel-array matrix must not change during in enqueue mode(setting kernel arguments are not "enqueue" command)</para>
+        /// <para>arrays from host must not change during enqueue mode</para>
+        /// <para>true=disables commandQueue synchronization</para>
+        /// <para>false=enables commandQueue synchronization again and setting to false synchronizes host-device immediately</para>
+        /// </summary>
+        public bool enqueueMode {
+
+            get { return enqueueModePrivate; }
+
+            set {
+                if(value && !enqueueModePrivate)
+                {
+                    // starting a new enqueue mode and its benchmarking
+                    for(int i=0;i<workers.Length;i++)
+                        workers[i].startBench();
+                }
+
+                if ((!value) && enqueueModePrivate)
+                {
+                    // ending current enqueue mode and its benchmarking
+                    for (int i = 0; i < workers.Length; i++)
+                        workers[i].endBench(lastUsedComputeId);
+                    
+                }
+
+                enqueueModePrivate = value;
+                if (!value)
+                {
+                    Parallel.For(0, workers.Length, i => { Worker.finish(workers[i].commandQueue.h()); });
+                }
+            }
+        }
         /// <summary>
         /// global range values for opencl per device per compute id
         /// </summary>
@@ -369,8 +406,8 @@ namespace Cekirdekler
         /// <param name="pipelineType">PIPELINE_EVENT(6 queues, read-write-compute separated) or PIPELINE_DRIVER(16 queues, read-compute-write together)</param>
         /// <param name="localRange">local range value (number of workitems per group) for all devices</param>
         public void compute(string[] kernelNames, int numRepeats, string syncKernelName, object[] arrs, string[] readWrite,
-                                int[] elementsPerWorkItem, int globalRange, int computeId,int globalOffset = 0, 
-                                bool pipelineEnabled = false, int numberOfPipelineStages = 4, bool pipelineType = PIPELINE_EVENT,int localRange=256)
+                                int[] elementsPerWorkItem, int globalRange, int computeId, int globalOffset = 0,
+                                bool pipelineEnabled = false, int numberOfPipelineStages = 4, bool pipelineType = PIPELINE_EVENT, int localRange = 256)
         {
             // keep garbage collector out
             if (strongReferencesList == null)
@@ -403,9 +440,9 @@ namespace Cekirdekler
             }
             counterAffinity++;
             this.localRange = localRange;
-            for(int i=0;i<arrs.Length;i++)
+            for (int i = 0; i < arrs.Length; i++)
             {
-                if(arrs[i] is IBufferOptimization)
+                if (arrs[i] is IBufferOptimization)
                 {
                     arrs[i] = ((IBufferOptimization)arrs[i]).array;
                 }
@@ -436,7 +473,7 @@ namespace Cekirdekler
             for (int i = 0; i < arrs.Length; i++)
             {
 
-                if(!Functions.isTypeOfFastArr(arrs[i]))
+                if (!Functions.isTypeOfFastArr(arrs[i]))
                     pinnedArrays.Add(pinArray(arrs[i]));
             }
 
@@ -492,7 +529,7 @@ namespace Cekirdekler
                 }
 
 
-                Functions.loadBalance(benchmarkInitVal,smooth,performanceHistory(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange),this);
+                Functions.loadBalance(benchmarkInitVal, smooth, performanceHistory(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange), this);
             }
             else
             {
@@ -501,14 +538,14 @@ namespace Cekirdekler
                 {
                     b1 &= (selectedGlobalRanges[i] >= (numberOfPipelineStages * this.localRange));
                 }
-                Functions.loadBalance(benchmarks(computeId),smooth, performanceHistory(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange),this);
+                Functions.loadBalance(benchmarks(computeId), smooth, performanceHistory(computeId), globalRange, selectedGlobalRanges, ((b1 & pipelineEnabled & (globalRange >= (numberOfPipelineStages * this.localRange))) ? numberOfPipelineStages * this.localRange : this.localRange), this);
             }
 
             int totalGlobalRanges = 0;
             for (int i = 0; i < workers.Length; i++)
             {
                 workers[i].benchmark0(computeId);
-                selectedGlobalReferences[i] = totalGlobalRanges+ globalOffset;
+                selectedGlobalReferences[i] = totalGlobalRanges + globalOffset;
                 totalGlobalRanges += selectedGlobalRanges[i];
             }
             object lockCl = new object();
@@ -521,7 +558,7 @@ namespace Cekirdekler
 
             // repeating stops pipelining. pipelining only works for divisible kernels
             //if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1 )
-            if (numRepeats > 1 )
+            if (numRepeats > 1)
                 counterCl++;
 
             int pipelineBlobs = numberOfPipelineStages;
@@ -533,7 +570,7 @@ namespace Cekirdekler
             // all to-be-copied arrays must be exactly divisible by pipelineBlobs*localRange
             // example: if there are 64 blobs and if local range is 64, 
             //          then any device must have multiple of 4096 workitems so they can pipeline
-            
+
             // no pipelining = best load balance
             // less pipelining = fine grained load balance  (such as only 4-8 blobs)
             // more pipelining = better latency hiding (such as 32-128 blobs)
@@ -617,7 +654,7 @@ namespace Cekirdekler
                                     workers[i].compute(kernelNames[str], selectedGlobalReferences[i], selectedGlobalRanges[i], this.localRange, computeId);
 
                                 if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1)
-                                    workers[i].compute(syncKernelName, 0, 64, 64, -1);
+                                    workers[i].compute(syncKernelName, 0, this.localRange, this.localRange, -1);
                             }
                         else
                             for (int str = 1; str < kernelNames.Length - 1; str++)
@@ -638,37 +675,120 @@ namespace Cekirdekler
             }
             else
             {
-                // no stream:
+                // no stream: yes stream
                 // no pipeline, simple kernel execution as read -> compute -> write 
 
                 // for each device, read all data
-                Parallel.For(0, workers.Length, i =>
+                if (workers.Length > 1)
                 {
-                    if (selectedGlobalRanges[i] > 0)
+                    Parallel.For(0, workers.Length, i =>
+                    {
+                        if (selectedGlobalRanges[i] > 0)
+                        {
+                            lock (workers[i])
+                            {
+                                // set argument is no an enqueue so need to be taken care of first 
+                                for (int str = 0; str < kernelNames.Length; str++)
+                                    workers[i].kernelArgument(kernelNames[str], arrs, elementsPerWorkItem);
+                                if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1 /*1di 0 yapıldı*/)
+                                    workers[i].kernelArgument(syncKernelName, arrs, elementsPerWorkItem);
+
+                                workers[i].startBench();
+
+                                workers[i].writeToBuffer(arrs, selectedGlobalReferences[i], selectedGlobalRanges[i], computeId, readWrite, elementsPerWorkItem, enqueueMode);
+                            }
+                        }
+                    });
+
+                    // sync
+                    // now all devices have up-to-date data
+                    // run all devices(exeute kernel)  
+                    Parallel.For(0, workers.Length, i =>
+                    {
+                        if (selectedGlobalRanges[i] > 0)
+                        {
+                            lock (workers[i])
+                            {
+                                // to do: move repeats to C++ side to reduce interop overhead
+                                if (numRepeats > 0)
+                                {
+
+                                    if (kernelNames.Length > 1)
+                                    {
+                                        for (int j0 = 0; j0 < numRepeats; j0++)
+                                        {
+                                            for (int str = 0; str < kernelNames.Length; str++)
+                                                workers[i].compute(kernelNames[str], selectedGlobalReferences[i], selectedGlobalRanges[i], this.localRange, computeId, enqueueMode);
+
+                                            if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1)
+                                                workers[i].compute(syncKernelName, 0, this.localRange, this.localRange, -1, enqueueMode);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (!(syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1))
+                                        {
+                                            workers[i].computeRepeated(
+                                                kernelNames[0], selectedGlobalReferences[i],
+                                                selectedGlobalRanges[i], this.localRange, computeId, numRepeats, enqueueMode);
+                                        }
+                                        else
+                                        {
+                                            workers[i].computeRepeatedWithSyncKernel(
+                                                kernelNames[0], selectedGlobalReferences[i],
+                                                selectedGlobalRanges[i], this.localRange, computeId, numRepeats, syncKernelName, enqueueMode);
+                                        }
+                                    }
+                                }
+                                else
+                                    for (int str = 0; str < kernelNames.Length; str++)
+                                        workers[i].compute(kernelNames[str], selectedGlobalReferences[i], selectedGlobalRanges[i], this.localRange, computeId, enqueueMode);
+                            }
+                        }
+                    });
+
+                    // sync
+
+                    // write all device results to arrays
+                    Parallel.For(0, workers.Length, i =>
                     {
                         lock (workers[i])
                         {
+                            if (selectedGlobalRanges[i] > 0)
+                            {
+                                workers[i].readFromBuffer(arrs, selectedGlobalReferences[i], selectedGlobalRanges[i], computeId, readWrite, elementsPerWorkItem, enqueueMode);
+                                workers[i].endBench(computeId);
+                            }
+                        }
+                    });
+                }
+                else
+                {
+                    // no extra latency from parallel.for
+
+                    if (selectedGlobalRanges[0] > 0)
+                    {
+                        lock (workers[0])
+                        {
                             // set argument is no an enqueue so need to be taken care of first 
                             for (int str = 0; str < kernelNames.Length; str++)
-                                workers[i].kernelArgument(kernelNames[str], arrs, elementsPerWorkItem);
+                                workers[0].kernelArgument(kernelNames[str], arrs, elementsPerWorkItem);
                             if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1 /*1di 0 yapıldı*/)
-                                workers[i].kernelArgument(syncKernelName, arrs, elementsPerWorkItem);
+                                workers[0].kernelArgument(syncKernelName, arrs, elementsPerWorkItem);
 
-                            workers[i].startBench();
+                            if (!enqueueMode)
+                                workers[0].startBench();
 
-                            workers[i].writeToBuffer(arrs, selectedGlobalReferences[i], selectedGlobalRanges[i], computeId, readWrite, elementsPerWorkItem);
+                            workers[0].writeToBuffer(arrs, selectedGlobalReferences[0], selectedGlobalRanges[0], computeId, readWrite, elementsPerWorkItem, enqueueMode);
                         }
                     }
-                });
 
-                // sync
-                // now all devices have up-to-date data
-                // run all devices(exeute kernel)  
-                Parallel.For(0, workers.Length, i =>
-                {
-                    if (selectedGlobalRanges[i] > 0)
+                    // sync
+                    // now all devices have up-to-date data
+                    // run all devices(exeute kernel)  
+                    if (selectedGlobalRanges[0] > 0)
                     {
-                        lock (workers[i])
+                        lock (workers[0])
                         {
                             // to do: move repeats to C++ side to reduce interop overhead
                             if (numRepeats > 0)
@@ -679,50 +799,48 @@ namespace Cekirdekler
                                     for (int j0 = 0; j0 < numRepeats; j0++)
                                     {
                                         for (int str = 0; str < kernelNames.Length; str++)
-                                            workers[i].compute(kernelNames[str], selectedGlobalReferences[i], selectedGlobalRanges[i], this.localRange, computeId);
+                                            workers[0].compute(kernelNames[str], selectedGlobalReferences[0], selectedGlobalRanges[0], this.localRange, computeId, enqueueMode);
 
                                         if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1)
-                                            workers[i].compute(syncKernelName, 0, this.localRange, this.localRange, -1);
+                                            workers[0].compute(syncKernelName, 0, this.localRange, this.localRange, -1, enqueueMode);
                                     }
                                 }
                                 else
                                 {
                                     if (!(syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1))
                                     {
-                                        workers[i].computeRepeated(
-                                            kernelNames[0], selectedGlobalReferences[i],
-                                            selectedGlobalRanges[i], this.localRange, computeId, numRepeats);
+                                        workers[0].computeRepeated(
+                                            kernelNames[0], selectedGlobalReferences[0],
+                                            selectedGlobalRanges[0], this.localRange, computeId, numRepeats, enqueueMode);
                                     }
                                     else
                                     {
-                                        workers[i].computeRepeatedWithSyncKernel(
-                                            kernelNames[0], selectedGlobalReferences[i],
-                                            selectedGlobalRanges[i], this.localRange, computeId, numRepeats, syncKernelName);
+                                        workers[0].computeRepeatedWithSyncKernel(
+                                            kernelNames[0], selectedGlobalReferences[0],
+                                            selectedGlobalRanges[0], this.localRange, computeId, numRepeats, syncKernelName, enqueueMode);
                                     }
                                 }
                             }
                             else
                                 for (int str = 0; str < kernelNames.Length; str++)
-                                    workers[i].compute(kernelNames[str], selectedGlobalReferences[i], selectedGlobalRanges[i], this.localRange, computeId);
+                                    workers[0].compute(kernelNames[str], selectedGlobalReferences[0], selectedGlobalRanges[0], this.localRange, computeId, enqueueMode);
                         }
                     }
-                });
 
-                // sync
+                    // sync
 
-                // write all device results to arrays
-                Parallel.For(0, workers.Length, i =>
-                {
-                    lock (workers[i])
+                    // write all device results to arrays
+                    lock (workers[0])
                     {
-                        if (selectedGlobalRanges[i] > 0)
+                        if (selectedGlobalRanges[0] > 0)
                         {
-                            workers[i].readFromBuffer(arrs, selectedGlobalReferences[i] , selectedGlobalRanges[i], computeId, readWrite, elementsPerWorkItem);
-                            workers[i].endBench(computeId);
+                            workers[0].readFromBuffer(arrs, selectedGlobalReferences[0], selectedGlobalRanges[0], computeId, readWrite, elementsPerWorkItem, enqueueMode);
+                            if (!enqueueMode)
+                                workers[0].endBench(computeId);
+
                         }
                     }
-                });
-
+                }
             }
 
 
@@ -734,8 +852,11 @@ namespace Cekirdekler
                     unpinArray(item);
                 }
             }
+            lastUsedComputeId = computeId;
 
         }
+
+        internal int lastUsedComputeId = 0;
 
         /// <summary>
         /// outputs to console: execution times per device and devices' target memory types(dedicated or RAM)

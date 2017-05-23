@@ -187,6 +187,7 @@ namespace Cekirdekler
             /// </summary>
             public ClPipelineStage(bool debugLog=false)
             {
+                enqueueMode = false;
                 initializerKernelNames = null;
                 debug = debugLog;
                 initComplete = false;
@@ -202,6 +203,10 @@ namespace Cekirdekler
             internal Stopwatch timer { get; set; }
             internal double elapsedTime { get; set; }
 
+            /// <summary>
+            /// enables enqueued execution of all kernels given as a list, false by default(not enabled)
+            /// </summary>
+            public bool enqueueMode { get; set; }
             // switch inputs(concurrently all stages) then compute(concurrently all stages, if they received input)
             /// <summary>
             /// runs kernels attached to this stage consecutively (one after another)
@@ -282,17 +287,17 @@ namespace Cekirdekler
                 ClParameterGroup bufferParameters = null;
                 ClPipelineStageBuffer ib = null;
                 int inputStart = 0, hiddenStart = 0, outputStart = 0;
-                if ((inputBuffers!=null) && (inputBuffers.Length > 0))
+                if ((inputBuffers != null) && (inputBuffers.Length > 0))
                 {
                     ib = inputBuffers[0];
                     inputStart = 1;
                 }
-                else if ((hiddenBuffers!=null)&&(hiddenBuffers.Length > 0))
+                else if ((hiddenBuffers != null) && (hiddenBuffers.Length > 0))
                 {
                     ib = hiddenBuffers[0];
                     hiddenStart = 1;
                 }
-                else if ((outputBuffers!=null)&&(outputBuffers.Length > 0))
+                else if ((outputBuffers != null) && (outputBuffers.Length > 0))
                 {
                     ib = outputBuffers[0];
                     outputStart = 1;
@@ -372,16 +377,155 @@ namespace Cekirdekler
                 // running kernel
                 if (!initializerKernels)
                 {
+                    if (enqueueMode)
+                        if (hiddenBuffers != null)
+                        {
+                            // hidden buffers don't write/read unless its multi gpu
+                            // todo: multi-gpu stage buffers will sync
+                            for (int i = 0; i < hiddenBuffers.Length; i++)
+                            {
+                                hiddenBuffers[i].read = false;
+                                hiddenBuffers[i].partialRead = false;
+                                hiddenBuffers[i].write = false;
+
+                                // to do: test, delete
+                                var rd = bufferParameters.reads.First;
+                                var wr = bufferParameters.writes.First;
+                                var rp = bufferParameters.partialReads.First;
+                                var arrs = bufferParameters.arrays.First;
+                                for (int k = 0; k < bufferParameters.reads.Count; k++)
+                                {
+                                    if ((arrs.Value == hiddenBuffers[i].buf) || (arrs.Value == hiddenBuffers[i].bufDuplicate))
+                                    {
+                                        rd.Value = true; wr.Value = false; rp.Value = false;
+                                    }
+                                    rd = rd.Next; wr = wr.Next; arrs = arrs.Next; rp = rp.Next;
+                                }
+                            }
+
+                        }
+
                     // normal kernel execution
                     if (kernelNamesToRun != null)
                     {
+                        if (enqueueMode)
+                            numberCruncher.enqueueMode = true;
                         for (int i = 0; i < kernelNamesToRun.Length; i++)
                         {
+                            if (enqueueMode)
+                            {
+                                if (i == 0)
+                                {
+                                    if (inputBuffers != null)
+                                    {
+                                        for (int j = 0; j < inputBuffers.Length; j++)
+                                        {
+                                            inputBuffers[j].write = false;
+                                            inputBuffers[j].partialRead = false;
+                                            inputBuffers[j].read = true;
+
+                                            // to do: test, delete
+                                            var rd = bufferParameters.reads.First;
+                                            var wr = bufferParameters.writes.First;
+                                            var rp = bufferParameters.partialReads.First;
+                                            var arrs = bufferParameters.arrays.First;
+                                            for (int k = 0; k < bufferParameters.reads.Count; k++)
+                                            {
+                                                if ((arrs.Value == inputBuffers[j].buf) || (arrs.Value == inputBuffers[j].bufDuplicate))
+                                                {
+                                                    rd.Value = true; wr.Value = false;rp.Value = false;
+                                                }
+                                                rd = rd.Next; wr = wr.Next; arrs = arrs.Next; rp = rp.Next;
+                                            }
+                                        }
+                                    }
+
+                                    if (outputBuffers != null)
+                                    {
+                                        for (int j = 0; j < outputBuffers.Length; j++)
+                                        {
+                                            outputBuffers[j].write = false;
+                                            outputBuffers[j].read = false;
+                                            outputBuffers[j].partialRead = false;
+
+                                            // to do: test, delete
+                                            var rd = bufferParameters.reads.First;
+                                            var wr = bufferParameters.writes.First;
+                                            var rp = bufferParameters.partialReads.First;
+                                            var arrs = bufferParameters.arrays.First;
+                                            for (int k = 0; k < bufferParameters.reads.Count; k++)
+                                            {
+                                                if ((arrs.Value == outputBuffers[j].buf) || (arrs.Value == outputBuffers[j].bufDuplicate))
+                                                {
+                                                    rd.Value = false; wr.Value = false; rp.Value = false;
+                                                }
+                                                rd = rd.Next; wr = wr.Next; arrs = arrs.Next; rp = rp.Next;
+                                            }
+                                        }
+                                    }
+                                }
+                                else if (i == 1)
+                                {
+                                    if (inputBuffers != null)
+                                    {
+                                        for (int j = 0; j < inputBuffers.Length; j++)
+                                        {
+                                            inputBuffers[j].write = false;
+                                            inputBuffers[j].partialRead = false;
+                                            inputBuffers[j].read = false;
+
+                                            // to do: test, delete
+                                            var rd = bufferParameters.reads.First;
+                                            var wr = bufferParameters.writes.First;
+                                            var rp = bufferParameters.partialReads.First;
+                                            var arrs = bufferParameters.arrays.First;
+                                            for (int k = 0; k < bufferParameters.reads.Count; k++)
+                                            {
+                                                if ((arrs.Value == inputBuffers[j].buf) || (arrs.Value == inputBuffers[j].bufDuplicate))
+                                                {
+                                                    rd.Value = false; wr.Value = false; rp.Value = false;
+                                                }
+                                                rd = rd.Next; wr = wr.Next; arrs = arrs.Next; rp = rp.Next;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (i == (kernelNamesToRun.Length - 1))
+                                {
+                                    if (outputBuffers != null)
+                                    {
+                                        for (int j = 0; j < outputBuffers.Length; j++)
+                                        {
+                                            outputBuffers[j].write = true;
+                                            outputBuffers[j].read = false;
+                                            outputBuffers[j].partialRead = false;
+
+                                            // to do: test, delete
+                                            var rd = bufferParameters.reads.First;
+                                            var wr = bufferParameters.writes.First;
+                                            var rp = bufferParameters.partialReads.First;
+                                            var arrs = bufferParameters.arrays.First;
+                                            for (int k = 0; k < bufferParameters.reads.Count; k++)
+                                            {
+                                                if ((arrs.Value == outputBuffers[j].buf) || (arrs.Value == outputBuffers[j].bufDuplicate))
+                                                {
+                                                    rd.Value = true; wr.Value = true; rp.Value = false;
+                                                }
+                                                rd = rd.Next; wr = wr.Next; arrs = arrs.Next; rp = rp.Next;
+                                            }
+                                        }
+
+                                    }
+                                }
+                            }
+
                             if (debug)
                             {
                                 Console.WriteLine("running kernel: " + i);
                                 Console.WriteLine("more than one parameter: " + moreThanOneParameter);
                             }
+
 
 
                             // normal run
@@ -404,6 +548,8 @@ namespace Cekirdekler
                             if (debug)
                                 Console.WriteLine("kernel complete: " + i);
                         }
+                        if (enqueueMode)
+                            numberCruncher.enqueueMode = false;
                     }
                     else
                     {

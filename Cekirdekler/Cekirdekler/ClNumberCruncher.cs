@@ -112,6 +112,14 @@ namespace Cekirdekler
         public bool performanceFeed { get; set; }
 
         /// <summary>
+        /// outputs last execution performance
+        /// </summary>
+        public void lastComputePerformanceReport()
+        {
+            numberCruncher.performanceReport(numberCruncher.lastUsedComputeId);
+        }
+
+        /// <summary>
         /// to ease balancing against performance spikes, interrupts, hiccups
         /// </summary>
         public bool smoothLoadBalancer { get { return numberCruncher.smoothLoadBalancer; } set { numberCruncher.smoothLoadBalancer = value; } }

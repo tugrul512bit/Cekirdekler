@@ -50,7 +50,7 @@ namespace ClObject
         private static extern void setKernelArgument(IntPtr hKernel, IntPtr hBuffer, int index);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void finish(IntPtr hCommandQueue);
+        internal static extern void finish(IntPtr hCommandQueue);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern void flush(IntPtr hCommandQueue);
@@ -606,7 +606,8 @@ namespace ClObject
         /// <param name="computeId">compute id of the writing</param>
         /// <param name="readWrite">"read"=read all array, "partial read"=read device share only, "write"=write partial(devie share) kernel results</param>
         /// <param name="elementsPerWorkItem">elements per workitem. example: streaming float4*2 means size=4</param>
-        public void writeToBuffer(object[] arrays, int reference, int range, int computeId, string[] readWrite, int[] elementsPerWorkItem)
+        /// <param name="enqueueMode">if true, no synchronization</param>
+        public void writeToBuffer(object[] arrays, int reference, int range, int computeId, string[] readWrite, int[] elementsPerWorkItem, bool enqueueMode=false)
         {
             {
                 arrsTmp = arrays;
@@ -621,7 +622,8 @@ namespace ClObject
                         buffer(arrays[i]).write(commandQueue, arrays[i]);
 
                 }
-                finish(commandQueue.h());
+                if(!enqueueMode)
+                    finish(commandQueue.h());
             }
         }
 
@@ -763,7 +765,8 @@ namespace ClObject
         /// <param name="globalRange"></param>
         /// <param name="localRange"></param>
         /// <param name="computeId"></param>
-        public void compute(string kernelName, int reference, int globalRange, int localRange, int computeId)
+        /// <param name="enqueueMode"></param>
+        public void compute(string kernelName, int reference, int globalRange, int localRange, int computeId,bool enqueueMode=false)
         {
             {
                 int err = compute(commandQueue.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h());
@@ -779,7 +782,8 @@ namespace ClObject
         /// <param name="localRange"></param>
         /// <param name="computeId"></param>
         /// <param name="repeats"></param>
-        public void computeRepeated(string kernelName, int reference, int globalRange, int localRange, int computeId,int repeats)
+        /// <param name="enqueueMode"></param>
+        public void computeRepeated(string kernelName, int reference, int globalRange, int localRange, int computeId,int repeats,bool enqueueMode=false)
         {
             {
                 int err = computeRepeated(commandQueue.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h(),repeats);
@@ -795,7 +799,9 @@ namespace ClObject
         /// <param name="localRange"></param>
         /// <param name="computeId"></param>
         /// <param name="repeats"></param>
-        public void computeRepeatedWithSyncKernel(string kernelName, int reference, int globalRange, int localRange, int computeId, int repeats,string syncKernelName)
+        /// <param name="syncKernelName"></param>
+        /// <param name="enqueueMode"></param>
+        public void computeRepeatedWithSyncKernel(string kernelName, int reference, int globalRange, int localRange, int computeId, int repeats, string syncKernelName, bool enqueueMode = false)
         {
             {
                 int err = computeRepeatedWithSyncKernel(commandQueue.h(), kernels[kernelName].h(), 
@@ -1064,14 +1070,17 @@ namespace ClObject
         /// <param name="computeId"></param>
         /// <param name="readWrite"></param>
         /// <param name="elementsPerWorkItem"></param>
-        public void readFromBuffer(object[] arrs, int reference, int globalRange, int computeId, string[] readWrite, int[] elementsPerWorkItem)
+        /// <param name="enqueueMode"></param>
+        public void readFromBuffer(object[] arrs, int reference, int globalRange, int computeId, string[] readWrite, int[] elementsPerWorkItem,bool enqueueMode=false)
         {
 
             {
                 for (int i = 0; i < arrs.Length; i++)
                     if (readWrite[i].Contains("write"))
                         buffer(arrs[i]).read(commandQueue, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
-                finish(commandQueue.h());
+
+                if(!enqueueMode)
+                    finish(commandQueue.h());
             }
         }
 
