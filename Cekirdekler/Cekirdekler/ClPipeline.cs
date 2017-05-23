@@ -388,7 +388,6 @@ namespace Cekirdekler
                                 hiddenBuffers[i].partialRead = false;
                                 hiddenBuffers[i].write = false;
 
-                                // to do: test, delete
                                 var rd = bufferParameters.reads.First;
                                 var wr = bufferParameters.writes.First;
                                 var rp = bufferParameters.partialReads.First;
@@ -397,7 +396,7 @@ namespace Cekirdekler
                                 {
                                     if ((arrs.Value == hiddenBuffers[i].buf) || (arrs.Value == hiddenBuffers[i].bufDuplicate))
                                     {
-                                        rd.Value = true; wr.Value = false; rp.Value = false;
+                                        rd.Value = false; wr.Value = false; rp.Value = false;
                                     }
                                     rd = rd.Next; wr = wr.Next; arrs = arrs.Next; rp = rp.Next;
                                 }
@@ -424,7 +423,6 @@ namespace Cekirdekler
                                             inputBuffers[j].partialRead = false;
                                             inputBuffers[j].read = true;
 
-                                            // to do: test, delete
                                             var rd = bufferParameters.reads.First;
                                             var wr = bufferParameters.writes.First;
                                             var rp = bufferParameters.partialReads.First;
@@ -448,7 +446,6 @@ namespace Cekirdekler
                                             outputBuffers[j].read = false;
                                             outputBuffers[j].partialRead = false;
 
-                                            // to do: test, delete
                                             var rd = bufferParameters.reads.First;
                                             var wr = bufferParameters.writes.First;
                                             var rp = bufferParameters.partialReads.First;
@@ -474,7 +471,6 @@ namespace Cekirdekler
                                             inputBuffers[j].partialRead = false;
                                             inputBuffers[j].read = false;
 
-                                            // to do: test, delete
                                             var rd = bufferParameters.reads.First;
                                             var wr = bufferParameters.writes.First;
                                             var rp = bufferParameters.partialReads.First;
@@ -501,7 +497,6 @@ namespace Cekirdekler
                                             outputBuffers[j].read = false;
                                             outputBuffers[j].partialRead = false;
 
-                                            // to do: test, delete
                                             var rd = bufferParameters.reads.First;
                                             var wr = bufferParameters.writes.First;
                                             var rp = bufferParameters.partialReads.First;
