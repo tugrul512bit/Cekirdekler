@@ -31,7 +31,7 @@ namespace ClObject
     {
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr createBuffer(IntPtr hContext, int numberOfElements, 
-            int clDeviceType,int isCSharpArray,
+            int clArrayType,int isCSharpArray,
             IntPtr arrayPointer, bool GDDR_BUFFER);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
@@ -66,12 +66,21 @@ namespace ClObject
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr readFromBufferRanged(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, float[] obj);
 
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        private static extern IntPtr readFromBufferRanged(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, char[] obj);
+
+
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr readFromBufferRanged(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, IntPtr hAArr);
 
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr readFromBufferRangedEvent(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, float[] obj, IntPtr hEventArr, IntPtr hEvt);
+
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        private static extern IntPtr readFromBufferRangedEvent(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, char[] obj, IntPtr hEventArr, IntPtr hEvt);
+
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr readFromBufferRangedEvent(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, IntPtr hAArr, IntPtr hEventArr, IntPtr hEvt);
@@ -80,12 +89,19 @@ namespace ClObject
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr writeToBufferRanged(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, float[] obj);
 
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        private static extern IntPtr writeToBufferRanged(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, char[] obj);
+
+
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr writeToBufferRanged(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, IntPtr hAArr);
 
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr writeToBufferRangedEvent(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, float[] obj, IntPtr hEventArr, IntPtr hEvt);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        private static extern IntPtr writeToBufferRangedEvent(IntPtr hCommandQueue, IntPtr hBuffer, int reference, int range, char[] obj, IntPtr hEventArr, IntPtr hEvt);
 
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
@@ -209,12 +225,18 @@ namespace ClObject
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr writeToBuffer(IntPtr hCommandQueue, IntPtr hBuffer, byte[] obj);
 
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        private static extern IntPtr writeToBuffer(IntPtr hCommandQueue, IntPtr hBuffer, char[] obj);
+
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr writeToBufferEvent(IntPtr hCommandQueue, IntPtr hBuffer, byte[] obj, IntPtr hEventArr, IntPtr hEvt);
 
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr readFromBuffer(IntPtr hCommandQueue, IntPtr hBuffer, byte[] obj);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        private static extern IntPtr readFromBuffer(IntPtr hCommandQueue, IntPtr hBuffer, char[] obj);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr readFromBufferEvent(IntPtr hCommandQueue, IntPtr hBuffer, byte[] obj, IntPtr hEventArr, IntPtr hEvt);
@@ -303,9 +325,37 @@ namespace ClObject
                 writeToBuffer(cq.h(), hBuffer, (long[])arr);
             else if (arr.GetType() == typeof(byte[]))
                 writeToBuffer(cq.h(), hBuffer, (byte[])arr);
+            else if (arr.GetType() == typeof(char[]))
+                writeToBuffer(cq.h(), hBuffer, (char[])arr);
             else if(Functions.isTypeOfFastArr(arr))
                 writeToBuffer(cq.h(), hBuffer,((IMemoryHandle)arr).ha());
         }
+
+        /// <summary>
+        /// read from buffer to array
+        /// </summary>
+        /// <param name="cq">command queue to enqueue this read command</param>
+        /// <param name="arr">array to write (to read on buffer)</param>
+        public void read(ClCommandQueue cq, object arr)
+        {
+            if (arr.GetType() == typeof(float[]))
+                readFromBuffer(cq.h(), hBuffer, (float[])arr);
+            else if (arr.GetType() == typeof(int[]))
+                readFromBuffer(cq.h(), hBuffer, (int[])arr);
+            else if (arr.GetType() == typeof(uint[]))
+                readFromBuffer(cq.h(), hBuffer, (uint[])arr);
+            else if (arr.GetType() == typeof(double[]))
+                readFromBuffer(cq.h(), hBuffer, (double[])arr);
+            else if (arr.GetType() == typeof(long[]))
+                readFromBuffer(cq.h(), hBuffer, (long[])arr);
+            else if (arr.GetType() == typeof(byte[]))
+                readFromBuffer(cq.h(), hBuffer, (byte[])arr);
+            else if (arr.GetType() == typeof(char[]))
+                readFromBuffer(cq.h(), hBuffer, (char[])arr);
+            else if (Functions.isTypeOfFastArr(arr))
+                readFromBuffer(cq.h(), hBuffer, ((IMemoryHandle)arr).ha());
+        }
+        
 
         /// <summary>
         /// write to buffer from array but with constraints
@@ -328,6 +378,8 @@ namespace ClObject
                 writeToBufferRanged(cq.h(), hBuffer, reference, range, (long[])arr);
             else if (arr.GetType() == typeof(byte[]))
                 writeToBufferRanged(cq.h(), hBuffer, reference, range, (byte[])arr);
+            else if (arr.GetType() == typeof(char[]))
+                writeToBufferRanged(cq.h(), hBuffer, reference, range, (char[])arr);
             else if (Functions.isTypeOfFastArr(arr))
                 writeToBufferRanged(cq.h(), hBuffer, reference, range, ((IMemoryHandle)arr).ha());
 
@@ -356,6 +408,8 @@ namespace ClObject
                 writeToBufferRangedEvent(cq.h(), hBuffer, reference, range, (long[])arr, eArr.h(), e.h());
             else if (arr.GetType() == typeof(byte[]))
                 writeToBufferRangedEvent(cq.h(), hBuffer, reference, range, (byte[])arr, eArr.h(), e.h());
+            else if (arr.GetType() == typeof(char[]))
+                writeToBufferRangedEvent(cq.h(), hBuffer, reference, range, (char[])arr, eArr.h(), e.h());
             else if (Functions.isTypeOfFastArr(arr))
                 writeToBufferRangedEvent(cq.h(), hBuffer, reference, range, ((IMemoryHandle)arr).ha(),eArr.h(),e.h());
 
@@ -382,6 +436,8 @@ namespace ClObject
                 readFromBufferRanged(cq.h(), hBuffer, reference, range, (long[])arr);
             else if (arr.GetType() == typeof(byte[]))
                 readFromBufferRanged(cq.h(), hBuffer, reference, range, (byte[])arr);
+            else if (arr.GetType() == typeof(char[]))
+                readFromBufferRanged(cq.h(), hBuffer, reference, range, (char[])arr);
             else if (Functions.isTypeOfFastArr(arr))
                 readFromBufferRanged(cq.h(), hBuffer, reference, range, ((IMemoryHandle)arr).ha());
         }
@@ -409,6 +465,8 @@ namespace ClObject
                 readFromBufferRangedEvent(cq.h(), hBuffer, reference, range, (long[])arr, eArr.h(), e.h());
             else if (arr.GetType() == typeof(byte[]))
                 readFromBufferRangedEvent(cq.h(), hBuffer, reference, range, (byte[])arr, eArr.h(), e.h());
+            else if (arr.GetType() == typeof(char[]))
+                readFromBufferRangedEvent(cq.h(), hBuffer, reference, range, (char[])arr, eArr.h(), e.h());
             else if (Functions.isTypeOfFastArr(arr))
                 readFromBufferRangedEvent(cq.h(), hBuffer, reference, range, ((IMemoryHandle)arr).ha(),eArr.h(),e.h());
             

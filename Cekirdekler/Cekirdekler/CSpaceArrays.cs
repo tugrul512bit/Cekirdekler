@@ -308,7 +308,7 @@ namespace Cekirdekler
                 else if (typeof(T) == typeof(uint))
                 {
                     arrType = CSpaceArrays.ARR_UINT;
-                    sizeOfEnum = (int)SizeOf.cl_int;
+                    sizeOfEnum = (int)SizeOf.cl_uint;
                 }
                 else if (typeof(T) == typeof(byte))
                 {

@@ -454,7 +454,7 @@ namespace ClObject
                     }
                     else
                     {
-                        ClBuffer buffer = new ClBuffer(context, arrayLength, ClBuffer.SizeOf.cl_int, isGddr);
+                        ClBuffer buffer = new ClBuffer(context, arrayLength, ClBuffer.SizeOf.cl_uint, isGddr);
                         buffers.Add(arr, buffer);
                     }
 
@@ -483,6 +483,20 @@ namespace ClObject
                     else
                     {
                         ClBuffer buffer = new ClBuffer(context, arrayLength, ClBuffer.SizeOf.cl_char, isGddr);
+                        buffers.Add(arr, buffer);
+                    }
+
+                }
+                else if (arr.GetType() == typeof(char[]))
+                {
+                    int arrayLength = ((char[])arr).Length;
+                    if (buffers.ContainsKey(arr))
+                    {
+
+                    }
+                    else
+                    {
+                        ClBuffer buffer = new ClBuffer(context, arrayLength, ClBuffer.SizeOf.cl_half, isGddr);
                         buffers.Add(arr, buffer);
                     }
 
@@ -647,6 +661,28 @@ namespace ClObject
             }
         }
 
+        // TO DO: add "write all" for non-pipelined execution modes too, add "char []" support wherever byte[] exists
+
+        /// <summary>
+        /// non partial reads from buffer (write to array)
+        /// </summary>
+        /// <param name="arrs"></param>
+        /// <param name="readWrite"></param>
+        public void readFromBufferAllData(object[] arrs, string[] readWrite)
+        {
+            {
+                arrsTmp = arrs;
+                for (int i = 0; i < arrs.Length; i++)
+                {
+                    if (readWrite[i].Contains("write") && readWrite[i].Contains("all"))
+                    {
+                        buffer(arrs[i]).write(commandQueue, arrs[i]);
+                    }
+                }
+                finish(commandQueue.h());
+            }
+        }
+        
 
         /// <summary>
         /// write to buffer(read from array) using queueRead queue
@@ -1076,7 +1112,7 @@ namespace ClObject
 
             {
                 for (int i = 0; i < arrs.Length; i++)
-                    if (readWrite[i].Contains("write"))
+                    if (readWrite[i].Contains("write") && !readWrite[i].Contains("all"))
                         buffer(arrs[i]).read(commandQueue, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
 
                 if(!enqueueMode)
@@ -1098,7 +1134,7 @@ namespace ClObject
         {
             {
                 for (int i = 0; i < arrs.Length; i++)
-                    if (readWrite[i].Contains("write"))
+                    if (readWrite[i].Contains("write") && !readWrite[i].Contains("all") )
                         buffer(arrs[i]).read(commandQueueWrite, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
                 //finish(commandQueueYaz.h());
             }
@@ -1221,7 +1257,8 @@ namespace ClObject
                 int ctr01end = -1;
                 for (int i = 0; i < arrs.Length; i++)
                 {
-                    if (readWrite[i].Contains("write"))
+                    // to do: add cancellation of array length check when "all" is selected
+                    if (readWrite[i].Contains("write") && !readWrite[i].Contains("all")) // write all = non partial write
                     {
                         if (ctr01start == -1)
                             ctr01start = i;
@@ -1232,7 +1269,7 @@ namespace ClObject
 
                 for (int i = 0; i < arrs.Length; i++)
                 {
-                    if (readWrite[i].Contains("write"))
+                    if (readWrite[i].Contains("write") && !readWrite[i].Contains("all"))
                     {
                         if (ctr01 == 1)
                         {

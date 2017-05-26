@@ -1089,7 +1089,7 @@ namespace Cekirdekler
 
 
 
-
+                    // to do: writeAll version of this part will be written
                     // read all arrays that are to be read as a whole, not pipelined
                     if (read_write == ONLY_READ || read_write == -1)
                         workers[i].writeToBufferWithoutPartial(arrs, readWrite);
@@ -1729,6 +1729,9 @@ namespace Cekirdekler
 
                     }
 
+                    // read all arrays that are to be read as a whole, not pipelined
+                    if (read_write == ONLY_WRITE || read_write == -1)
+                        workers[i].readFromBufferAllData(arrs, readWrite);
 
                     if (read_write == ONLY_WRITE || read_write == -1)
                     {
