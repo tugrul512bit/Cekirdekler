@@ -79,18 +79,21 @@ namespace Cekirdekler
                         workers[i].startBench();
                 }
 
-                if ((!value) && enqueueModePrivate)
-                {
-                    // ending current enqueue mode and its benchmarking
-                    for (int i = 0; i < workers.Length; i++)
-                        workers[i].endBench(lastUsedComputeId);
-                    
-                }
 
+                bool tmp = false;
+                tmp = enqueueModePrivate;
                 enqueueModePrivate = value;
                 if (!value)
                 {
-                    Parallel.For(0, workers.Length, i => { Worker.finish(workers[i].commandQueue.h()); });
+                    Parallel.For(0, workers.Length, i => {
+                        Worker.finish(workers[i].commandQueue.h());
+                        if ((!value) && tmp)
+                        {
+                            // ending current enqueue mode and its benchmarking
+                                workers[i].endBench(lastUsedComputeId);
+
+                        }
+                    });
                 }
             }
         }
