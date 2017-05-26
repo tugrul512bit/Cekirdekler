@@ -396,7 +396,7 @@ namespace Cekirdekler
         /// <param name="numRepeats">repeats(0=no repeat, 1=once, n=n times) kernels with a sync kernel at the end of each repeat step</param>
         /// <param name="syncKernelName">after n different kernels, a sync kernel is executed if numRepeats>0 </param>
         /// <param name="arrs">C#(float[],int[],...) or C++ arrays(FastArr, ClArray)</param>
-        /// <param name="readWrite">"partial read": each device reads its own territory(possibly pipelined), "read": all devices read all at once,"write": all devices write their own results(possibly pipelined)</param>
+        /// <param name="readWrite">"partial read": each device reads its own territory(possibly pipelined), "read": all devices read all at once,"write": all devices write their own results(possibly pipelined),"write all": only single device writes all arrays at once, without checking size</param>
         /// <param name="elementsPerWorkItem">number of array elements that each workitem alters,reads or writes(if kernel alters randomly,using "partial" (in readWrite) is undefined behaviour)</param>
         /// <param name="globalRange">total workitems to be distributed to all selected devices</param>
         /// <param name="computeId">compute id value, determines that this operation is similar to or different than any other compute(to distribute workitems better iteratively)</param>
@@ -756,7 +756,7 @@ namespace Cekirdekler
                         {
                             if (selectedGlobalRanges[i] > 0)
                             {
-                                workers[i].readFromBuffer(arrs, selectedGlobalReferences[i], selectedGlobalRanges[i], computeId, readWrite, elementsPerWorkItem, enqueueMode);
+                                workers[i].readFromBuffer(arrs, selectedGlobalReferences[i], selectedGlobalRanges[i], computeId, readWrite, elementsPerWorkItem,i,workers.Length, enqueueMode);
                                 workers[i].endBench(computeId);
                             }
                         }
@@ -834,7 +834,7 @@ namespace Cekirdekler
                     {
                         if (selectedGlobalRanges[0] > 0)
                         {
-                            workers[0].readFromBuffer(arrs, selectedGlobalReferences[0], selectedGlobalRanges[0], computeId, readWrite, elementsPerWorkItem, enqueueMode);
+                            workers[0].readFromBuffer(arrs, selectedGlobalReferences[0], selectedGlobalRanges[0], computeId, readWrite, elementsPerWorkItem,0,1, enqueueMode);
                             if (!enqueueMode)
                                 workers[0].endBench(computeId);
 
@@ -1729,9 +1729,10 @@ namespace Cekirdekler
 
                     }
 
+                    // todo: test here. only for single GPUs
                     // read all arrays that are to be read as a whole, not pipelined
                     if (read_write == ONLY_WRITE || read_write == -1)
-                        workers[i].readFromBufferAllData(arrs, readWrite);
+                        workers[i].readFromBufferAllData(arrs, readWrite,i,workers.Length);
 
                     if (read_write == ONLY_WRITE || read_write == -1)
                     {

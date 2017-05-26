@@ -668,13 +668,16 @@ namespace ClObject
         /// </summary>
         /// <param name="arrs"></param>
         /// <param name="readWrite"></param>
-        public void readFromBufferAllData(object[] arrs, string[] readWrite)
+        /// <param name="deviceIndex">only one device writes an array, so multi GPU writes multi arrays alternatingly but concurrently</param>
+        /// <param name="numDevices"></param>
+        public void readFromBufferAllData(object[] arrs, string[] readWrite,int deviceIndex,int numDevices)
         {
             {
                 arrsTmp = arrs;
                 for (int i = 0; i < arrs.Length; i++)
                 {
-                    if (readWrite[i].Contains("write") && readWrite[i].Contains("all"))
+                    // 1st device writes 1st array, 2nd device writes 2nd array to overcome overlapped writes(undefined behavior)
+                    if (readWrite[i].Contains("write") && readWrite[i].Contains("all") && (deviceIndex==(i%numDevices)))
                     {
                         buffer(arrs[i]).write(commandQueue, arrs[i]);
                     }
@@ -1107,14 +1110,22 @@ namespace ClObject
         /// <param name="readWrite"></param>
         /// <param name="elementsPerWorkItem"></param>
         /// <param name="enqueueMode"></param>
-        public void readFromBuffer(object[] arrs, int reference, int globalRange, int computeId, string[] readWrite, int[] elementsPerWorkItem,bool enqueueMode=false)
+        /// <param name="deviceIndex">device 1 writes array 1 as a whole, device 2 writes array 2, ..., this overcomes overlapped writes on same array(undefined behavior)</param>
+        public void readFromBuffer(object[] arrs, int reference, int globalRange, int computeId, string[] readWrite, int[] elementsPerWorkItem, int deviceIndex, int numDevices, bool enqueueMode=false)
         {
 
             {
                 for (int i = 0; i < arrs.Length; i++)
+                {
                     if (readWrite[i].Contains("write") && !readWrite[i].Contains("all"))
+                    {
                         buffer(arrs[i]).read(commandQueue, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
-
+                    }
+                    else if (readWrite[i].Contains("write") && readWrite[i].Contains("all") && (deviceIndex==(i%numDevices)))
+                    {
+                        buffer(arrs[i]).read(commandQueue, arrs[i]);
+                    }
+                }
                 if(!enqueueMode)
                     finish(commandQueue.h());
             }
@@ -1130,12 +1141,21 @@ namespace ClObject
         /// <param name="computeId"></param>
         /// <param name="readWrite"></param>
         /// <param name="elementsPerWorkItem"></param>
-        public void readFromBufferUsingQueueWrite(object[] arrs, int reference, int globalRange, int computeId, string[] readWrite, int[] elementsPerWorkItem)
+        /// <param name="deviceIndex">device 1 writes array 1, device 2 writes array 2 when whole array needs to be written in single command, not partial, so it doesn't do undefined behaviour because of overlapped writes on same array addresses</param>
+        public void readFromBufferUsingQueueWrite(object[] arrs, int reference, int globalRange, int computeId, string[] readWrite, int[] elementsPerWorkItem, int deviceIndex, int numDevices)
         {
             {
                 for (int i = 0; i < arrs.Length; i++)
-                    if (readWrite[i].Contains("write") && !readWrite[i].Contains("all") )
+                {
+                    if (readWrite[i].Contains("write") && !readWrite[i].Contains("all"))
+                    {
                         buffer(arrs[i]).read(commandQueueWrite, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
+                    }
+                    else if (readWrite[i].Contains("write") && readWrite[i].Contains("all") && (deviceIndex==(i%numDevices)))
+                    {
+                        buffer(arrs[i]).read(commandQueueWrite, arrs[i]);
+                    }
+                }
                 //finish(commandQueueYaz.h());
             }
         }
