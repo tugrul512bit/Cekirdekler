@@ -32,7 +32,7 @@ namespace ClObject
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr createBuffer(IntPtr hContext, int numberOfElements, 
             int clArrayType,int isCSharpArray,
-            IntPtr arrayPointer, bool GDDR_BUFFER);
+            IntPtr arrayPointer, bool GDDR_BUFFER,bool readOnly, bool writeOnly);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr writeToBuffer(IntPtr hCommandQueue, IntPtr hBuffer, float[] obj);
@@ -289,12 +289,14 @@ namespace ClObject
         /// <param name="GDDR_BUFFER"></param>
         /// <param name="isCSharpArray_"></param>
         /// <param name="arrPointer"></param>
-        public ClBuffer(ClContext context, int numberOfElements_, SizeOf clType_, bool GDDR_BUFFER, int isCSharpArray_=1, IntPtr arrPointer=new IntPtr())
+        /// <param name="readOnly">always kernel reads, host writes</param>
+        /// <param name="writeOnly">always kernel writes, host reads</param>
+        public ClBuffer(ClContext context, int numberOfElements_, SizeOf clType_, bool GDDR_BUFFER, bool readOnly, bool writeOnly, int isCSharpArray_=1, IntPtr arrPointer=new IntPtr())
         {
             hContext = context.h();
             numberOfElements = numberOfElements_;
             clType = clType_;
-            hBuffer = createBuffer(hContext, numberOfElements, (int)clType, isCSharpArray_, arrPointer,GDDR_BUFFER);
+            hBuffer = createBuffer(hContext, numberOfElements, (int)clType, isCSharpArray_, arrPointer,GDDR_BUFFER,readOnly,writeOnly);
         }
 
         /// <summary>

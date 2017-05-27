@@ -67,6 +67,18 @@ namespace Cekirdekler
             }
 
             /// <summary>
+            /// <para>buffers created in devices will be read by kernel and written by host, always</para>
+            /// <para>prevents usage of write/writeAll/writeOnly, until it is set to false again</para>
+            /// </summary>
+            bool readOnly { get; set; }
+
+            /// <summary>
+            /// <para>buffers created in devices will be written by kernel and read by host, always</para>
+            /// <para>prevents usage of read/partialRead/readOnly, until its set to false again</para>
+            /// </summary>
+            bool writeOnly { get; set; }
+
+            /// <summary>
             /// read whole array before compute
             /// </summary>
             bool read { get; set; }
@@ -152,6 +164,10 @@ namespace Cekirdekler
             // elementsPerWorkItem 
             internal LinkedList<int> arrayElementsPerWorkItem = new LinkedList<int>();
 
+            // read only mode "ro", write only mode "wo"
+            internal LinkedList<bool> readOnlys = new LinkedList<bool>();
+            internal LinkedList<bool> writeOnlys = new LinkedList<bool>();
+
 
             /// <summary>
             /// linked list to array conversion for all arrays
@@ -181,6 +197,8 @@ namespace Cekirdekler
                 LinkedListNode<int> node5 = arrayElementsPerWorkItem.First;
                 LinkedListNode<int> node6 = arrayLengths.First;
                 LinkedListNode<bool> node7 = writeAlls.First;
+                LinkedListNode<bool> node8 = readOnlys.First;
+                LinkedListNode<bool> node9 = writeOnlys.First;
 
                 while (node != null)
                 {
@@ -191,6 +209,8 @@ namespace Cekirdekler
                     gr.arrayElementsPerWorkItem.AddLast(node5.Value);
                     gr.arrayLengths.AddLast(node6.Value);
                     gr.writeAlls.AddLast(node7.Value);
+                    gr.readOnlys.AddLast(node8.Value);
+                    gr.writeOnlys.AddLast(node9.Value);
 
                     node = node.Next;
                     node2 = node2.Next;
@@ -199,6 +219,8 @@ namespace Cekirdekler
                     node5 = node5.Next;
                     node6 = node6.Next;
                     node7 = node7.Next;
+                    node8 = node8.Next;
+                    node9 = node9.Next;
                 }
 
 
@@ -213,6 +235,8 @@ namespace Cekirdekler
                     gr.arrayElementsPerWorkItem.AddLast(1);
                     gr.arrayLengths.AddLast(arrays_[i].Length);
                     gr.writeAlls.AddLast(false);
+                    gr.readOnlys.AddLast(false);
+                    gr.writeOnlys.AddLast(false);
                 }
                 return gr;
             }
@@ -236,6 +260,8 @@ namespace Cekirdekler
                 LinkedListNode<int> node5 = arrayElementsPerWorkItem.First;
                 LinkedListNode<int> node6 = arrayLengths.First;
                 LinkedListNode<bool> node7 = writeAlls.First;
+                LinkedListNode<bool> node8 = readOnlys.First;
+                LinkedListNode<bool> node9 = writeOnlys.First;
 
                 while (node != null)
                 {
@@ -246,6 +272,8 @@ namespace Cekirdekler
                     gr.arrayElementsPerWorkItem.AddLast(node5.Value);
                     gr.arrayLengths.AddLast(node6.Value);
                     gr.writeAlls.AddLast(node7.Value);
+                    gr.readOnlys.AddLast(node8.Value);
+                    gr.writeOnlys.AddLast(node9.Value);
 
                     node = node.Next;
                     node2 = node2.Next;
@@ -254,6 +282,8 @@ namespace Cekirdekler
                     node5 = node5.Next;
                     node6 = node6.Next;
                     node7 = node7.Next;
+                    node8 = node8.Next;
+                    node9 = node9.Next;
                 }
 
 
@@ -268,6 +298,8 @@ namespace Cekirdekler
                     gr.arrayElementsPerWorkItem.AddLast(1);
                     gr.arrayLengths.AddLast(arrays_[i].Length);
                     gr.writeAlls.AddLast(false);
+                    gr.readOnlys.AddLast(false);
+                    gr.writeOnlys.AddLast(false);
 
                 }
                 return gr;
@@ -292,6 +324,8 @@ namespace Cekirdekler
                 LinkedListNode<int> node5 = arrayElementsPerWorkItem.First;
                 LinkedListNode<int> node6 = arrayLengths.First;
                 LinkedListNode<bool> node7 = writeAlls.First;
+                LinkedListNode<bool> node8 = readOnlys.First;
+                LinkedListNode<bool> node9 = writeOnlys.First;
 
                 while (node != null)
                 {
@@ -302,6 +336,8 @@ namespace Cekirdekler
                     gr.arrayElementsPerWorkItem.AddLast(node5.Value);
                     gr.arrayLengths.AddLast(node6.Value);
                     gr.writeAlls.AddLast(node7.Value);
+                    gr.readOnlys.AddLast(node8.Value);
+                    gr.writeOnlys.AddLast(node9.Value);
                     node = node.Next;
                     node2 = node2.Next;
                     node3 = node3.Next;
@@ -309,6 +345,8 @@ namespace Cekirdekler
                     node5 = node5.Next;
                     node6 = node6.Next;
                     node7 = node7.Next;
+                    node8 = node8.Next;
+                    node9 = node9.Next;
                 }
 
 
@@ -321,6 +359,8 @@ namespace Cekirdekler
                     gr.arrayElementsPerWorkItem.AddLast(arrays_[i].numberOfElementsPerWorkItem);
                     gr.arrayLengths.AddLast(arrays_[i].arrayLength);
                     gr.writeAlls.AddLast(arrays_[i].writeAll);
+                    gr.readOnlys.AddLast(arrays_[i].readOnly);
+                    gr.writeOnlys.AddLast(arrays_[i].writeOnly);
                 }
                 return gr;
             }
@@ -345,6 +385,8 @@ namespace Cekirdekler
                 LinkedListNode<int> node05 = arrayElementsPerWorkItem.First;
                 LinkedListNode<int> node06 = arrayLengths.First;
                 LinkedListNode<bool> node07 = writeAlls.First;
+                LinkedListNode<bool> node08 = readOnlys.First;
+                LinkedListNode<bool> node09 = writeOnlys.First;
 
                 while (node0 != null)
                 {
@@ -355,6 +397,8 @@ namespace Cekirdekler
                     gr.arrayElementsPerWorkItem.AddLast(node05.Value);
                     gr.arrayLengths.AddLast(node06.Value);
                     gr.writeAlls.AddLast(node07.Value);
+                    gr.readOnlys.AddLast(node08.Value);
+                    gr.writeOnlys.AddLast(node09.Value);
                     node0 = node0.Next;
                     node02 = node02.Next;
                     node03 = node03.Next;
@@ -362,6 +406,8 @@ namespace Cekirdekler
                     node05 = node05.Next;
                     node06 = node06.Next;
                     node07 = node07.Next;
+                    node08 = node08.Next;
+                    node09 = node09.Next;
                 }
 
 
@@ -374,6 +420,8 @@ namespace Cekirdekler
                     LinkedListNode<int> node5 = parameterGroups_[i].arrayElementsPerWorkItem.First;
                     LinkedListNode<int> node6 = parameterGroups_[i].arrayLengths.First;
                     LinkedListNode<bool> node7 = parameterGroups_[i].writeAlls.First;
+                    LinkedListNode<bool> node8 = parameterGroups_[i].readOnlys.First;
+                    LinkedListNode<bool> node9 = parameterGroups_[i].writeOnlys.First;
                     while (node != null)
                     {
                         if (node.Value != null)
@@ -385,6 +433,8 @@ namespace Cekirdekler
                             gr.arrayElementsPerWorkItem.AddLast(node5.Value);
                             gr.arrayLengths.AddLast(node6.Value);
                             gr.writeAlls.AddLast(node7.Value);
+                            gr.readOnlys.AddLast(node8.Value);
+                            gr.writeOnlys.AddLast(node9.Value);
                         }
                         node = node.Next;
                         node2 = node2.Next;
@@ -393,6 +443,8 @@ namespace Cekirdekler
                         node5 = node5.Next;
                         node6 = node6.Next;
                         node7 = node7.Next;
+                        node8 = node8.Next;
+                        node9 = node9.Next;
                     }
                 }
                 return gr;
@@ -484,12 +536,16 @@ namespace Cekirdekler
                 string[] writes_ = writes.Select(x => { return x ? " write " : ""; }).ToArray();
                 string[] writeAlls_ = writeAlls.Select(x => { return x ? " all " : ""; }).ToArray();
                 string[] readWrites_ = new string[reads_.Length];
+                string[] readOnlys_ = readOnlys.Select(x => { return x ? " ro " : ""; }).ToArray();
+                string[] writeOnlys_ = writeOnlys.Select(x => { return x ? " wo " : ""; }).ToArray();
                 for (int i = 0; i < readWrites_.Length; i++)
                 {
                     StringBuilder sb = new StringBuilder(partialReads_[i]);
                     sb.Append(reads_[i]);
                     sb.Append(writes_[i]);
                     sb.Append(writeAlls_[i]);
+                    sb.Append(readOnlys_[i]);
+                    sb.Append(writeOnlys_[i]);
                     readWrites_[i] = sb.ToString();
                 }
                 int[] elemPerWorkItem_ = arrayElementsPerWorkItem.ToArray();
@@ -701,6 +757,8 @@ namespace Cekirdekler
                 // ClArray,FastArr<T>,T[]  default values
                 read = true; // reads arrays as whole, not pipelined
                 partialRead = false; // no partial reads
+                readOnly = false; // def
+                writeOnly = false; // def
                 write = true; // partial writes
                 writeAll = false; // make this true only when single gpu and all elements are needed
                 numberOfElementsPerWorkItem = 1; // 1 element per workitem 
@@ -1232,6 +1290,8 @@ namespace Cekirdekler
                 bd.arrayElementsPerWorkItem.AddLast(numberOfElementsPerWorkItem);
                 bd.arrayLengths.AddLast(Length);
                 bd.writeAlls.AddLast(writeAll);
+                bd.readOnlys.AddLast(readOnly);
+                bd.writeOnlys.AddLast(writeOnly);
                 for (int i = 0; i < arrays_.Length; i++)
                 {
                     bd.arrays.AddLast(arrays_[i]);
@@ -1243,6 +1303,8 @@ namespace Cekirdekler
                     bd.arrayElementsPerWorkItem.AddLast(1);
                     bd.arrayLengths.AddLast(arrays_[i].Length);
                     bd.writeAlls.AddLast(false);
+                    bd.readOnlys.AddLast(false);
+                    bd.writeOnlys.AddLast(false);
                 }
                 return bd;
             }
@@ -1265,6 +1327,8 @@ namespace Cekirdekler
                 bd.arrayElementsPerWorkItem.AddLast(numberOfElementsPerWorkItem);
                 bd.arrayLengths.AddLast(Length);
                 bd.writeAlls.AddLast(writeAll);
+                bd.readOnlys.AddLast(readOnly);
+                bd.writeOnlys.AddLast(writeOnly);
                 for (int i = 0; i < arrays_.Length; i++)
                 {
                     bd.arrays.AddLast(arrays_[i]);
@@ -1276,6 +1340,8 @@ namespace Cekirdekler
                     bd.arrayElementsPerWorkItem.AddLast(1);
                     bd.arrayLengths.AddLast(arrays_[i].Length);
                     bd.writeAlls.AddLast(false);
+                    bd.readOnlys.AddLast(false);
+                    bd.writeOnlys.AddLast(false);
                 }
                 return bd;
             }
@@ -1298,6 +1364,8 @@ namespace Cekirdekler
                 bd.arrayElementsPerWorkItem.AddLast(numberOfElementsPerWorkItem);
                 bd.arrayLengths.AddLast(Length);
                 bd.writeAlls.AddLast(writeAll);
+                bd.readOnlys.AddLast(readOnly);
+                bd.writeOnlys.AddLast(writeOnly);
                 for (int i = 0; i < arrays_.Length; i++)
                 {
                     bd.arrays.AddLast(arrays_[i]);
@@ -1309,6 +1377,8 @@ namespace Cekirdekler
                     bd.arrayElementsPerWorkItem.AddLast(arrays_[i].numberOfElementsPerWorkItem);
                     bd.arrayLengths.AddLast(arrays_[i].arrayLength);
                     bd.writeAlls.AddLast(arrays_[i].writeAll);
+                    bd.readOnlys.AddLast(arrays_[i].readOnly);
+                    bd.writeOnlys.AddLast(arrays_[i].writeOnly);
                 }
                 return bd;
             }
@@ -1331,6 +1401,8 @@ namespace Cekirdekler
                 bd.arrayElementsPerWorkItem.AddLast(numberOfElementsPerWorkItem);
                 bd.arrayLengths.AddLast(Length);
                 bd.writeAlls.AddLast(writeAll);
+                bd.readOnlys.AddLast(readOnly);
+                bd.writeOnlys.AddLast(writeOnly);
 
                 for (int i = 0; i < parameterGroups_.Length; i++)
                 {
@@ -1341,6 +1413,8 @@ namespace Cekirdekler
                     LinkedListNode<int> node5 = parameterGroups_[i].arrayElementsPerWorkItem.First;
                     LinkedListNode<int> node6 = parameterGroups_[i].arrayLengths.First;
                     LinkedListNode<bool> node7 = parameterGroups_[i].writeAlls.First;
+                    LinkedListNode<bool> node8 = parameterGroups_[i].readOnlys.First;
+                    LinkedListNode<bool> node9 = parameterGroups_[i].writeOnlys.First;
                     while (node != null)
                     {
                         if (node.Value != null)
@@ -1352,6 +1426,8 @@ namespace Cekirdekler
                             bd.arrayElementsPerWorkItem.AddLast(node5.Value);
                             bd.arrayLengths.AddLast(node6.Value);
                             bd.writeAlls.AddLast(node7.Value);
+                            bd.readOnlys.AddLast(node8.Value);
+                            bd.writeOnlys.AddLast(node9.Value);
                         }
                         node = node.Next;
                         node2 = node2.Next;
@@ -1360,6 +1436,8 @@ namespace Cekirdekler
                         node5 = node5.Next;
                         node6 = node6.Next;
                         node7 = node7.Next;
+                        node8 = node8.Next;
+                        node9 = node9.Next;
                     }
                 }
                 return bd;
@@ -1461,12 +1539,16 @@ namespace Cekirdekler
                 string[] writes_ = new string[] { write ? " write " : "" };
                 string[] writeAlls_ = new string[] { writeAll  ? " all " : "" };
                 string[] readWrites_ = new string[reads_.Length];
+                string[] readOnlys_ = new string[] { readOnly ? " ro " : "" };
+                string[] writeOnlys_ = new string[] { writeOnly ? " wo " : "" };
                 for (int i = 0; i < readWrites_.Length; i++)
                 {
                     StringBuilder sb = new StringBuilder(partialReads_[i]);
                     sb.Append(reads_[i]);
                     sb.Append(writes_[i]);
                     sb.Append(writeAlls_[i]);
+                    sb.Append(readOnlys_[i]);
+                    sb.Append(writeOnlys_[i]);
                     readWrites_[i] = sb.ToString();
                 }
                 int[] elemsPerWorkItem_ = new int[] { numberOfElementsPerWorkItem };
@@ -1501,27 +1583,126 @@ namespace Cekirdekler
             }
 
 
+            private bool readOnlyPrivate = false;
+
+            /// <summary>
+            /// <para>buffers created in devices will be read by kernel and written by host, always</para>
+            /// <para>prevents usage of write/writeAll/writeOnly, until it is set to false again</para>
+            /// </summary>
+            public bool readOnly {
+                get { return readOnlyPrivate; }
+                set {
+                    if (value && !writeOnly)
+                    {
+                        write = false;
+                        writeAll = false;
+                        writeOnly = false;
+                        readOnlyPrivate = value;
+                    }
+                    else if(!value)
+                    {
+                        readOnlyPrivate = value;
+                    }
+                }
+            }
+
+
+            private bool writeOnlyPrivate = false;
+
+            /// <summary>
+            /// <para>buffers created in devices will be written by kernel and read by host, always</para>
+            /// <para>prevents usage of read/partialRead/readOnly, until its set to false again</para>
+            /// </summary>
+            public bool writeOnly {
+                get { return writeOnlyPrivate; }
+                set {
+                    if (value && !readOnly)
+                    {
+                        read = false;
+                        partialRead = false;
+                        readOnly = false;
+                        writeOnlyPrivate = value;
+                    }
+                    else if (!value)
+                    {
+                        writeOnlyPrivate = value;
+                    }
+                }
+            }
+
+
+            private bool readPrivate = true;
 
             /// <summary>
             /// reads whole array before compute (no pipelining)
             /// </summary>
-            public bool read { get; set; }
+            public bool read {
+                get { return readPrivate; }
+                set {
+                    if (!writeOnly)
+                    {
+                        readPrivate = value;
+                    }
+                }
+            }
+
+
+            private bool partialReadPrivate = false;
+
 
             /// <summary>
             /// <para>partial reads(possibly pipelined)</para>
             /// </summary>
-            public bool partialRead { get; set; }
+            public bool partialRead
+            {
+                get { return partialReadPrivate; }
+                set
+                {
+                    if (!writeOnly)
+                    {
+                        partialReadPrivate = value;
+                    }
+                }
+            }
+
+
+
+            private bool writePrivate = true;
+
 
             /// <summary>
             /// partial writes (possibly pipelined)
             /// </summary>
-            public bool write { get; set; }
+            public bool write
+            {
+                get { return writePrivate; }
+                set
+                {
+                    if (!readOnly)
+                    {
+                        writePrivate = value;
+                    }
+                }
+            }
+
+
+            private bool writeAllPrivate = true;
 
 
             /// <summary>
             /// whole writes
             /// </summary>
-            public bool writeAll { get; set; }
+            public bool writeAll
+            {
+                get { return writeAllPrivate; }
+                set
+                {
+                    if (!readOnly)
+                    {
+                        writeAllPrivate = value;
+                    }
+                }
+            }
 
             /// <summary>
             /// <para>number of array elements per workitem, default=1</para>
