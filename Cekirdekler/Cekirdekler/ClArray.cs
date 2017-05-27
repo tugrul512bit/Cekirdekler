@@ -67,6 +67,11 @@ namespace Cekirdekler
             }
 
             /// <summary>
+            /// <para>if the device used in cruncher supports zero copy buffer access, this field determines its usage. true=direct RAM access, false=dedicated memory</para>
+            /// </summary>
+            bool zeroCopy { get; set; }
+
+            /// <summary>
             /// <para>buffers created in devices will be read by kernel and written by host, always</para>
             /// <para>prevents usage of write/writeAll/writeOnly, until it is set to false again</para>
             /// </summary>
@@ -167,8 +172,9 @@ namespace Cekirdekler
             // read only mode "ro", write only mode "wo"
             internal LinkedList<bool> readOnlys = new LinkedList<bool>();
             internal LinkedList<bool> writeOnlys = new LinkedList<bool>();
+            internal LinkedList<bool> zeroCopys = new LinkedList<bool>();
 
-
+            
             /// <summary>
             /// linked list to array conversion for all arrays
             /// </summary>
@@ -199,6 +205,7 @@ namespace Cekirdekler
                 LinkedListNode<bool> node7 = writeAlls.First;
                 LinkedListNode<bool> node8 = readOnlys.First;
                 LinkedListNode<bool> node9 = writeOnlys.First;
+                LinkedListNode<bool> node10 = zeroCopys.First;
 
                 while (node != null)
                 {
@@ -211,6 +218,7 @@ namespace Cekirdekler
                     gr.writeAlls.AddLast(node7.Value);
                     gr.readOnlys.AddLast(node8.Value);
                     gr.writeOnlys.AddLast(node9.Value);
+                    gr.zeroCopys.AddLast(node10.Value);
 
                     node = node.Next;
                     node2 = node2.Next;
@@ -221,6 +229,7 @@ namespace Cekirdekler
                     node7 = node7.Next;
                     node8 = node8.Next;
                     node9 = node9.Next;
+                    node10 = node10.Next;
                 }
 
 
@@ -237,6 +246,7 @@ namespace Cekirdekler
                     gr.writeAlls.AddLast(false);
                     gr.readOnlys.AddLast(false);
                     gr.writeOnlys.AddLast(false);
+                    gr.zeroCopys.AddLast(false);
                 }
                 return gr;
             }
@@ -262,6 +272,7 @@ namespace Cekirdekler
                 LinkedListNode<bool> node7 = writeAlls.First;
                 LinkedListNode<bool> node8 = readOnlys.First;
                 LinkedListNode<bool> node9 = writeOnlys.First;
+                LinkedListNode<bool> node10 = zeroCopys.First;
 
                 while (node != null)
                 {
@@ -274,6 +285,7 @@ namespace Cekirdekler
                     gr.writeAlls.AddLast(node7.Value);
                     gr.readOnlys.AddLast(node8.Value);
                     gr.writeOnlys.AddLast(node9.Value);
+                    gr.zeroCopys.AddLast(node10.Value);
 
                     node = node.Next;
                     node2 = node2.Next;
@@ -284,6 +296,7 @@ namespace Cekirdekler
                     node7 = node7.Next;
                     node8 = node8.Next;
                     node9 = node9.Next;
+                    node10 = node10.Next;
                 }
 
 
@@ -300,6 +313,7 @@ namespace Cekirdekler
                     gr.writeAlls.AddLast(false);
                     gr.readOnlys.AddLast(false);
                     gr.writeOnlys.AddLast(false);
+                    gr.zeroCopys.AddLast(false);
 
                 }
                 return gr;
@@ -326,6 +340,7 @@ namespace Cekirdekler
                 LinkedListNode<bool> node7 = writeAlls.First;
                 LinkedListNode<bool> node8 = readOnlys.First;
                 LinkedListNode<bool> node9 = writeOnlys.First;
+                LinkedListNode<bool> node10 = zeroCopys.First;
 
                 while (node != null)
                 {
@@ -338,6 +353,7 @@ namespace Cekirdekler
                     gr.writeAlls.AddLast(node7.Value);
                     gr.readOnlys.AddLast(node8.Value);
                     gr.writeOnlys.AddLast(node9.Value);
+                    gr.zeroCopys.AddLast(node10.Value);
                     node = node.Next;
                     node2 = node2.Next;
                     node3 = node3.Next;
@@ -347,6 +363,7 @@ namespace Cekirdekler
                     node7 = node7.Next;
                     node8 = node8.Next;
                     node9 = node9.Next;
+                    node10 = node10.Next;
                 }
 
 
@@ -361,6 +378,7 @@ namespace Cekirdekler
                     gr.writeAlls.AddLast(arrays_[i].writeAll);
                     gr.readOnlys.AddLast(arrays_[i].readOnly);
                     gr.writeOnlys.AddLast(arrays_[i].writeOnly);
+                    gr.zeroCopys.AddLast(arrays_[i].zeroCopy);
                 }
                 return gr;
             }
@@ -387,6 +405,7 @@ namespace Cekirdekler
                 LinkedListNode<bool> node07 = writeAlls.First;
                 LinkedListNode<bool> node08 = readOnlys.First;
                 LinkedListNode<bool> node09 = writeOnlys.First;
+                LinkedListNode<bool> node010 = zeroCopys.First;
 
                 while (node0 != null)
                 {
@@ -399,6 +418,7 @@ namespace Cekirdekler
                     gr.writeAlls.AddLast(node07.Value);
                     gr.readOnlys.AddLast(node08.Value);
                     gr.writeOnlys.AddLast(node09.Value);
+                    gr.zeroCopys.AddLast(node010.Value);
                     node0 = node0.Next;
                     node02 = node02.Next;
                     node03 = node03.Next;
@@ -408,6 +428,7 @@ namespace Cekirdekler
                     node07 = node07.Next;
                     node08 = node08.Next;
                     node09 = node09.Next;
+                    node010 = node010.Next;
                 }
 
 
@@ -422,6 +443,7 @@ namespace Cekirdekler
                     LinkedListNode<bool> node7 = parameterGroups_[i].writeAlls.First;
                     LinkedListNode<bool> node8 = parameterGroups_[i].readOnlys.First;
                     LinkedListNode<bool> node9 = parameterGroups_[i].writeOnlys.First;
+                    LinkedListNode<bool> node10 = parameterGroups_[i].zeroCopys.First;
                     while (node != null)
                     {
                         if (node.Value != null)
@@ -435,6 +457,7 @@ namespace Cekirdekler
                             gr.writeAlls.AddLast(node7.Value);
                             gr.readOnlys.AddLast(node8.Value);
                             gr.writeOnlys.AddLast(node9.Value);
+                            gr.zeroCopys.AddLast(node10.Value);
                         }
                         node = node.Next;
                         node2 = node2.Next;
@@ -445,6 +468,7 @@ namespace Cekirdekler
                         node7 = node7.Next;
                         node8 = node8.Next;
                         node9 = node9.Next;
+                        node10 = node10.Next;
                     }
                 }
                 return gr;
@@ -538,6 +562,7 @@ namespace Cekirdekler
                 string[] readWrites_ = new string[reads_.Length];
                 string[] readOnlys_ = readOnlys.Select(x => { return x ? " ro " : ""; }).ToArray();
                 string[] writeOnlys_ = writeOnlys.Select(x => { return x ? " wo " : ""; }).ToArray();
+                string[] zeroCopys_ = zeroCopys.Select(x => { return x ? " zc " : ""; }).ToArray();
                 for (int i = 0; i < readWrites_.Length; i++)
                 {
                     StringBuilder sb = new StringBuilder(partialReads_[i]);
@@ -546,6 +571,7 @@ namespace Cekirdekler
                     sb.Append(writeAlls_[i]);
                     sb.Append(readOnlys_[i]);
                     sb.Append(writeOnlys_[i]);
+                    sb.Append(zeroCopys_[i]);
                     readWrites_[i] = sb.ToString();
                 }
                 int[] elemPerWorkItem_ = arrayElementsPerWorkItem.ToArray();
@@ -564,6 +590,7 @@ namespace Cekirdekler
                         }
                     }
                 }
+
                 cruncher.numberCruncher.compute(
                     kernelsTmp, cruncher.repeatCount, cruncher.repeatCount > 1 ? cruncher.repeatKernelName : "",
                     arrs_, readWrites_, elemPerWorkItem_,
@@ -759,6 +786,7 @@ namespace Cekirdekler
                 partialRead = false; // no partial reads
                 readOnly = false; // def
                 writeOnly = false; // def
+                zeroCopy = false; // def
                 write = true; // partial writes
                 writeAll = false; // make this true only when single gpu and all elements are needed
                 numberOfElementsPerWorkItem = 1; // 1 element per workitem 
@@ -1292,6 +1320,7 @@ namespace Cekirdekler
                 bd.writeAlls.AddLast(writeAll);
                 bd.readOnlys.AddLast(readOnly);
                 bd.writeOnlys.AddLast(writeOnly);
+                bd.zeroCopys.AddLast(zeroCopy);
                 for (int i = 0; i < arrays_.Length; i++)
                 {
                     bd.arrays.AddLast(arrays_[i]);
@@ -1305,6 +1334,7 @@ namespace Cekirdekler
                     bd.writeAlls.AddLast(false);
                     bd.readOnlys.AddLast(false);
                     bd.writeOnlys.AddLast(false);
+                    bd.zeroCopys.AddLast(false);
                 }
                 return bd;
             }
@@ -1329,6 +1359,7 @@ namespace Cekirdekler
                 bd.writeAlls.AddLast(writeAll);
                 bd.readOnlys.AddLast(readOnly);
                 bd.writeOnlys.AddLast(writeOnly);
+                bd.zeroCopys.AddLast(zeroCopy);
                 for (int i = 0; i < arrays_.Length; i++)
                 {
                     bd.arrays.AddLast(arrays_[i]);
@@ -1342,6 +1373,7 @@ namespace Cekirdekler
                     bd.writeAlls.AddLast(false);
                     bd.readOnlys.AddLast(false);
                     bd.writeOnlys.AddLast(false);
+                    bd.zeroCopys.AddLast(false);
                 }
                 return bd;
             }
@@ -1366,6 +1398,7 @@ namespace Cekirdekler
                 bd.writeAlls.AddLast(writeAll);
                 bd.readOnlys.AddLast(readOnly);
                 bd.writeOnlys.AddLast(writeOnly);
+                bd.zeroCopys.AddLast(zeroCopy);
                 for (int i = 0; i < arrays_.Length; i++)
                 {
                     bd.arrays.AddLast(arrays_[i]);
@@ -1379,6 +1412,7 @@ namespace Cekirdekler
                     bd.writeAlls.AddLast(arrays_[i].writeAll);
                     bd.readOnlys.AddLast(arrays_[i].readOnly);
                     bd.writeOnlys.AddLast(arrays_[i].writeOnly);
+                    bd.zeroCopys.AddLast(arrays_[i].zeroCopy);
                 }
                 return bd;
             }
@@ -1403,6 +1437,7 @@ namespace Cekirdekler
                 bd.writeAlls.AddLast(writeAll);
                 bd.readOnlys.AddLast(readOnly);
                 bd.writeOnlys.AddLast(writeOnly);
+                bd.zeroCopys.AddLast(zeroCopy);
 
                 for (int i = 0; i < parameterGroups_.Length; i++)
                 {
@@ -1415,6 +1450,7 @@ namespace Cekirdekler
                     LinkedListNode<bool> node7 = parameterGroups_[i].writeAlls.First;
                     LinkedListNode<bool> node8 = parameterGroups_[i].readOnlys.First;
                     LinkedListNode<bool> node9 = parameterGroups_[i].writeOnlys.First;
+                    LinkedListNode<bool> node10 = parameterGroups_[i].zeroCopys.First;
                     while (node != null)
                     {
                         if (node.Value != null)
@@ -1428,6 +1464,7 @@ namespace Cekirdekler
                             bd.writeAlls.AddLast(node7.Value);
                             bd.readOnlys.AddLast(node8.Value);
                             bd.writeOnlys.AddLast(node9.Value);
+                            bd.zeroCopys.AddLast(node10.Value);
                         }
                         node = node.Next;
                         node2 = node2.Next;
@@ -1438,6 +1475,7 @@ namespace Cekirdekler
                         node7 = node7.Next;
                         node8 = node8.Next;
                         node9 = node9.Next;
+                        node10 = node10.Next;
                     }
                 }
                 return bd;
@@ -1541,6 +1579,7 @@ namespace Cekirdekler
                 string[] readWrites_ = new string[reads_.Length];
                 string[] readOnlys_ = new string[] { readOnly ? " ro " : "" };
                 string[] writeOnlys_ = new string[] { writeOnly ? " wo " : "" };
+                string[] zeroCopys_ = new string[] { zeroCopy ? " zc " : "" };
                 for (int i = 0; i < readWrites_.Length; i++)
                 {
                     StringBuilder sb = new StringBuilder(partialReads_[i]);
@@ -1549,6 +1588,7 @@ namespace Cekirdekler
                     sb.Append(writeAlls_[i]);
                     sb.Append(readOnlys_[i]);
                     sb.Append(writeOnlys_[i]);
+                    sb.Append(zeroCopys_[i]);
                     readWrites_[i] = sb.ToString();
                 }
                 int[] elemsPerWorkItem_ = new int[] { numberOfElementsPerWorkItem };
@@ -1568,6 +1608,7 @@ namespace Cekirdekler
                         }
                     }
                 }
+
                 cruncher.numberCruncher.compute(
                     kernellerTmp, cruncher.repeatCount, cruncher.repeatCount>1?cruncher.repeatKernelName:"",
                     arrs_, readWrites_, elemsPerWorkItem_,
@@ -1582,6 +1623,11 @@ namespace Cekirdekler
                 }
             }
 
+
+            /// <summary>
+            /// <para>if the device used in cruncher supports zero copy buffer access, this field determines its usage. true=direct RAM access, false=dedicated memory</para>
+            /// </summary>
+            public bool zeroCopy { get; set; }
 
             private bool readOnlyPrivate = false;
 

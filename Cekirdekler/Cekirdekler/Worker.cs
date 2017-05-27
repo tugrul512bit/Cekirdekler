@@ -378,10 +378,10 @@ namespace ClObject
         /// <param name="elementsPerThread">number of elements used in each workitem</param>
         /// <param name="readOnly">kernel reads, host writes</param>
         /// <param name="writeOnly">kernel reads, host writes</param>
-        public ClBuffer buffer(object arr,bool readOnly,bool writeOnly, int elementsPerThread=1)
+        /// <param name="streamEnabledIfDeviceSupportsZeroCopy">Even if device is better with zero-copy, some implementations may need some arrays be non-stramed but copied</param>
+        public ClBuffer buffer(object arr,bool readOnly,bool writeOnly,bool streamEnabledIfDeviceSupportsZeroCopy, int elementsPerThread=1)
         {
-            bool isGddr = device.isGddr();
-
+            bool isGddr = device.isGddr() || !streamEnabledIfDeviceSupportsZeroCopy;
 
             {
                 if (buffers == null)
@@ -631,12 +631,12 @@ namespace ClObject
                 {
                     if (readWrite[i].Contains("partial"))
                     {
-                        // ro: read-only, wo: write-only
-                        buffer(arrays[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).writeRanged(commandQueue, reference * elementsPerWorkItem[i], range * elementsPerWorkItem[i], arrays[i]);
+                        // ro: read-only, wo: write-only, zc: zero copy
+                        buffer(arrays[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).writeRanged(commandQueue, reference * elementsPerWorkItem[i], range * elementsPerWorkItem[i], arrays[i]);
                         continue;
                     }
                     if (readWrite[i].Contains("read"))
-                        buffer(arrays[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).write(commandQueue, arrays[i]);
+                        buffer(arrays[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).write(commandQueue, arrays[i]);
 
                 }
                 if(!enqueueMode)
@@ -657,7 +657,7 @@ namespace ClObject
                 {
                     if (readWrite[i].Contains("read") && !readWrite[i].Contains("partial"))
                     {
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).write(commandQueue, arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).write(commandQueue, arrs[i]);
                     }
                 }
                 finish(commandQueue.h());
@@ -682,7 +682,7 @@ namespace ClObject
                     // 1st device writes 1st array, 2nd device writes 2nd array to overcome overlapped writes(undefined behavior)
                     if (readWrite[i].Contains("write") && readWrite[i].Contains("all") && (deviceIndex==(i%numDevices)))
                     {
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).write(commandQueue, arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).write(commandQueue, arrs[i]);
                     }
                 }
                 finish(commandQueue.h());
@@ -707,11 +707,11 @@ namespace ClObject
                 {
                     if (readWrite[i].Contains("partial"))
                     {
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).writeRanged(commandQueueRead, reference * elementsPerWorkItem[i], range * elementsPerWorkItem[i], arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).writeRanged(commandQueueRead, reference * elementsPerWorkItem[i], range * elementsPerWorkItem[i], arrs[i]);
                         continue;
                     }
                     if (readWrite[i].Contains("read"))
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).write(commandQueueRead, arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).write(commandQueueRead, arrs[i]);
 
                 }
                 //finish(commandQueueOku.h());
@@ -735,7 +735,7 @@ namespace ClObject
                 {
                     if (readWrite[i].Contains("partial"))
                     {
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).writeRanged(commandQueueRead, reference * elementsPerWorkItem[i], range * elementsPerWorkItem[i], arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).writeRanged(commandQueueRead, reference * elementsPerWorkItem[i], range * elementsPerWorkItem[i], arrs[i]);
                     }
                 }
                 //finish(commandQueueOku.h());
@@ -809,14 +809,14 @@ namespace ClObject
                         else
                         {
                             kerneParameterlBinding[kernelKey] = arrs[i];
-                            setKernelArgument(kernels[kernelName].h(), buffer(arrs[i], readWrites_[i].Contains("ro"), readWrites_[i].Contains("wo"), numberOfElementsOrBytes[i]).h(), i);
+                            setKernelArgument(kernels[kernelName].h(), buffer(arrs[i], readWrites_[i].Contains("ro"), readWrites_[i].Contains("wo"), readWrites_[i].Contains("zc"), numberOfElementsOrBytes[i]).h(), i);
                         }
                     }
                     else
                     {
                         // first time setting a parameter
                         kerneParameterlBinding.Add(kernelKey, arrs[i]);
-                        setKernelArgument(kernels[kernelName].h(), buffer(arrs[i], readWrites_[i].Contains("ro"), readWrites_[i].Contains("wo"), numberOfElementsOrBytes[i]).h(), i);
+                        setKernelArgument(kernels[kernelName].h(), buffer(arrs[i], readWrites_[i].Contains("ro"), readWrites_[i].Contains("wo"), readWrites_[i].Contains("zc"), numberOfElementsOrBytes[i]).h(), i);
 
                     }
                 }
@@ -1146,11 +1146,11 @@ namespace ClObject
                 {
                     if (readWrite[i].Contains("write") && !readWrite[i].Contains("all"))
                     {
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).read(commandQueue, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).read(commandQueue, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
                     }
                     else if (readWrite[i].Contains("write") && readWrite[i].Contains("all") && (deviceIndex==(i%numDevices)))
                     {
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).read(commandQueue, arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).read(commandQueue, arrs[i]);
                     }
                 }
                 if(!enqueueMode)
@@ -1176,11 +1176,11 @@ namespace ClObject
                 {
                     if (readWrite[i].Contains("write") && !readWrite[i].Contains("all"))
                     {
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).read(commandQueueWrite, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).read(commandQueueWrite, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
                     }
                     else if (readWrite[i].Contains("write") && readWrite[i].Contains("all") && (deviceIndex==(i%numDevices)))
                     {
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).read(commandQueueWrite, arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).read(commandQueueWrite, arrs[i]);
                     }
                 }
                 //finish(commandQueueYaz.h());
@@ -1233,7 +1233,7 @@ namespace ClObject
                         if (ctr01 == 1)
                         {
 
-                            buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).writeRangedEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueRead : cqSelection) : commandQueueRead2,
+                            buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).writeRangedEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueRead : cqSelection) : commandQueueRead2,
                                 reference * elementsPerWorkItem[i],
                                 globalRange * elementsPerWorkItem[i],
                                 arrs[i], eArr, e);
@@ -1244,7 +1244,7 @@ namespace ClObject
                             if (i == ctr01start)
                             {
                                 ClEvent emptyEvent = new ClEvent();
-                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).writeRangedEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueRead : cqSelection) : commandQueueRead2,
+                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).writeRangedEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueRead : cqSelection) : commandQueueRead2,
                                     reference * elementsPerWorkItem[i],
                                     globalRange * elementsPerWorkItem[i],
                                     arrs[i], eArr, emptyEvent);
@@ -1253,7 +1253,7 @@ namespace ClObject
                             else if (i == ctr01end)
                             {
                                 ClEventArray emptyEventArr = new ClEventArray();
-                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).writeRangedEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueRead : cqSelection) : commandQueueRead2,
+                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).writeRangedEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueRead : cqSelection) : commandQueueRead2,
                                     reference * elementsPerWorkItem[i],
                                     globalRange * elementsPerWorkItem[i],
                                     arrs[i], emptyEventArr, e);
@@ -1263,7 +1263,7 @@ namespace ClObject
                             {
                                 ClEvent emptyEvent = new ClEvent();
                                 ClEventArray emptyEventArr = new ClEventArray();
-                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).writeRangedEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueRead : cqSelection) : commandQueueRead2,
+                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).writeRangedEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueRead : cqSelection) : commandQueueRead2,
                                     reference * elementsPerWorkItem[i],
                                     globalRange * elementsPerWorkItem[i],
                                     arrs[i], emptyEventArr, emptyEvent);
@@ -1320,7 +1320,7 @@ namespace ClObject
                     {
                         if (ctr01 == 1)
                         {
-                            buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).readEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueWrite : cqSelection) : commandQueueWrite2, reference * elementsPerWorkItem[i],
+                            buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).readEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueWrite : cqSelection) : commandQueueWrite2, reference * elementsPerWorkItem[i],
                                 globalRange * elementsPerWorkItem[i], arrs[i],
                                 eArr, e);
                             result_ = 1;
@@ -1330,7 +1330,7 @@ namespace ClObject
                             if (i == ctr01start)
                             {
                                 ClEvent emptyEvent = new ClEvent();
-                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).readEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueWrite : cqSelection) : commandQueueWrite2, reference * elementsPerWorkItem[i],
+                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).readEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueWrite : cqSelection) : commandQueueWrite2, reference * elementsPerWorkItem[i],
                                 globalRange * elementsPerWorkItem[i], arrs[i],
                                 eArr, emptyEvent);
                                 emptyEvent.dispose();
@@ -1338,7 +1338,7 @@ namespace ClObject
                             else if (i == (ctr01end))
                             {
                                 ClEventArray emptyEventarr = new ClEventArray();
-                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).readEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueWrite : cqSelection) : commandQueueWrite2, reference * elementsPerWorkItem[i],
+                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).readEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueWrite : cqSelection) : commandQueueWrite2, reference * elementsPerWorkItem[i],
                                     globalRange * elementsPerWorkItem[i], arrs[i],
                                      emptyEventarr, e);
                                 emptyEventarr.dispose();
@@ -1347,7 +1347,7 @@ namespace ClObject
                             {
                                 ClEvent emptyEvent = new ClEvent();
                                 ClEventArray emptyEventArr = new ClEventArray();
-                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo")).readEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueWrite : cqSelection) : commandQueueWrite2, reference * elementsPerWorkItem[i],
+                                buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).readEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueueWrite : cqSelection) : commandQueueWrite2, reference * elementsPerWorkItem[i],
                                     globalRange * elementsPerWorkItem[i], arrs[i],
                                     emptyEventArr, emptyEvent);
                                 emptyEventArr.dispose();
