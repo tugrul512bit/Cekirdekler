@@ -43,7 +43,7 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
 <li>No performance output at first iteration. <b>Load balancer</b> needs at least several iterations to distribute fairly and <b>performance report</b> needs at least 2 iterations for console output.</li>
 </ul>
 <hr></hr>
-<h3>Example that computes 1000 workitems accross all GPUs in a PC: GPU1 computes global id range from 0 to M, GPU2 computes from M+1 to K and GPU_N computes for global id range ofY to Z</h3>
+<h3>Example that computes 1000 workitems accross all GPUs in a PC: GPU1 computes global id range from 0 to M, GPU2 computes from M+1 to K and GPU_N computes for global id range of Y to Z</h3>
 
 
             Cekirdekler.ClNumberCruncher cr = new Cekirdekler.ClNumberCruncher(
@@ -56,4 +56,7 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
 
             Cekirdekler.ClArrays.ClArray<byte> array = new Cekirdekler.ClArrays.ClArray<byte>(1000);
             array.compute(cr, 1, "hello", 1000, 100); 
-            // local id range is 100 here. so this example spawns 10x workgroups and all GPUs share them like GPU1 computes 2 groups, GPU2 computes 5 groups and another GPU computes 3 groups. Global id values are continuous through all global workitems, local id values are also safe to use. 
+            // local id range is 100 here. so this example spawns 10x workgroups and all GPUs share them like GPU1 computes 2 groups,
+            // GPU2 computes 5 groups and another GPU computes 3 groups. Global id values are continuous through all global workitems,
+            // local id values are also safe to use. 
+            // faster GPUs get more work share over iterations. Performance aware over repeatations of a work.
