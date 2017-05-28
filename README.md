@@ -55,6 +55,7 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
                 ");
 
             Cekirdekler.ClArrays.ClArray<byte> array = new Cekirdekler.ClArrays.ClArray<byte>(1000);
+            // Cekirdekler.ClArrays.ClArray<byte> array = new byte[1000]; // host arrays are usable too!
             array.compute(cr, 1, "hello", 1000, 100); 
             // local id range is 100 here. so this example spawns 10x workgroups and all GPUs share them like GPU1 computes 2 groups,
             // GPU2 computes 5 groups and another GPU computes 3 groups. Global id values are continuous through all global workitems,
