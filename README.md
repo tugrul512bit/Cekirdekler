@@ -1,5 +1,5 @@
 # Cekirdekler
-Very simple C# Multi-device GPGPU(OpenCL) compute API with an iterative interdevice-loadbalancing feature using multiple pipelining on read/write/compute operations for developers' custom opencl kernels. 
+Very simple C# Multi-device GPGPU(OpenCL) compute API with an iterative interdevice-loadbalancing feature using multiple pipelining on read/write/compute operations for developers' custom opencl kernels. Main idea is to treat N devices as a single device when possible.
 
 64-bit only. "project settings -> build -> platform target -> x64"
 Also configuration manager needs to look like this:
@@ -19,7 +19,7 @@ This project is being enhanced using ZenHub: <a href="https://zenhub.com"><img s
 
 <h1>Features</h1>
 <ul>
-<li><b>Implicit multi device control:</b> from CPUs to any number of GPUs and ACCeelerators. Explicit in library-side for compatibility and performance, implicit for client-coder for the ease of GPGPU to concentrate on opencl kernel code. Selection of devices can be done implicitly or explicitly to achieve ease-of-setup or detailed device query. </li>
+<li><b>Implicit multi device control:</b> from CPUs to any number of GPUs and ACCelerators. Explicit in library-side for compatibility and performance, implicit for client-coder for the ease of GPGPU to concentrate on opencl kernel code. Selection of devices can be done implicitly or explicitly to achieve ease-of-setup or detailed device query. </li>
 <li><b>Iterative load balancing between devices:</b> uniquely done for each different compute(explicit control with user-given compute-id). Multiple devices get more and more fair work loads until the ratio of work distribution converges to some point. Partitionig workload completes a kernel with less latency which is applicable for hot-spot loops and some simple embarrassingly-parallel algorithms. Even better for streaming data with pipelining option enabled.</li>
 <li><b>Pipelining for reads, computes and writes(host - device link):</b> either by the mercy of device drivers or explicit event-based queue management. Hides the latency of least time consuming part(such as writes) behind the most time consuming part(such as compute). GPUs can run buffer copies and opencl kernels concurrently.</li>
 <li><b>Pipelining between devices(device - host - device):</b> Concurrently run multiple stages to overlap them in timeline and gain advantage of multiple GPUs(and FPGAa, CPUs) for even non-separable(because of atomics and low-level optimizations) kernels of a time-consuming pipeline. Each device runs a different kernel but at the same time with other devices and uses double buffers to overlap even data movements between pipeline stages.</li>
@@ -43,7 +43,7 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
 <li>No performance output at first iteration. <b>Load balancer</b> needs at least several iterations to distribute fairly and <b>performance report</b> needs at least 2 iterations for console output.</li>
 </ul>
 <hr></hr>
-<h3>Example</h3>
+<h3>Example that computes 1000 workitems accross all GPUs in a PC: GPU1 computes global id range from 0 to M, GPU2 computes from M+1 to K and GPU_N computes for global id range ofY to Z</h3>
 
 
             Cekirdekler.ClNumberCruncher cr = new Cekirdekler.ClNumberCruncher(
@@ -56,3 +56,4 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
 
             Cekirdekler.ClArrays.ClArray<byte> array = new Cekirdekler.ClArrays.ClArray<byte>(1000);
             array.compute(cr, 1, "hello", 1000, 100); 
+            // local id range is 100 here. so this example spawns 10x workgroups and all GPUs share them like GPU1 computes 2 groups, GPU2 computes 5 groups and another GPU computes 3 groups. Global id values are continuous through all global workitems, local id values are also safe to use. 
