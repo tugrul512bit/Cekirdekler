@@ -193,8 +193,8 @@ namespace ClObject
         /// </summary>
         public string deviceName;
         private int programAndKernelErrorCode = 0;
-        private string tumHatalar="";
-
+        private string allWorkerErrorsString="";
+        
         /// <summary>
         /// <para>creates a worker for a device for a kernel string contains many kernel definitions and names of kernels given explicity</para>
         /// <para>(Cekirdekler API usage style-2 doesn't need kernel names explicitly)</para>
@@ -252,7 +252,7 @@ namespace ClObject
                     kernelNames[i] = new ClString(kernelNames_[i].read());
                 }
                 program = new ClProgram(context, kernelStrings);
-                tumHatalar += program.errMsg() + Environment.NewLine + "----" + Environment.NewLine;
+                allWorkerErrorsString += program.errMsg() + Environment.NewLine + "----" + Environment.NewLine;
                 programAndKernelErrorCode += program.intProgramError;
                 kernels = new Dictionary<string, ClKernel>();
                 for (int i = 0; i < kernelNames_.Length; i++)
@@ -261,6 +261,61 @@ namespace ClObject
                     programAndKernelErrorCode += kernels[kernelNames_[i].read()].intKernelError;
                 }
             }
+        }
+
+        internal int[] numComputeQueueUsed = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+        internal void finishUsedComputeQueues()
+        {
+                Parallel.For(0, 16, i => {
+                    if(numComputeQueueUsed[i]>0)
+                    {
+                        numComputeQueueUsed[i] = 0;
+                        switch (i)
+                        {
+                            case 0: computeQueueFinish();return;
+                            case 1: computeQueueFinish2();return;
+                            case 2: computeQueueFinish3();return;
+                            case 3: computeQueueFinish4();return;
+                            case 4: computeQueueFinish5();return;
+                            case 5: computeQueueFinish6();return;
+                            case 6: computeQueueFinish7();return;
+                            case 7: computeQueueFinish8();return;
+                            case 8: computeQueueFinish9();return;
+                            case 9: computeQueueFinish10();return;
+                            case 10: computeQueueFinish11();return;
+                            case 11: computeQueueFinish12();return;
+                            case 12: computeQueueFinish13();return;
+                            case 13: computeQueueFinish14();return;
+                            case 14: computeQueueFinish15();return;
+                            case 15: computeQueueFinish16();return;
+                        }
+                    }
+                });
+        }
+        internal ClCommandQueue nextComputeQueue(int indexCounter)
+        {
+            switch (indexCounter % 16)
+            {
+                case 0:numComputeQueueUsed[0]++;return commandQueue;
+                case 1:numComputeQueueUsed[1]++;return commandQueue2;
+                case 2:numComputeQueueUsed[2]++;return commandQueue3;
+                case 3:numComputeQueueUsed[3]++;return commandQueue4;
+                case 4:numComputeQueueUsed[4]++;return commandQueue5;
+                case 5:numComputeQueueUsed[5]++;return commandQueue6;
+                case 6:numComputeQueueUsed[6]++;return commandQueue7;
+                case 7:numComputeQueueUsed[7]++;return commandQueue8;
+                case 8:numComputeQueueUsed[8]++;return commandQueue9;
+                case 9: numComputeQueueUsed[9]++; return commandQueue10;
+                case 10:numComputeQueueUsed[10]++;return commandQueue11;
+                case 11:numComputeQueueUsed[11]++;return commandQueue12;
+                case 12:numComputeQueueUsed[12]++;return commandQueue13;
+                case 13:numComputeQueueUsed[13]++;return commandQueue14;
+                case 14:numComputeQueueUsed[14]++;return commandQueue15;
+                case 15: numComputeQueueUsed[15]++; return commandQueue16;
+
+                default: numComputeQueueUsed[0]++; return commandQueue;
+            }
+
         }
 
         /// <summary>
@@ -278,7 +333,7 @@ namespace ClObject
         /// <returns></returns>
         public string getAllErrors()
         {
-            return tumHatalar;
+            return allWorkerErrorsString;
         }
 
         /// <summary>
@@ -623,7 +678,8 @@ namespace ClObject
         /// <param name="readWrite">"read"=read all array, "partial read"=read device share only, "write"=write partial(devie share) kernel results</param>
         /// <param name="elementsPerWorkItem">elements per workitem. example: streaming float4*2 means size=4</param>
         /// <param name="enqueueMode">if true, no synchronization</param>
-        public void writeToBuffer(object[] arrays, int reference, int range, int computeId, string[] readWrite, int[] elementsPerWorkItem, bool enqueueMode=false)
+        /// <param name="cqSelection_">only if another command queue is needed</param>
+        public void writeToBuffer(object[] arrays, int reference, int range, int computeId, string[] readWrite, int[] elementsPerWorkItem, bool enqueueMode=false, ClCommandQueue cqSelection_=null)
         {
             {
                 arrsTmp = arrays;
@@ -632,11 +688,11 @@ namespace ClObject
                     if (readWrite[i].Contains("partial"))
                     {
                         // ro: read-only, wo: write-only, zc: zero copy
-                        buffer(arrays[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).writeRanged(commandQueue, reference * elementsPerWorkItem[i], range * elementsPerWorkItem[i], arrays[i]);
+                        buffer(arrays[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).writeRanged(cqSelection_==null? commandQueue: cqSelection_, reference * elementsPerWorkItem[i], range * elementsPerWorkItem[i], arrays[i]);
                         continue;
                     }
                     if (readWrite[i].Contains("read"))
-                        buffer(arrays[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).write(commandQueue, arrays[i]);
+                        buffer(arrays[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).write(cqSelection_ == null ? commandQueue : cqSelection_, arrays[i]);
 
                 }
                 if(!enqueueMode)
@@ -832,10 +888,11 @@ namespace ClObject
         /// <param name="localRange"></param>
         /// <param name="computeId"></param>
         /// <param name="enqueueMode"></param>
-        public void compute(string kernelName, int reference, int globalRange, int localRange, int computeId,bool enqueueMode=false)
+        /// <param name="cqSelection_"></param>
+        public void compute(string kernelName, int reference, int globalRange, int localRange, int computeId,bool enqueueMode=false,ClCommandQueue cqSelection_=null)
         {
             {
-                int err = compute(commandQueue.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h());
+                int err = compute(cqSelection_==null?commandQueue.h(): cqSelection_.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h());
             }
         }
 
@@ -849,10 +906,11 @@ namespace ClObject
         /// <param name="computeId"></param>
         /// <param name="repeats"></param>
         /// <param name="enqueueMode"></param>
-        public void computeRepeated(string kernelName, int reference, int globalRange, int localRange, int computeId,int repeats,bool enqueueMode=false)
+        /// <param name="cqSelection_">only if another queue is needed</param>
+        public void computeRepeated(string kernelName, int reference, int globalRange, int localRange, int computeId,int repeats,bool enqueueMode=false,ClCommandQueue cqSelection_=null)
         {
             {
-                int err = computeRepeated(commandQueue.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h(),repeats);
+                int err = computeRepeated(cqSelection_ == null ? commandQueue.h() : cqSelection_.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h(),repeats);
             }
         }
 
@@ -867,10 +925,11 @@ namespace ClObject
         /// <param name="repeats"></param>
         /// <param name="syncKernelName"></param>
         /// <param name="enqueueMode"></param>
-        public void computeRepeatedWithSyncKernel(string kernelName, int reference, int globalRange, int localRange, int computeId, int repeats, string syncKernelName, bool enqueueMode = false)
+        /// <param name="cqSelection_">only if another queue is needed</param>
+        public void computeRepeatedWithSyncKernel(string kernelName, int reference, int globalRange, int localRange, int computeId, int repeats, string syncKernelName, bool enqueueMode = false,ClCommandQueue cqSelection_=null)
         {
             {
-                int err = computeRepeatedWithSyncKernel(commandQueue.h(), kernels[kernelName].h(), 
+                int err = computeRepeatedWithSyncKernel(cqSelection_ == null ? commandQueue.h() : cqSelection_.h(), kernels[kernelName].h(), 
                     this.range(reference).h(), this.range(globalRange).h(), 
                     this.range(localRange).h(), repeats,
                     kernels[syncKernelName].h(), this.range(0).h());
@@ -1138,7 +1197,9 @@ namespace ClObject
         /// <param name="elementsPerWorkItem"></param>
         /// <param name="enqueueMode"></param>
         /// <param name="deviceIndex">device 1 writes array 1 as a whole, device 2 writes array 2, ..., this overcomes overlapped writes on same array(undefined behavior)</param>
-        public void readFromBuffer(object[] arrs, int reference, int globalRange, int computeId, string[] readWrite, int[] elementsPerWorkItem, int deviceIndex, int numDevices, bool enqueueMode=false)
+        /// <param name="cqSelection_">only if another queue is needed</param>
+        /// <param name="numDevices">number of selected devices to distribute full array writes </param>
+        public void readFromBuffer(object[] arrs, int reference, int globalRange, int computeId, string[] readWrite, int[] elementsPerWorkItem, int deviceIndex, int numDevices, bool enqueueMode=false, ClCommandQueue cqSelection_=null)
         {
 
             {
@@ -1146,11 +1207,11 @@ namespace ClObject
                 {
                     if (readWrite[i].Contains("write") && !readWrite[i].Contains("all"))
                     {
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).read(commandQueue, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).read(cqSelection_ == null ? commandQueue : cqSelection_, reference * elementsPerWorkItem[i], globalRange * elementsPerWorkItem[i], arrs[i]);
                     }
                     else if (readWrite[i].Contains("write") && readWrite[i].Contains("all") && (deviceIndex==(i%numDevices)))
                     {
-                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).read(commandQueue, arrs[i]);
+                        buffer(arrs[i], readWrite[i].Contains("ro"), readWrite[i].Contains("wo"), readWrite[i].Contains("zc")).read(cqSelection_ == null ? commandQueue : cqSelection_, arrs[i]);
                     }
                 }
                 if(!enqueueMode)

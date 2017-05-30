@@ -59,6 +59,22 @@ namespace Cekirdekler
 
         private bool enqueueModePrivate = false;
 
+        private bool enqueueModeAsyncEnablePrivate = false;
+
+        private int enqueueModeAsyncQueueIndex = 0;
+
+        /// <summary>
+        /// <para>only for single gpu(or device to device pipeline stages)</para>
+        /// <para>used by enqueueMode to distribute each compute job to a different queue or not</para>
+        /// <para>true=distribute each compute to a different queue</para>
+        /// <para>false=use single queue for all jobs</para>
+        /// </summary>
+        public bool enqueueModeAsyncEnable
+        {
+            get { return enqueueModeAsyncEnablePrivate; }
+            set { enqueueModeAsyncEnablePrivate = value; if(value) enqueueModeAsyncQueueIndex++; }
+        }
+
         /// <summary>
         /// <para>only for single gpu (or device to device pipeline stages) </para>
         /// <para>not usable with host-device pipeline</para>
@@ -86,14 +102,17 @@ namespace Cekirdekler
                 if (!value)
                 {
                     Parallel.For(0, workers.Length, i => {
-                        Worker.finish(workers[i].commandQueue.h());
+                        workers[i].finishUsedComputeQueues();
                         if ((!value) && tmp)
                         {
                             // ending current enqueue mode and its benchmarking
                                 workers[i].endBench(lastUsedComputeId);
-
                         }
                     });
+                }
+                else
+                {
+                    enqueueModeAsyncQueueIndex = 0;
                 }
             }
         }
@@ -383,6 +402,11 @@ namespace Cekirdekler
         public bool smoothLoadBalancer { get { return smooth; } set { smooth = value; } }
 
         int counterAffinity = 0;
+
+        // a message for enqueue mode transition methods to sync on extra command queues
+        // ClNumberCruncher will be using this
+        internal bool concurrentKernelExecutionInSameDevice = false;
+        internal int numConcurrentKernelExecutionInSameDevice = 0;
 
         // for load balancer
         internal int[] tmpGlobalRanges;
@@ -768,7 +792,7 @@ namespace Cekirdekler
                 }
                 else
                 {
-                    // no extra latency from parallel.for
+                    // no extra latency from parallel.for since there is only single device
 
                     if (selectedGlobalRanges[0] > 0)
                     {
@@ -776,14 +800,17 @@ namespace Cekirdekler
                         {
                             // set argument is no an enqueue so need to be taken care of first 
                             for (int str = 0; str < kernelNames.Length; str++)
+                            {
                                 workers[0].kernelArgument(kernelNames[str], arrs, elementsPerWorkItem, readWrite);
+                            }
+
                             if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1 /*1di 0 yapıldı*/)
                                 workers[0].kernelArgument(syncKernelName, arrs, elementsPerWorkItem, readWrite);
 
                             if (!enqueueMode)
                                 workers[0].startBench();
 
-                            workers[0].writeToBuffer(arrs, selectedGlobalReferences[0], selectedGlobalRanges[0], computeId, readWrite, elementsPerWorkItem, enqueueMode);
+                            workers[0].writeToBuffer(arrs, selectedGlobalReferences[0], selectedGlobalRanges[0], computeId, readWrite, elementsPerWorkItem, enqueueMode, (enqueueMode && enqueueModeAsyncEnable) ? workers[0].nextComputeQueue(enqueueModeAsyncQueueIndex) : null);
                         }
                     }
 
@@ -794,6 +821,7 @@ namespace Cekirdekler
                     {
                         lock (workers[0])
                         {
+
                             // to do: move repeats to C++ side to reduce interop overhead
                             if (numRepeats > 0)
                             {
@@ -803,10 +831,10 @@ namespace Cekirdekler
                                     for (int j0 = 0; j0 < numRepeats; j0++)
                                     {
                                         for (int str = 0; str < kernelNames.Length; str++)
-                                            workers[0].compute(kernelNames[str], selectedGlobalReferences[0], selectedGlobalRanges[0], this.localRange, computeId, enqueueMode);
+                                            workers[0].compute(kernelNames[str], selectedGlobalReferences[0], selectedGlobalRanges[0], this.localRange, computeId, enqueueMode, (enqueueMode && enqueueModeAsyncEnable) ? workers[0].nextComputeQueue(enqueueModeAsyncQueueIndex) : null);
 
                                         if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1)
-                                            workers[0].compute(syncKernelName, 0, this.localRange, this.localRange, -1, enqueueMode);
+                                            workers[0].compute(syncKernelName, 0, this.localRange, this.localRange, -1, enqueueMode, (enqueueMode && enqueueModeAsyncEnable) ? workers[0].nextComputeQueue(enqueueModeAsyncQueueIndex) : null);
                                     }
                                 }
                                 else
@@ -815,36 +843,47 @@ namespace Cekirdekler
                                     {
                                         workers[0].computeRepeated(
                                             kernelNames[0], selectedGlobalReferences[0],
-                                            selectedGlobalRanges[0], this.localRange, computeId, numRepeats, enqueueMode);
+                                            selectedGlobalRanges[0], this.localRange, computeId, numRepeats, enqueueMode, (enqueueMode && enqueueModeAsyncEnable) ? workers[0].nextComputeQueue(enqueueModeAsyncQueueIndex) : null);
                                     }
                                     else
                                     {
                                         workers[0].computeRepeatedWithSyncKernel(
                                             kernelNames[0], selectedGlobalReferences[0],
-                                            selectedGlobalRanges[0], this.localRange, computeId, numRepeats, syncKernelName, enqueueMode);
+                                            selectedGlobalRanges[0], this.localRange, computeId, numRepeats, syncKernelName, enqueueMode, (enqueueMode && enqueueModeAsyncEnable) ? workers[0].nextComputeQueue(enqueueModeAsyncQueueIndex) : null);
                                     }
                                 }
                             }
                             else
+                            {
                                 for (int str = 0; str < kernelNames.Length; str++)
-                                    workers[0].compute(kernelNames[str], selectedGlobalReferences[0], selectedGlobalRanges[0], this.localRange, computeId, enqueueMode);
+                                {
+                                    
+                                        workers[0].compute(kernelNames[str], selectedGlobalReferences[0], selectedGlobalRanges[0], this.localRange, computeId, enqueueMode, (enqueueMode && enqueueModeAsyncEnable) ? workers[0].nextComputeQueue(enqueueModeAsyncQueueIndex) : null);
+                                }
+                            }
                         }
                     }
 
                     // sync
-
+                   
+                    
                     // write all device results to arrays
                     lock (workers[0])
                     {
                         if (selectedGlobalRanges[0] > 0)
                         {
-                            workers[0].readFromBuffer(arrs, selectedGlobalReferences[0], selectedGlobalRanges[0], computeId, readWrite, elementsPerWorkItem,0,1, enqueueMode);
+                            workers[0].readFromBuffer(arrs, selectedGlobalReferences[0], selectedGlobalRanges[0], computeId, readWrite, elementsPerWorkItem,0,1, enqueueMode, (enqueueMode && enqueueModeAsyncEnable)?workers[0].nextComputeQueue(enqueueModeAsyncQueueIndex):null);
 
                             if (!enqueueMode)
                                 workers[0].endBench(computeId);
 
+                            if (enqueueMode)
+                            {
+                                workers[0].numComputeQueueUsed[0]++;
+                            }
                         }
                     }
+
                 }
             }
 

@@ -55,6 +55,20 @@ namespace Cekirdekler
     /// </summary>
     public class ClNumberCruncher
     {
+
+
+        /// <summary>
+        /// <para>only for single gpu(or device to device pipeline stages)</para>
+        /// <para>used by enqueueMode to distribute each compute job to a different queue or not</para>
+        /// <para>true=distribute each compute to a different queue</para>
+        /// <para>false=use single queue for all jobs</para>
+        /// </summary>
+        public bool enqueueModeAsyncEnable
+        {
+            get { if (numberCruncher != null) return numberCruncher.enqueueModeAsyncEnable; else return false; }
+            set { if (numberCruncher != null) numberCruncher.enqueueModeAsyncEnable = value; }
+        }
+
         /// <summary>
         /// <para>true: no synchronization between host and device so "used arrays" shouldn't be accessed from host(or other devices). </para>
         /// <para>false: safe to access arrays from host(or other devices) side</para>

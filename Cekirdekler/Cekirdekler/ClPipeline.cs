@@ -2275,5 +2275,56 @@ namespace Cekirdekler
             }
 
         }
+
+        /// <summary>
+        /// <para>Not Implemented Yet</para>
+        /// <para>for running more kernels concurrently in same GPU</para>
+        /// <para>N command queues for N stages in same context and for single GPU</para>
+        /// <para>ovarlapping a stage is optional. non overlapped(serialized) stages will live in same command queue</para>
+        /// <para>to extort more performance out of a single gpu</para>
+        /// <para>first run will work serialized to prepare non-concurrent dictionaries, next runs will work concurrent</para>
+        /// <para>uses kernel name separation(not implemented yet) a##b##c##d to run a b c d concurrently, sets(after switching) all kernel arguments before that</para>
+        /// </summary>
+        namespace SingleGPUPipeline
+        {
+
+            /// <summary>
+            /// <para>Not Implemented Yet</para>
+            /// <para>a pipeline stage that uses double buffering to overlap its communication and computation</para>
+            /// <para>base class inherited by entry,internmediate,exit stages, can't be used directly</para>
+            /// <para> CPU->GPU means data flow from RAM to VRAM, GPU-GPU means just a buffer switch in GPU </para>
+            /// </summary>
+            public class DoubleBufferedStage
+            {
+                internal DoubleBufferedStage()
+                {
+
+                }
+            }
+
+            /// <summary>
+            /// entry stage of pipeline with double buffered inputs. overlaps CPU->GPU and GPU->compute
+            /// </summary>
+            public class DoubleBufferedEntry: DoubleBufferedStage
+            {
+
+            }
+
+            /// <summary>
+            /// an intermediate stage of pipeline between entry and exit stages. overlaps GPU->GPU and GPU->compute
+            /// </summary>
+            public class DoubleBufferedTransition: DoubleBufferedStage
+            {
+
+            }
+
+            /// <summary>
+            /// exit stage of pipeline that overlaps GPU->CPU and GPU->compute
+            /// </summary>
+            public class DoubleBufferedExit: DoubleBufferedStage
+            {
+
+            }
+        }
     }
 }
