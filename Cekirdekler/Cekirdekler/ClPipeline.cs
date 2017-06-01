@@ -45,19 +45,20 @@ namespace Cekirdekler
             /// pushes data(arrays) from entrance stage, returns true if exit stage has result data on its output(and its target arrays)
             /// </summary>
             /// <returns></returns>
-            public bool pushData(object [] data = null, object [] popResultsHere=null)
+            public bool pushData(object[] data = null, object[] popResultsHere = null)
             {
                 if (debug)
                 {
                     Console.WriteLine("Pipeline running.");
-                    if ((stages==null)||(stages.Length == 0))
+                    if ((stages == null) || (stages.Length == 0))
                     {
                         Console.WriteLine("Zero pipeline stages.");
                         return false;
                     }
                 }
 
-                Parallel.For(0, stages.Length*2, i => {
+                Parallel.For(0, stages.Length * 2, i =>
+                {
                     if (i < stages.Length)
                     {
                         for (int j = 0; j < stages[i].Length; j++)
@@ -67,7 +68,7 @@ namespace Cekirdekler
                             {
                                 lock (syncObj)
                                 {
-                                    Console.WriteLine("stage-"+i+"-"+j+" compute time: "+ stages[i][j].elapsedTime);
+                                    Console.WriteLine("stage-" + i + "-" + j + " compute time: " + stages[i][j].elapsedTime);
                                 }
                             }
                         }
@@ -77,12 +78,13 @@ namespace Cekirdekler
                         int k = i - stages.Length;
                         for (int j = 0; j < stages[k].Length; j++)
                         {
-                            stages[k][j].forwardResults(k,stages.Length-1,data,popResultsHere); // duplicate output(stage i) --> duplicate input(stage i+1)
+                            stages[k][j].forwardResults(k, stages.Length - 1, data, popResultsHere); // duplicate output(stage i) --> duplicate input(stage i+1)
                         }
                     }
                 });
 
-                Parallel.For(0, stages.Length, i => {
+                Parallel.For(0, stages.Length, i =>
+                {
                     for (int j = 0; j < stages[i].Length; j++)
                     {
                         if (data == null)
@@ -107,15 +109,15 @@ namespace Cekirdekler
                     }
                 });
 
-                
+
                 counter++;
                 if ((counter > (stages.Length * 2 - 2)) && (data == null) && (popResultsHere == null))
                     return true;
-                else if ( (counter > (stages.Length*2 - 1)) && (data != null) && (popResultsHere == null))
+                else if ((counter > (stages.Length * 2 - 1)) && (data != null) && (popResultsHere == null))
                     return true;
                 else if ((counter > (stages.Length * 2 - 1)) && (data == null) && (popResultsHere != null))
                     return true;
-                else if ((counter > (stages.Length*2)) && (data != null) && (popResultsHere != null))
+                else if ((counter > (stages.Length * 2)) && (data != null) && (popResultsHere != null))
                     return true;
 
                 return false;
@@ -127,12 +129,12 @@ namespace Cekirdekler
             /// <summary>
             /// only created by one of the stages that are bound together
             /// </summary>
-            internal ClPipeline(bool debugLog=false)
+            internal ClPipeline(bool debugLog = false)
             {
                 debug = debugLog;
                 counter = 0;
             }
-           
+
         }
 
         internal class KernelParameters
@@ -158,26 +160,26 @@ namespace Cekirdekler
             // just to inform push() of whole pipeline
             internal bool outputHasData = false;
 
-            internal ClPipelineStageBuffer[] inputBuffers; 
+            internal ClPipelineStageBuffer[] inputBuffers;
             internal List<ClPipelineStageBuffer> inputBuffersList;
 
-            internal ClPipelineStageBuffer[] outputBuffers; 
+            internal ClPipelineStageBuffer[] outputBuffers;
             internal List<ClPipelineStageBuffer> outputBuffersList;
 
             internal ClPipelineStageBuffer[] hiddenBuffers;
             internal List<ClPipelineStageBuffer> hiddenBuffersList;
 
-            internal Dictionary<string,  KernelParameters> kernelNameToParameters;
-            internal Dictionary<string,  KernelParameters> initKernelNameToParameters;
+            internal Dictionary<string, KernelParameters> kernelNameToParameters;
+            internal Dictionary<string, KernelParameters> initKernelNameToParameters;
             internal ClDevices devices;
 
-            internal string [] kernelNamesToRun;
+            internal string[] kernelNamesToRun;
             internal string kernelsToCompile;
 
             internal ClPipelineStage previousStage;
             internal ClPipelineStage[] nextStages;
             internal List<ClPipelineStage> nextStagesList;
-            internal static object syncObj=new object();
+            internal static object syncObj = new object();
             internal bool initComplete;
 
             private bool debug { get; set; }
@@ -185,7 +187,7 @@ namespace Cekirdekler
             /// <summary>
             /// creates a stage to form a pipeline with other stages
             /// </summary>
-            public ClPipelineStage(bool debugLog=false)
+            public ClPipelineStage(bool debugLog = false)
             {
                 enqueueMode = false;
                 initializerKernelNames = null;
@@ -212,7 +214,7 @@ namespace Cekirdekler
             /// runs kernels attached to this stage consecutively (one after another)
             /// </summary>
             /// <param name="initializerKernels">runs only the initializer kernels given by initializerKernel() method</param>
-            internal void run(bool initializerKernels=false)
+            internal void run(bool initializerKernels = false)
             {
                 if (timer == null)
                     timer = new Stopwatch();
@@ -225,7 +227,7 @@ namespace Cekirdekler
                     {
                         if (numberCruncher == null)
                         {
-                            numberCruncher = new ClNumberCruncher(devices, kernelsToCompile,true/* can't enable driver-pipelining but can have more device-pipeline-stages */);
+                            numberCruncher = new ClNumberCruncher(devices, kernelsToCompile, true/* can't enable driver-pipelining but can have more device-pipeline-stages */);
                             if (debug)
                             {
                                 numberCruncher.performanceFeed = true;
@@ -307,11 +309,11 @@ namespace Cekirdekler
                     Console.WriteLine("no buffer found.");
                 }
 
-                if(debug)
+                if (debug)
                 {
-                    Console.WriteLine("input start = "+inputStart);
-                    Console.WriteLine("hidden start = "+hiddenStart);
-                    Console.WriteLine("output start = "+outputStart);
+                    Console.WriteLine("input start = " + inputStart);
+                    Console.WriteLine("hidden start = " + hiddenStart);
+                    Console.WriteLine("output start = " + outputStart);
                 }
 
                 bool parameterStarted = false;
@@ -431,7 +433,7 @@ namespace Cekirdekler
                                             {
                                                 if ((arrs.Value == inputBuffers[j].buf) || (arrs.Value == inputBuffers[j].bufDuplicate))
                                                 {
-                                                    rd.Value = true; wr.Value = false;rp.Value = false;
+                                                    rd.Value = true; wr.Value = false; rp.Value = false;
                                                 }
                                                 rd = rd.Next; wr = wr.Next; arrs = arrs.Next; rp = rp.Next;
                                             }
@@ -569,8 +571,8 @@ namespace Cekirdekler
                             // normal run
                             if (moreThanOneParameter)
                             {
-                                
-                                bufferParameters.compute(numberCruncher, i*500 + 1,
+
+                                bufferParameters.compute(numberCruncher, i * 500 + 1,
                                     initializerKernelNames[i],
                                     initializerKernelGlobalRanges[i],
                                     initializerKernelLocalRanges[i]);
@@ -618,12 +620,12 @@ namespace Cekirdekler
             // index is current index to check against zero or maxIndex
             // if it is zero and if data is given, gets data to its input (duplicate one)
             // if it is maxIndex and if result is given, gets output to result
-            internal void forwardResults(int index,int maxIndex,object []data,object [] result)
+            internal void forwardResults(int index, int maxIndex, object[] data, object[] result)
             {
                 // has data to be pushed to duplicated input because real input is in use
-                if((index==0) && (data!=null))
+                if ((index == 0) && (data != null))
                 {
-                    if(data.Length!=inputBuffers.Length)
+                    if (data.Length != inputBuffers.Length)
                     {
                         Console.WriteLine("error: inconsistent number of input arrays and data arrays.");
                         // to do: add error code whenever error happened. Then don't run pipeline if error code is not zero
@@ -631,28 +633,28 @@ namespace Cekirdekler
                     }
 
                     // to do: if there are enough threads, can make this a parallel.for loop
-                    for(int i=0;i<data.Length;i++)
+                    for (int i = 0; i < data.Length; i++)
                     {
                         var asArray = data[i] as Array;
-                        if(asArray!=null)
+                        if (asArray != null)
                         {
                             // given element is a C# array(of float,int,..byte,struct)
-                            if(data[i].GetType()==typeof(float[]))
+                            if (data[i].GetType() == typeof(float[]))
                             {
-                                if(asArray.Length!=inputBuffers[i].bufDuplicate.arrayLength)
+                                if (asArray.Length != inputBuffers[i].bufDuplicate.arrayLength)
                                 {
                                     Console.WriteLine("error: inconsistent length of input arrays and length of data arrays.");
                                     return;
                                 }
 
-                                if(inputBuffers[i].eType!=ElementType.ELM_FLOAT)
+                                if (inputBuffers[i].eType != ElementType.ELM_FLOAT)
                                 {
                                     Console.WriteLine("error: inconsistent types of input and data arrays.");
                                     return;
                                 }
 
                                 var destination = inputBuffers[i].switchedBuffer() as ClArray<float>;
-                                destination.CopyFrom((float [])asArray, 0);
+                                destination.CopyFrom((float[])asArray, 0);
                             }
                             else if (data[i].GetType() == typeof(double[]))
                             {
@@ -762,7 +764,7 @@ namespace Cekirdekler
                         }
 
                         var asFastArray = data[i] as IMemoryHandle;
-                        if(asFastArray!=null)
+                        if (asFastArray != null)
                         {
                             if (data[i].GetType() == typeof(ClFloatArray))
                             {
@@ -1015,7 +1017,7 @@ namespace Cekirdekler
                 }
 
                 // has result arrays to be received data from duplicated outputs because real output is in use
-                if((index==maxIndex) && (result!=null))
+                if ((index == maxIndex) && (result != null))
                 {
                     // to do: convert to output version from this input version
                     // *******************************************************************************************
@@ -1427,18 +1429,18 @@ namespace Cekirdekler
                             // to do: if number of free threads greater than nextStages length, use parallel.for loop
                             for (int j = 0; j < nextStages.Length; j++)
                             {
-                                if(source.GetType()!=nextStages[j].inputBuffers[i].switchedBuffer().GetType())
+                                if (source.GetType() != nextStages[j].inputBuffers[i].switchedBuffer().GetType())
                                 {
                                     Console.WriteLine("error: output - input buffer type mismatch");
                                     return;
                                 }
 
-                                if(source.Length!= nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
+                                if (source.Length != nextStages[j].inputBuffers[i].bufDuplicate.arrayLength)
                                 {
                                     Console.WriteLine("error: output - input buffer length mismatch");
                                     return;
                                 }
-                                source.CopyTo((ClArray<float>)nextStages[j].inputBuffers[i].bufDuplicate,0);
+                                source.CopyTo((ClArray<float>)nextStages[j].inputBuffers[i].bufDuplicate, 0);
                             }
                         }
 
@@ -1585,18 +1587,18 @@ namespace Cekirdekler
                 int numberOfLayers = currentStage.findOutputStagesCount(1);
                 int currentOrder = 0;
                 if (debug)
-                    Console.WriteLine("Number of stages="+ numberOfLayers);
+                    Console.WriteLine("Number of stages=" + numberOfLayers);
 
                 ClPipelineStage[][] pipelineStages = new ClPipelineStage[numberOfLayers][];
                 // enumerate orders and add all stages as array elements for pipeline
 
-                for (int i=0;i<numberOfLayers;i++)
+                for (int i = 0; i < numberOfLayers; i++)
                 {
                     // currently supports only linear-horizontal bound stages, only 1 stage per layer, no parallel stages (yet)
                     currentStage.stageOrder = i;
                     pipelineStages[i] = new ClPipelineStage[1];
                     pipelineStages[i][0] = currentStage;
-                    if(i<numberOfLayers-1)
+                    if (i < numberOfLayers - 1)
                         currentStage = currentStage.nextStages[0];
                 }
 
@@ -1616,7 +1618,7 @@ namespace Cekirdekler
                         pipeline.stages[i][j].switchOutputBuffers();
                     }
                 }
-                    return pipeline;
+                return pipeline;
             }
 
             /// <summary>
@@ -1651,7 +1653,7 @@ namespace Cekirdekler
                             valuesToCompare[i] = currentStage.nextStages[i].findOutputStagesCount(startValue);
                         }
                         Array.Sort(valuesToCompare);
-                        return startValue+valuesToCompare[0];
+                        return startValue + valuesToCompare[0];
                     }
                     else
                         return startValue;
@@ -1662,9 +1664,9 @@ namespace Cekirdekler
 
             internal int stageOrder { get; set; }
 
-            internal string []initializerKernelNames { get; set; }
-            internal int []initializerKernelGlobalRanges { get; set; }
-            internal int []initializerKernelLocalRanges { get; set; }
+            internal string[] initializerKernelNames { get; set; }
+            internal int[] initializerKernelGlobalRanges { get; set; }
+            internal int[] initializerKernelLocalRanges { get; set; }
 
 
 
@@ -1672,23 +1674,23 @@ namespace Cekirdekler
             /// <para>kernel function name to run once before beginning, empty string = no initializing needed</para>
             /// <para></para>
             /// </summary>
-            public void initializerKernel(string initKernelNames, int[] globalRanges, int [] localRanges)
+            public void initializerKernel(string initKernelNames, int[] globalRanges, int[] localRanges)
             {
                 if (initKernelNames != null)
                     initializerKernelNames = initKernelNames.Split(new string[] { " ", ",", ";", "-", Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-                if ((initKernelNames == null)  || (globalRanges==null) || (localRanges==null) ||
+                if ((initKernelNames == null) || (globalRanges == null) || (localRanges == null) ||
                     (initializerKernelNames.Length != globalRanges.Length) || (initializerKernelNames.Length != localRanges.Length) || (localRanges.Length != globalRanges.Length))
                 {
                     initializerKernelNames = null;
                     Console.WriteLine("Warning: Number of initializer kernels and number of range values do not match or one of them is null. Initializer kernels will not run.");
                     return;
                 }
-                
-                
+
+
                 initializerKernelGlobalRanges = new int[globalRanges.Length];
                 initializerKernelLocalRanges = new int[localRanges.Length];
 
-                for (int i=0;i< initializerKernelGlobalRanges.Length;i++)
+                for (int i = 0; i < initializerKernelGlobalRanges.Length; i++)
                 {
                     initializerKernelGlobalRanges[i] = globalRanges[i];
                     initializerKernelLocalRanges[i] = localRanges[i];
@@ -1738,10 +1740,10 @@ namespace Cekirdekler
             /// <param name="kernelNames">names of kernels to be used(in the order they run)</param>
             /// <param name="globalRanges">total workitems per kernel name in kernelNames parameter</param>
             /// <param name="localRanges">workgroup workitems per kernel name in kernelNames parameter</param>
-            public void addKernels(string kernels, string kernelNames, int [] globalRanges, int[] localRanges)
+            public void addKernels(string kernels, string kernelNames, int[] globalRanges, int[] localRanges)
             {
                 kernelsToCompile = new StringBuilder(kernels).ToString();
-                kernelNamesToRun = kernelNames.Split(new string[] {" ",",",";","-",Environment.NewLine },StringSplitOptions.RemoveEmptyEntries);
+                kernelNamesToRun = kernelNames.Split(new string[] { " ", ",", ";", "-", Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
                 if (debug)
                 {
                     Console.WriteLine(kernelNamesToRun != null ? (kernelNamesToRun.Length > 0 ? kernelNamesToRun[0] : ("kernel name error: " + kernelNames)) : ("kernel name error: " + kernelNames));
@@ -1752,9 +1754,9 @@ namespace Cekirdekler
                         Console.WriteLine("number of local ranges is not equal to kernel names listed in \"kernels\" parameter ");
                 }
 
-                for (int i=0;i<kernelNamesToRun.Length;i++)
+                for (int i = 0; i < kernelNamesToRun.Length; i++)
                 {
-                    if(kernelNameToParameters.ContainsKey(kernelNamesToRun[i]))
+                    if (kernelNameToParameters.ContainsKey(kernelNamesToRun[i]))
                     {
 
                     }
@@ -1804,7 +1806,7 @@ namespace Cekirdekler
             /// <summary>
             /// input arrays (ClArray, ClByteArray, byte[], ... ) to be pushed by user or to be connect to another stage's output
             /// </summary>
-            public void addInputBuffers(params Array [] inputsParameter)
+            public void addInputBuffers(params Array[] inputsParameter)
             {
                 for (int i = 0; i < inputsParameter.Length; i++)
                     inputBuffersList.Add(new ClPipelineStageBuffer(inputsParameter[i]));
@@ -1817,7 +1819,7 @@ namespace Cekirdekler
             /// </summary>
             public void addInputBuffers(params IBufferOptimization[] inputsParameter)
             {
-                for(int i=0;i<inputsParameter.Length;i++)
+                for (int i = 0; i < inputsParameter.Length; i++)
                     inputBuffersList.Add(new ClPipelineStageBuffer(inputsParameter[i]));
 
                 inputBuffers = inputBuffersList.ToArray();
@@ -1872,9 +1874,9 @@ namespace Cekirdekler
 
 
 
-        internal enum ElementType:int
+        internal enum ElementType : int
         {
-            ELM_FLOAT=0, ELM_DOUBLE = 1, ELM_BYTE = 2, ELM_CHAR = 3, ELM_INT = 4, ELM_LONG = 5, ELM_UINT = 6, ELM_STRUCT = 7,
+            ELM_FLOAT = 0, ELM_DOUBLE = 1, ELM_BYTE = 2, ELM_CHAR = 3, ELM_INT = 4, ELM_LONG = 5, ELM_UINT = 6, ELM_STRUCT = 7,
         }
 
         /// <summary>
@@ -1904,7 +1906,8 @@ namespace Cekirdekler
             /// p: buffer to duplicate and double buffered in pipeline stages
             /// </summary>
             /// <param name="p"></param>
-            public  ClPipelineStageBuffer(object p)
+            /// <param name="duplicate"></param>
+            public ClPipelineStageBuffer(object p,bool duplicate=true)
             {
                 var bufAsArray = p as Array;
                 if (bufAsArray != null)
@@ -1979,11 +1982,11 @@ namespace Cekirdekler
                 var bufAsFastArr = p as IMemoryHandle;
                 if (bufAsFastArr != null)
                 {
-                    if(p.GetType()==typeof(ClByteArray))
+                    if (p.GetType() == typeof(ClByteArray))
                     {
                         eType = ElementType.ELM_BYTE;
                         bufByte = (ClByteArray)p;
-                        bufByteDuplicate = new ClArray<byte>(bufByte.Length,bufByte.alignmentBytes>0? bufByte.alignmentBytes:4096);
+                        bufByteDuplicate = new ClArray<byte>(bufByte.Length, bufByte.alignmentBytes > 0 ? bufByte.alignmentBytes : 4096);
                         buf = bufByte as IBufferOptimization;
                         bufDuplicate = bufByteDuplicate as IBufferOptimization;
                     }
@@ -2039,7 +2042,7 @@ namespace Cekirdekler
                 var bufAsClArray = p as IBufferOptimization;
                 if (bufAsClArray != null)
                 {
-                    if(p.GetType() == typeof(ClArray<byte>))
+                    if (p.GetType() == typeof(ClArray<byte>))
                     {
                         eType = ElementType.ELM_BYTE;
                         bufByte = (ClArray<byte>)p;
@@ -2059,7 +2062,7 @@ namespace Cekirdekler
                     }
                     else if (p.GetType() == typeof(ClArray<int>))
                     {
-                        eType = ElementType.ELM_INT; 
+                        eType = ElementType.ELM_INT;
                         bufInt = (ClArray<int>)p;
                         bufIntDuplicate = new ClArray<int>(bufInt.Length, bufInt.alignmentBytes > 0 ? bufInt.alignmentBytes : 4096);
                         bufIntDuplicate.numberOfElementsPerWorkItem = bufInt.numberOfElementsPerWorkItem;
@@ -2103,6 +2106,55 @@ namespace Cekirdekler
                         bufDuplicate = bufDoubleDuplicate as IBufferOptimization;
                     }
                 }
+
+                // to do: optimize this to not create unused buffers in first place
+                if(!duplicate)
+                {
+                    bufByteDuplicate = null;
+                    bufCharDuplicate = null;
+                    bufIntDuplicate = null;
+                    bufUIntDuplicate = null;
+                    bufLongDuplicate = null;
+                    bufFloatDuplicate = null;
+                    bufDoubleDuplicate = null;
+                    bufDuplicate = null;
+                }
+            }
+
+            internal void enableInput()
+            {
+                if(bufDuplicate!=null)
+                {
+                    bufDuplicate.read = true;
+                    bufDuplicate.partialRead = false;
+                }
+            }
+
+            internal void disableInput()
+            {
+                if (bufDuplicate != null)
+                {
+                    bufDuplicate.read = false;
+                    bufDuplicate.partialRead = false;
+                }
+            }
+
+            internal void enableOutput()
+            {
+                if (bufDuplicate != null)
+                {
+                    bufDuplicate.writeAll = true;
+                    bufDuplicate.write = true;
+                }
+            }
+
+            internal void disableOutput()
+            {
+                if (bufDuplicate != null)
+                {
+                    bufDuplicate.writeAll = false;
+                    bufDuplicate.write = false;
+                }
             }
 
             /// <summary>
@@ -2133,7 +2185,7 @@ namespace Cekirdekler
                 bufDoubleDuplicate = (ClArray<double>)tmp;
                 tmp = buf;
                 buf = bufDuplicate;
-                bufDuplicate =(IBufferOptimization) tmp;
+                bufDuplicate = (IBufferOptimization)tmp;
             }
 
             public int numberOfElementsPerWorkItem
@@ -2252,7 +2304,7 @@ namespace Cekirdekler
                     return null;
             }
 
-           
+
 
             public object switchedBuffer()
             {
@@ -2289,40 +2341,748 @@ namespace Cekirdekler
         {
 
             /// <summary>
-            /// <para>Not Implemented Yet</para>
-            /// <para>a pipeline stage that uses double buffering to overlap its communication and computation</para>
-            /// <para>base class inherited by entry,internmediate,exit stages, can't be used directly</para>
-            /// <para> CPU->GPU means data flow from RAM to VRAM, GPU-GPU means just a buffer switch in GPU </para>
+            /// N staged pipeline.
             /// </summary>
-            public class DoubleBufferedStage
+            public class DevicePipeline
             {
-                internal DoubleBufferedStage()
+                private bool serialMode { get; set; }
+                private List<DevicePipelineStage> stages { get; set; }
+                private string kernelCodesToCompile { get; set; }
+                private ClNumberCruncher cruncher { get; set; }
+                private ClDevices singleDevice { get; set; }
+                /// <summary>
+                /// N stages pipeline defined in a selected device
+                /// </summary>
+                /// <param name="selectedDevice"></param>
+                /// <param name="kernelCodesC99"></param>
+                public DevicePipeline(ClDevices selectedDevice,string kernelCodesC99)
+                {
+                    singleDevice = selectedDevice[0];
+                    stages = new List<DevicePipelineStage>();
+                    kernelCodesToCompile = new StringBuilder(kernelCodesC99).ToString();
+                    cruncher = null;
+                }
+
+                /// <summary>
+                /// add next stage at the end of current pipeline
+                /// </summary>
+                public void addStage(DevicePipelineStage stage)
+                {
+                    stages.Add(stage);
+                }
+
+                /// <summary>
+                /// <para>pushes data to entrance of pipeline, all stages run, pops results from end point
+                /// </para>
+                /// <param name="data">array of input parameters(arrays)</param>
+                /// </summary>
+                public void feed()
+                {
+                    if(cruncher==null)
+                    {
+                        cruncher = new ClNumberCruncher(singleDevice, kernelCodesToCompile);
+                    }
+                    cruncher.enqueueMode = true;
+
+                    if (serialMode)
+                    {
+                        for (int i = 0; i < stages.Count; i++)
+                        {
+                            stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < stages.Count; i++)
+                        {
+                            //if (stages[i].hasOutput)
+                            //{
+                            //    cruncher.enqueueModeAsyncEnable = true;
+                            //    cruncher.noComputeMode = true;
+                            //    stages[i].enableInput();
+                            //    stages[i].enableOutput();
+                            //    stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                            //    cruncher.noComputeMode = false;
+                            //    stages[i].switchIOBuffers();
+                            //    stages[i].disableInput();
+                            //    stages[i].disableOutput();
+                            //    cruncher.enqueueModeAsyncEnable = false;
+                            //}
+
+                            if (stages[i].hasInput || stages[i].hasOutput)
+                            {
+                                stages[i].disableInput();
+                                stages[i].disableOutput();
+                            }
+
+                            cruncher.enqueueModeAsyncEnable = true;
+                            stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                            cruncher.enqueueModeAsyncEnable = false;
+
+                            if (stages[i].hasInput || stages[i].hasOutput)
+                            {
+                                stages[i].switchIOBuffers();
+
+                                // to do: input - output is different
+                                cruncher.enqueueModeAsyncEnable = true;
+                                cruncher.noComputeMode = true;
+                                stages[i].enableInput();
+                                stages[i].enableOutput();
+                                stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                                cruncher.noComputeMode = false;
+
+                                cruncher.enqueueModeAsyncEnable = false;
+                            }
+
+                            if (stages[i].hasInput)
+                            {
+                                stages[i].copyInputDataToUnusedEntrance();
+                            }
+
+
+                            if (stages[i].hasOutput)
+                            {
+                                stages[i].copyOutputDataFromUnusedExit();
+                            }
+
+                            if (stages[i].hasInput || stages[i].hasOutput)
+                            {
+                                stages[i].switchIOBuffers();
+                            }
+
+
+
+                        }
+
+                        for (int i = 0; i < stages.Count; i++)
+                        {
+                            if (i % 2 == 0)
+                                stages[i].switchBuffers();
+
+                            if (stages[i].hasInput || stages[i].hasOutput)
+                            {
+                                stages[i].switchIOBuffers();
+                            }
+                        }
+                    }
+
+
+
+                    cruncher.enqueueMode = false;
+
+                }
+
+                /// <summary>
+                /// runs pipeline and executes a method given as parameter at the same time
+                /// </summary>
+                public void feedAsync(Delegate del)
+                {
+
+                }
+
+                /// <summary>
+                /// asynchronously starts enqueuing stages and synchronizes when feedAsyncEnd is called
+                /// </summary>
+                public void feedAsyncStart()
+                {
+
+                }
+
+                /// <summary>
+                /// synchronizes the work started with feedAsyncEnd on host side, blocks until it finishes
+                /// </summary>
+                public void feedAsyncEnd()
+                {
+
+                }
+
+                /// <summary>
+                /// disables multi queue usage, serializes all operations, disables double buffering, result is computed immediately and ready at outputs
+                /// </summary>
+                public void enableSerialMode()
+                {
+                    serialMode = true;
+                }
+
+
+                /// <summary>
+                /// enables multiple queues to compute all stages concurrently to maximize throughput with help of double buffering
+                /// </summary>
+                public void enableParallelMode()
+                {
+                    serialMode = false;
+                }
+
+                /// <summary>
+                /// runs a C# host method asynchronously to OpenCL kernel, saves time 
+                /// </summary>
+                public void asyncHostWork()
                 {
 
                 }
             }
 
             /// <summary>
-            /// entry stage of pipeline with double buffered inputs. overlaps CPU->GPU and GPU->compute
+            /// runs a kernel function at each pipeline feed() call using its inputs,outputs and internal arrays
             /// </summary>
-            public class DoubleBufferedEntry: DoubleBufferedStage
+            public class DevicePipelineStage
             {
 
+
+                internal void copyInputDataToUnusedEntrance()
+                {
+                    for (int i = 0; i < arrays.Count; i++)
+                    {
+                        if (arrays[i].type == DevicePipelineArrayType.INPUT)
+                        {
+                            IBufferOptimization destination = null;
+                            if (ioSwitchCounter % 2 == 0)
+                            {
+                                destination = buffers[i].bufDuplicate;
+                            }
+                            else
+                            {
+                                destination = buffersIODuplicates[i].bufDuplicate;
+
+                            }
+                            if (buffers[i].buf.GetType() == typeof(ClArray<float>))
+                            {
+                                var source = buffers[i].buf as ClArray<float>;
+                                source.CopyTo((ClArray<float>)destination, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<double>))
+                            {
+                                var source = buffers[i].buf as ClArray<double>;
+                                source.CopyTo((ClArray<double>)destination, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<byte>))
+                            {
+                                var source = buffers[i].buf as ClArray<byte>;
+                                source.CopyTo((ClArray<byte>)destination, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<char>))
+                            {
+                                var source = buffers[i].buf as ClArray<char>;
+                                source.CopyTo((ClArray<char>)destination, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<int>))
+                            {
+                                var source = buffers[i].buf as ClArray<int>;
+                                source.CopyTo((ClArray<int>)destination, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<uint>))
+                            {
+                                var source = buffers[i].buf as ClArray<uint>;
+                                source.CopyTo((ClArray<uint>)destination, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<long>))
+                            {
+                                var source = buffers[i].buf as ClArray<long>;
+                                source.CopyTo((ClArray<long>)destination, 0);
+                            }
+                        }
+                    }
+                }
+
+                internal void copyOutputDataFromUnusedExit()
+                {
+                    for (int i = 0; i < arrays.Count; i++)
+                    {
+                        if (arrays[i].type == DevicePipelineArrayType.OUTPUT)
+                        {
+                            IBufferOptimization source = null;
+                            if (ioSwitchCounter % 2 == 0)
+                            {
+                                source = buffersIODuplicates[i].bufDuplicate;
+                            }
+                            else
+                            {
+                                source = buffers[i].bufDuplicate;
+
+                            }
+                            if (buffers[i].buf.GetType() == typeof(ClArray<float>))
+                            {
+                                var destination = buffers[i].buf as ClArray<float>;
+                                destination.CopyFrom((ClArray<float>)source, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<double>))
+                            {
+                                var destination = buffers[i].buf as ClArray<double>;
+                                destination.CopyFrom((ClArray<double>)source, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<byte>))
+                            {
+                                var destination = buffers[i].buf as ClArray<byte>;
+                                destination.CopyFrom((ClArray<byte>)source, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<char>))
+                            {
+                                var destination = buffers[i].buf as ClArray<char>;
+                                destination.CopyFrom((ClArray<char>)source, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<int>))
+                            {
+                                var destination = buffers[i].buf as ClArray<int>;
+                                destination.CopyFrom((ClArray<int>)source, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<uint>))
+                            {
+                                var destination = buffers[i].buf as ClArray<uint>;
+                                destination.CopyFrom((ClArray<uint>)source, 0);
+                            }
+                            else if (buffers[i].buf.GetType() == typeof(ClArray<long>))
+                            {
+                                var destination = buffers[i].buf as ClArray<long>;
+                                destination.CopyFrom((ClArray<long>)source, 0);
+                            }
+                        }
+                    }
+                }
+
+                
+
+                /// <summary>
+                /// returns true if this stage has any input array
+                /// </summary>
+                public bool hasInput
+                {
+                    get
+                    {
+                        for (int i = 0; i < arrays.Count; i++)
+                        {
+                            if (arrays[i].type == DevicePipelineArrayType.INPUT)
+                                return true;
+                        }
+                        return false;
+                    }
+                }
+
+
+                /// <summary>
+                /// returns true if this stage has any output array
+                /// </summary>
+                public bool hasOutput
+                {
+                    get
+                    {
+                        for (int i = 0; i < arrays.Count; i++)
+                        {
+                            if (arrays[i].type == DevicePipelineArrayType.OUTPUT)
+                                return true;
+                        }
+                        return false;
+                    }
+                }
+
+                internal void enableOutput()
+                {
+                    for (int i = 0; i < arrays.Count; i++)
+                    {
+                        if (arrays[i].type == DevicePipelineArrayType.OUTPUT)
+                        {
+                            if (ioSwitchCounter % 2 == 0)
+                            {
+                                buffers[i].enableOutput();
+                            }
+                            else
+                            {
+                                buffersIODuplicates[i].enableOutput();
+                            }
+                        }
+                    }
+                }
+
+                internal void enableInput()
+                {
+                    for (int i = 0; i < arrays.Count; i++)
+                    {
+                        if (arrays[i].type == DevicePipelineArrayType.INPUT)
+                        {
+                            if(ioSwitchCounter%2==0)
+                            {
+                                buffers[i].enableInput();
+                            }
+                            else
+                            {
+                                buffersIODuplicates[i].enableInput();
+                            }
+                        }
+                    }
+                }
+
+
+                internal void disableOutput()
+                {
+                    for (int i = 0; i < arrays.Count; i++)
+                    {
+                        if (arrays[i].type == DevicePipelineArrayType.OUTPUT)
+                        {
+                            if (ioSwitchCounter % 2 == 0)
+                            {
+                                buffers[i].disableOutput();
+                            }
+                            else
+                            {
+                                buffersIODuplicates[i].disableOutput();
+                            }
+                        }
+                    }
+                }
+
+                internal void disableInput()
+                {
+                    for (int i = 0; i < arrays.Count; i++)
+                    {
+                        if (arrays[i].type == DevicePipelineArrayType.INPUT)
+                        {
+                            if (ioSwitchCounter % 2 == 0)
+                            {
+                                buffers[i].disableInput();
+                            }
+                            else
+                            {
+                                buffersIODuplicates[i].disableInput();
+                            }
+                        }
+                    }
+                }
+
+                private List<ClPipelineStageBuffer> buffers { get; set; }
+                private List<ClPipelineStageBuffer> buffersIODuplicates { get; set; }
+                private List<DevicePipelineArray> arrays { get; set; }
+                private int ioSwitchCounter { get; set; }
+                internal string kernelNames { get; set; }
+                internal int globalRange { get; set; }
+                internal int localRange { get; set; }
+                /// <summary>
+                /// runs kernel by name(s) with global-local workitem numbers
+                /// </summary>
+                /// <param name="kernelNames_"></param>
+                /// <param name="globalRange_"></param>
+                /// <param name="localRange_"></param>
+                public DevicePipelineStage(string kernelNames_, int globalRange_, int localRange_)
+                {
+                    ioSwitchCounter = 0;
+                    buffers = new List<ClPipelineStageBuffer>();
+                    buffersIODuplicates = new List<ClPipelineStageBuffer>();
+                    arrays = new List<DevicePipelineArray>();
+                    kernelNames = new StringBuilder(kernelNames_).ToString();
+                    globalRange = globalRange_;
+                    localRange = localRange_;
+                }
+
+                /// <summary>
+                /// <para>if there is single array, outputs it, if there are multiple array, returns ClParameterGroup</para>
+                /// <para>regroups in the same order they were added, to be used in compute() kernel parameters</para>
+                /// </summary>
+                /// <returns></returns>
+                internal ICanCompute regroupParameters()
+                {
+                    if(buffers.Count==1)
+                    {
+
+                        if (arrays[0].type == DevicePipelineArrayType.INPUT)
+                        {
+                            if (ioSwitchCounter % 2 == 0)
+                                return (ICanCompute)(buffers[0].bufDuplicate);
+                            else
+                                return (ICanCompute)(buffersIODuplicates[0].bufDuplicate);
+
+                        }
+                        else if(arrays[0].type == DevicePipelineArrayType.OUTPUT)
+                        {
+                            if (ioSwitchCounter % 2 == 0)
+                                return (ICanCompute)(buffers[0].bufDuplicate);
+                            else
+                                return (ICanCompute)(buffersIODuplicates[0].bufDuplicate);
+                        }
+                        else
+                        {
+                            return (ICanCompute)(buffers[0].buf);
+                        }
+                    }
+                    else if(buffers.Count>1)
+                    {
+                        ClParameterGroup gr = null;
+
+                        if ((arrays[0].type == DevicePipelineArrayType.INPUT) || (arrays[0].type == DevicePipelineArrayType.OUTPUT))
+                        {
+
+                            if ((arrays[1].type == DevicePipelineArrayType.INPUT) || (arrays[1].type == DevicePipelineArrayType.OUTPUT))
+                            {
+
+                                if (ioSwitchCounter % 2 == 0)
+                                {
+
+                                    gr = ((ICanBind)buffers[0].bufDuplicate).nextParam(buffers[1].bufDuplicate);
+                                }
+                                else
+                                {
+
+                                    gr = ((ICanBind)buffersIODuplicates[0].bufDuplicate).nextParam(buffersIODuplicates[1].bufDuplicate);
+                                }
+                            }
+                            else
+                            {
+
+                                if (ioSwitchCounter % 2 == 0)
+                                {
+
+                                    gr = ((ICanBind)buffers[0].bufDuplicate).nextParam(buffers[1].buf);
+                                }
+                                else
+                                {
+
+                                    gr = ((ICanBind)buffersIODuplicates[0].bufDuplicate).nextParam(buffers[1].buf);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if ((arrays[1].type == DevicePipelineArrayType.INPUT) || (arrays[1].type == DevicePipelineArrayType.OUTPUT))
+                            {
+                                if (ioSwitchCounter % 2 == 0)
+                                {
+                                    gr = ((ICanBind)buffers[0].buf).nextParam(buffers[1].bufDuplicate);
+                                }
+                                else
+                                {
+                                    gr = ((ICanBind)buffers[0].buf).nextParam(buffersIODuplicates[1].bufDuplicate);
+                                }
+                            }
+                            else
+                            {
+                                if (ioSwitchCounter % 2 == 0)
+                                {
+                                    gr = ((ICanBind)buffers[0].buf).nextParam(buffers[1].buf);
+                                }
+                                else
+                                {
+                                    gr = ((ICanBind)buffers[0].buf).nextParam(buffers[1].buf);
+                                }
+                            }
+                        }
+
+                        for (int i=2;i<buffers.Count;i++)
+                        {
+                            if (arrays[i].type == DevicePipelineArrayType.INPUT)
+                            {
+                                if(ioSwitchCounter%2==0)
+                                    gr = gr.nextParam(buffers[i].bufDuplicate);
+                                else
+                                    gr = gr.nextParam(buffersIODuplicates[i].bufDuplicate);
+
+
+                            }
+                            else if (arrays[i].type == DevicePipelineArrayType.OUTPUT)
+                            {
+                                if(ioSwitchCounter%2==0)
+                                    gr = gr.nextParam(buffers[i].bufDuplicate);
+                                else
+                                    gr = gr.nextParam(buffersIODuplicates[i].bufDuplicate);
+                            }
+                            else
+                            {
+                                gr = gr.nextParam(buffers[i].buf);
+                            }
+                        }
+                        return gr;
+                    }
+                    else
+                    {
+                        Console.WriteLine("error: no array in pipeline stage.");
+                        return null;
+                    }
+
+                }
+
+                /// <summary>
+                /// switches buffers with their duplicates()
+                /// </summary>
+                internal void switchBuffers()
+                {
+                    for (int i = 0; i < buffers.Count; i++)
+                    {
+                        if ((arrays[i].type != DevicePipelineArrayType.OUTPUT) && (arrays[i].type != DevicePipelineArrayType.INPUT))
+                        {
+                            // switch transition and internal can't switch
+                            if (buffers[i].bufDuplicate != null)
+                                buffers[i].switchBuffers();
+                        }
+                    }
+
+                }
+
+
+                internal void switchIOBuffers()
+                {
+                        ioSwitchCounter++;
+                }
+
+                
+
+                /// <summary>
+                /// <para> binds an input, output or internal array to be used by kernel</para>
+                /// <para> must be bound with the same order of kernel parameters</para>
+                /// </summary>
+                public void bindArray(DevicePipelineArray array_)
+                {
+                    ClPipelineStageBuffer newArray = null;
+                    ClPipelineStageBuffer newArray2 = null;
+                    if (array_.type == DevicePipelineArrayType.INPUT)
+                    {
+                        newArray = new ClPipelineStageBuffer(array_.array);
+                        newArray2 = new ClPipelineStageBuffer(array_.array);
+                        newArray.buf.readOnly = false;
+                        newArray.buf.read = false;
+                        newArray.buf.partialRead = false;
+                        newArray.buf.write = false;
+                        newArray.buf.writeAll = false;
+
+                        newArray.bufDuplicate.readOnly = true;
+                        newArray.bufDuplicate.read = true;
+                        newArray.bufDuplicate.partialRead = false;
+                        newArray.bufDuplicate.write = false;
+                        newArray.bufDuplicate.writeAll = false;
+
+                        newArray2.buf.readOnly = false;
+                        newArray2.buf.read = false;
+                        newArray2.buf.partialRead = false;
+                        newArray2.buf.write = false;
+                        newArray2.buf.writeAll = false;
+
+                        newArray2.bufDuplicate.readOnly = true;
+                        newArray2.bufDuplicate.read = true;
+                        newArray2.bufDuplicate.partialRead = false;
+                        newArray2.bufDuplicate.write = false;
+                        newArray2.bufDuplicate.writeAll = false;
+                    }
+                    else if(array_.type == DevicePipelineArrayType.OUTPUT)
+                    {
+                        newArray = new ClPipelineStageBuffer(array_.array);
+                        newArray2 = new ClPipelineStageBuffer(array_.array);
+                        newArray.buf.writeOnly = false;
+                        newArray.buf.read = false;
+                        newArray.buf.partialRead = false;
+                        newArray.buf.write = false;
+                        newArray.buf.writeAll = false;
+
+                        newArray.bufDuplicate.writeOnly = true;
+                        newArray.bufDuplicate.read = false;
+                        newArray.bufDuplicate.partialRead = false;
+                        newArray.bufDuplicate.write = true;
+                        newArray.bufDuplicate.writeAll = true;
+
+
+                        newArray2.buf.writeOnly = false;
+                        newArray2.buf.read = false;
+                        newArray2.buf.partialRead = false;
+                        newArray2.buf.write = false;
+                        newArray2.buf.writeAll = false;
+
+                        newArray2.bufDuplicate.writeOnly = true;
+                        newArray2.bufDuplicate.read = false;
+                        newArray2.bufDuplicate.partialRead = false;
+                        newArray2.bufDuplicate.write = true;
+                        newArray2.bufDuplicate.writeAll = true;
+                    }
+                    else if(array_.type == DevicePipelineArrayType.INTERNAL)
+                    {
+                        newArray = new ClPipelineStageBuffer(array_.array,false);
+                        newArray2 = new ClPipelineStageBuffer(array_.array,false);
+                        newArray.buf.read = false;
+                        newArray.buf.partialRead = false;
+                        newArray.buf.write = false;
+                        newArray.buf.writeAll = false;
+
+                        newArray2.buf.read = false;
+                        newArray2.buf.partialRead = false;
+                        newArray2.buf.write = false;
+                        newArray2.buf.writeAll = false;
+                    }
+                    else if (array_.type == DevicePipelineArrayType.TRANSITION)
+                    {
+                        newArray = new ClPipelineStageBuffer(array_.array);
+                        newArray2 = new ClPipelineStageBuffer(array_.array,false);
+                        newArray.buf.read = false;
+                        newArray.buf.partialRead = false;
+                        newArray.buf.write = false;
+                        newArray.buf.writeAll = false;
+
+                        newArray.bufDuplicate.read = false;
+                        newArray.bufDuplicate.partialRead = false;
+                        newArray.bufDuplicate.write = false;
+                        newArray.bufDuplicate.writeAll = false;
+
+
+                    }
+                    arrays.Add(array_);
+                    buffers.Add(newArray);
+                    buffersIODuplicates.Add(newArray2);
+                }
             }
 
             /// <summary>
-            /// an intermediate stage of pipeline between entry and exit stages. overlaps GPU->GPU and GPU->compute
+            /// <para>input: read-only from kernel, write-only from host (uses read, not partial read)</para>
+            /// <para>output: write-only from kernel, read-only from host (uses writeAll, not write)</para>
+            /// <para>internal: only kernel accesses data, not duplicated</para>
+            /// <para>transition: device side data flow between two stages</para>
+            /// <para>partial/full access behavior could be changed later (optionally) from ClArray instance directly</para>
             /// </summary>
-            public class DoubleBufferedTransition: DoubleBufferedStage
+            public enum DevicePipelineArrayType : int
             {
+                /// <summary>
+                /// <para>read-only for kernel, write-only for host, duplicated for double buffering</para>
+                /// <para>gets duplicated for double buffering for efficient communication</para>
+                /// </summary>
+                INPUT = 0,
 
+                /// <summary>
+                /// <para>write-only for kernel, read-only for host, duplicated for double buffering</para>
+                /// <para>gets duplicated for double buffering for efficient communication</para>
+                /// </summary>
+                OUTPUT = 1,
+
+                /// <summary>
+                /// <para>only accessed by a stage's own kernel</para>
+                /// <para>doesn't get duplicated for double buffering</para> 
+                /// <para>used for sequential logic or as  accumulators</para>
+                /// <para></para>
+                /// </summary>
+                INTERNAL = 2,
+
+                /// <summary>
+                /// <para>binds two stages being an output of first one and an input of second one. </para>
+                /// <para>gets duplicated for double buffering between two stages</para>
+                /// </summary>
+                TRANSITION = 3
             }
 
             /// <summary>
-            /// exit stage of pipeline that overlaps GPU->CPU and GPU->compute
+            /// pipeline stage arrays with behavior definition
             /// </summary>
-            public class DoubleBufferedExit: DoubleBufferedStage
+            public class DevicePipelineArray
             {
+                /// <summary>
+                /// purpose of array. internal=sequential logic, input + output = combinational logic
+                /// </summary>
+                public DevicePipelineArrayType type { get; set; }
+
+                /// <summary>
+                /// encapsulated array
+                /// </summary>
+                public object array { get; set; }
+
+                /// <summary>
+                /// creates a pipeline buffer to be double-buffered for overlapped transmissions and computations
+                /// </summary>
+                /// <param name="type_"></param>
+                /// <param name="array_">float[], byte[], ClArray, ClFloatArray, ClByteArray,...</param>
+                public DevicePipelineArray(DevicePipelineArrayType type_, object array_)
+                {
+                    type = type_;
+                    array = array_;
+                }
 
             }
         }

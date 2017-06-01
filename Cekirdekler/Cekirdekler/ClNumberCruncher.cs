@@ -58,6 +58,18 @@ namespace Cekirdekler
 
 
         /// <summary>
+        /// <para>just to upload/download data on GPU without any compute operation</para>
+        /// <para>specifically used for single gpu pipelining with enqueue mode for input-output stages overlapping</para>
+        /// <para>not for driver/event pipelining </para>
+        /// <para>with or without multiple gpus, it skips compute part and directly does data transmissions</para>
+        /// </summary>
+        public bool noComputeMode
+        {
+            get { if (numberCruncher != null) return numberCruncher.noComputeMode; else return false; }
+            set { if (numberCruncher != null) numberCruncher.noComputeMode = value; }
+        }
+
+        /// <summary>
         /// <para>only for single gpu(or device to device pipeline stages)</para>
         /// <para>used by enqueueMode to distribute each compute job to a different queue or not</para>
         /// <para>true=distribute each compute to a different queue</para>
