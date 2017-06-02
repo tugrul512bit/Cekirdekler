@@ -578,7 +578,7 @@ namespace Cekirdekler
                 for (int ar = 0; ar < arrs_.Length; ar++)
                 {
                     // if there is only "full read" or "full writes"s, no need to check number of elements. Simply whole array is copied
-                    if ((partialReads_[ar].Length != 0) || (writes_[ar].Length != 0)) // write is a full write, writeAll is not
+                    if ((partialReads_[ar].Length != 0) || ((writes_[ar].Length != 0) && (writeAlls_[ar].Length == 0))) // write is a full write, writeAll is not
                     {
                         if (lengths_[ar] < (globalRange * elemPerWorkItem_[ar]))
                         {
@@ -991,6 +991,8 @@ namespace Cekirdekler
                 clArray.isCSharpArr = false;
                 return clArray;
             }
+
+           
 
             // todo: float int double, ... can work too, with checked boundaries.
             /// <summary>
@@ -1557,7 +1559,7 @@ namespace Cekirdekler
                     }
                 }
                 // if there is only "full read" or "full writes" s, no need to check number of elements. Simply whole array is copied
-                if (partialRead || write)
+                if (partialRead || (write && !writeAll))
                 {
                     if (Length < (globalRange * numberOfElementsPerWorkItem))
                     {
@@ -1596,7 +1598,7 @@ namespace Cekirdekler
                 for (int ar = 0; ar < arrs_.Length; ar++)
                 {
                     // if there is only "full read" or "full write"s, no need to check number of elements. Simply whole array is copied
-                    if ((partialReads_[ar].Length != 0) || (writes_[ar].Length != 0))
+                    if ((partialReads_[ar].Length != 0) || ((writes_[ar].Length != 0) && (writeAlls_[ar].Length == 0)))
                     {
                         if (lengths_[ar] < (globalRange * elemsPerWorkItem_[ar]))
                         {
