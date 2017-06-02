@@ -1901,6 +1901,7 @@ namespace Cekirdekler
             private ClArray<uint> bufUInt;
             private ClArray<uint> bufUIntDuplicate;
             internal IBufferOptimization buf;
+            internal IBufferOptimization buf0;
             internal IBufferOptimization bufDuplicate;
             /// <summary>
             /// p: buffer to duplicate and double buffered in pipeline stages
@@ -2119,6 +2120,7 @@ namespace Cekirdekler
                     bufDoubleDuplicate = null;
                     bufDuplicate = null;
                 }
+                buf0 = buf;
             }
 
             internal void enableInput()
@@ -2157,35 +2159,49 @@ namespace Cekirdekler
                 }
             }
 
+            private int switchCounter = 0;
+
+            internal int debugSwitchCount()
+            {
+                if (buf == buf0)
+                    return 0;
+                else
+                    return 1;
+                return switchCounter;
+            }
+
             /// <summary>
             /// double buffering for pipelining(overlap pci-e reads and writes on all pci-e bridges)
             /// </summary>
             internal void switchBuffers()
             {
-                object tmp = bufByte;
-                bufByte = bufByteDuplicate;
-                bufByteDuplicate = (ClArray<byte>)tmp;
-                tmp = bufChar;
-                bufChar = bufCharDuplicate;
-                bufCharDuplicate = (ClArray<char>)tmp;
-                tmp = bufInt;
-                bufInt = bufIntDuplicate;
-                bufIntDuplicate = (ClArray<int>)tmp;
-                tmp = bufUInt;
-                bufUInt = bufUIntDuplicate;
-                bufUIntDuplicate = (ClArray<uint>)tmp;
-                tmp = bufLong;
-                bufLong = bufLongDuplicate;
-                bufLongDuplicate = (ClArray<long>)tmp;
-                tmp = bufFloat;
-                bufFloat = bufFloatDuplicate;
-                bufFloatDuplicate = (ClArray<float>)tmp;
-                tmp = bufDouble;
-                bufDouble = bufDoubleDuplicate;
-                bufDoubleDuplicate = (ClArray<double>)tmp;
-                tmp = buf;
-                buf = bufDuplicate;
-                bufDuplicate = (IBufferOptimization)tmp;
+                {
+                    switchCounter++;
+                    object tmp = bufByte;
+                    bufByte = bufByteDuplicate;
+                    bufByteDuplicate = (ClArray<byte>)tmp;
+                    tmp = bufChar;
+                    bufChar = bufCharDuplicate;
+                    bufCharDuplicate = (ClArray<char>)tmp;
+                    tmp = bufInt;
+                    bufInt = bufIntDuplicate;
+                    bufIntDuplicate = (ClArray<int>)tmp;
+                    tmp = bufUInt;
+                    bufUInt = bufUIntDuplicate;
+                    bufUIntDuplicate = (ClArray<uint>)tmp;
+                    tmp = bufLong;
+                    bufLong = bufLongDuplicate;
+                    bufLongDuplicate = (ClArray<long>)tmp;
+                    tmp = bufFloat;
+                    bufFloat = bufFloatDuplicate;
+                    bufFloatDuplicate = (ClArray<float>)tmp;
+                    tmp = bufDouble;
+                    bufDouble = bufDoubleDuplicate;
+                    bufDoubleDuplicate = (ClArray<double>)tmp;
+                    tmp = buf;
+                    buf = bufDuplicate;
+                    bufDuplicate = (IBufferOptimization)tmp;
+                }
             }
 
             public int numberOfElementsPerWorkItem
@@ -2369,7 +2385,22 @@ namespace Cekirdekler
                 public void addStage(DevicePipelineStage stage)
                 {
                     stages.Add(stage);
+                    if (stages.Count > 1)
+                    {
+                        for (int i = 0; i < stage.buffers.Count; i++)
+                        {
+                            for (int j = 0; j < stages[stages.Count - 2].buffers.Count; j++)
+                            {
+                                if (stage.buffers[i].buf == stages[stages.Count - 2].buffers[j].buf)
+                                {
+                                    stage.buffers[i].bufDuplicate = stages[stages.Count - 2].buffers[j].bufDuplicate;
+                                }
+                            }
+                        }
+                    }
                 }
+
+                private int runCounter { get; set; }
 
                 /// <summary>
                 /// <para>pushes data to entrance of pipeline, all stages run, pops results from end point
@@ -2378,98 +2409,105 @@ namespace Cekirdekler
                 /// </summary>
                 public void feed()
                 {
-                    if(cruncher==null)
+                    // to do: odd number of stages
+                    //        even number of stages
+                    //        single stage
+                    //        i-o in intermediate stages
+
+
+
+
+                    if (cruncher == null)
                     {
                         cruncher = new ClNumberCruncher(singleDevice, kernelCodesToCompile);
                     }
-                    cruncher.enqueueMode = true;
 
                     if (serialMode)
                     {
+
+                        //Console.WriteLine("*************************************");
+                        //    for (int i = 0; i < stages.Count; i++)
+                        //    {
+                        //          stages[i].debugBuffers();
+                        //    }
+                        //Console.WriteLine("*************************************");
+
+
                         for (int i = 0; i < stages.Count; i++)
                         {
+                            if (stages[i].hasInput)
+                            {
+                                stages[i].copyInputDataToUnusedEntrance();
+                            }
+                            cruncher.enqueueMode = true;
+
                             stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                            cruncher.enqueueMode = false;
+
+                            if (stages[i].hasOutput)
+                            {
+                                stages[i].copyOutputDataFromUnusedExit();
+                            }
                         }
+
                     }
                     else
                     {
+                        cruncher.enqueueMode = true;
+
+                        if (runCounter == 0)
+                        {
+                            for (int i = 0; i < stages.Count; i++)
+                            {
+                                if ((i % 2) == 0)
+                                    stages[i].switchBuffers();
+                            }
+                        }
+
                         for (int i = 0; i < stages.Count; i++)
                         {
-                            //if (stages[i].hasOutput)
-                            //{
-                            //    cruncher.enqueueModeAsyncEnable = true;
-                            //    cruncher.noComputeMode = true;
-                            //    stages[i].enableInput();
-                            //    stages[i].enableOutput();
-                            //    stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
-                            //    cruncher.noComputeMode = false;
-                            //    stages[i].switchIOBuffers();
-                            //    stages[i].disableInput();
-                            //    stages[i].disableOutput();
-                            //    cruncher.enqueueModeAsyncEnable = false;
-                            //}
+                            // stages[i].debugBuffers();
 
                             if (stages[i].hasInput || stages[i].hasOutput)
                             {
-                                stages[i].disableInput();
-                                stages[i].disableOutput();
-                            }
-
-                            cruncher.enqueueModeAsyncEnable = true;
-                            stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
-                            cruncher.enqueueModeAsyncEnable = false;
-
-                            if (stages[i].hasInput || stages[i].hasOutput)
-                            {
-                                stages[i].switchIOBuffers();
-
-                                // to do: input - output is different
                                 cruncher.enqueueModeAsyncEnable = true;
                                 cruncher.noComputeMode = true;
                                 stages[i].enableInput();
                                 stages[i].enableOutput();
                                 stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
                                 cruncher.noComputeMode = false;
-
+                                stages[i].switchIOBuffers();
+                                stages[i].disableInput();
+                                stages[i].disableOutput();
                                 cruncher.enqueueModeAsyncEnable = false;
                             }
+
+                            cruncher.enqueueModeAsyncEnable = true;
+                            stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                            cruncher.enqueueModeAsyncEnable = false;
 
                             if (stages[i].hasInput)
                             {
                                 stages[i].copyInputDataToUnusedEntrance();
                             }
 
-
                             if (stages[i].hasOutput)
                             {
                                 stages[i].copyOutputDataFromUnusedExit();
                             }
-
-                            if (stages[i].hasInput || stages[i].hasOutput)
-                            {
-                                stages[i].switchIOBuffers();
-                            }
-
-
-
                         }
+
 
                         for (int i = 0; i < stages.Count; i++)
                         {
-                            if (i % 2 == 0)
-                                stages[i].switchBuffers();
-
-                            if (stages[i].hasInput || stages[i].hasOutput)
-                            {
-                                stages[i].switchIOBuffers();
-                            }
+                            stages[i].switchBuffers();
                         }
+                        cruncher.enqueueMode = false;
                     }
 
 
 
-                    cruncher.enqueueMode = false;
-
+                    runCounter++;
                 }
 
                 /// <summary>
@@ -2527,7 +2565,19 @@ namespace Cekirdekler
             /// </summary>
             public class DevicePipelineStage
             {
+                internal void debugBuffers()
+                {
+                    Console.WriteLine("--------------------------");
 
+                    for (int i = 0; i < arrays.Count; i++)
+                    {
+                        if((arrays[i].type != DevicePipelineArrayType.INPUT) && (arrays[i].type != DevicePipelineArrayType.OUTPUT))
+                        {
+                            Console.WriteLine(buffers[i].debugSwitchCount()%2);
+                        }
+                    }
+                    Console.WriteLine("--------------------------");
+                }
 
                 internal void copyInputDataToUnusedEntrance()
                 {
@@ -2536,7 +2586,7 @@ namespace Cekirdekler
                         if (arrays[i].type == DevicePipelineArrayType.INPUT)
                         {
                             IBufferOptimization destination = null;
-                            if (ioSwitchCounter % 2 == 0)
+                            if (ioSwitchCounter % 2 ==0)
                             {
                                 destination = buffers[i].bufDuplicate;
                             }
@@ -2593,11 +2643,11 @@ namespace Cekirdekler
                             IBufferOptimization source = null;
                             if (ioSwitchCounter % 2 == 0)
                             {
-                                source = buffersIODuplicates[i].bufDuplicate;
+                                source = buffers[i].bufDuplicate;
                             }
                             else
                             {
-                                source = buffers[i].bufDuplicate;
+                                source = buffersIODuplicates[i].bufDuplicate;
 
                             }
                             if (buffers[i].buf.GetType() == typeof(ClArray<float>))
@@ -2680,14 +2730,8 @@ namespace Cekirdekler
                     {
                         if (arrays[i].type == DevicePipelineArrayType.OUTPUT)
                         {
-                            if (ioSwitchCounter % 2 == 0)
-                            {
                                 buffers[i].enableOutput();
-                            }
-                            else
-                            {
                                 buffersIODuplicates[i].enableOutput();
-                            }
                         }
                     }
                 }
@@ -2698,14 +2742,8 @@ namespace Cekirdekler
                     {
                         if (arrays[i].type == DevicePipelineArrayType.INPUT)
                         {
-                            if(ioSwitchCounter%2==0)
-                            {
                                 buffers[i].enableInput();
-                            }
-                            else
-                            {
                                 buffersIODuplicates[i].enableInput();
-                            }
                         }
                     }
                 }
@@ -2717,14 +2755,8 @@ namespace Cekirdekler
                     {
                         if (arrays[i].type == DevicePipelineArrayType.OUTPUT)
                         {
-                            if (ioSwitchCounter % 2 == 0)
-                            {
                                 buffers[i].disableOutput();
-                            }
-                            else
-                            {
                                 buffersIODuplicates[i].disableOutput();
-                            }
                         }
                     }
                 }
@@ -2735,21 +2767,15 @@ namespace Cekirdekler
                     {
                         if (arrays[i].type == DevicePipelineArrayType.INPUT)
                         {
-                            if (ioSwitchCounter % 2 == 0)
-                            {
                                 buffers[i].disableInput();
-                            }
-                            else
-                            {
                                 buffersIODuplicates[i].disableInput();
-                            }
                         }
                     }
                 }
 
-                private List<ClPipelineStageBuffer> buffers { get; set; }
+                internal List<ClPipelineStageBuffer> buffers { get; set; }
                 private List<ClPipelineStageBuffer> buffersIODuplicates { get; set; }
-                private List<DevicePipelineArray> arrays { get; set; }
+                internal List<DevicePipelineArray> arrays { get; set; }
                 private int ioSwitchCounter { get; set; }
                 internal string kernelNames { get; set; }
                 internal int globalRange { get; set; }
@@ -2804,7 +2830,6 @@ namespace Cekirdekler
                     else if(buffers.Count>1)
                     {
                         ClParameterGroup gr = null;
-
                         if ((arrays[0].type == DevicePipelineArrayType.INPUT) || (arrays[0].type == DevicePipelineArrayType.OUTPUT))
                         {
 
@@ -2896,6 +2921,7 @@ namespace Cekirdekler
 
                 }
 
+
                 /// <summary>
                 /// switches buffers with their duplicates()
                 /// </summary>
@@ -2907,12 +2933,14 @@ namespace Cekirdekler
                         {
                             // switch transition and internal can't switch
                             if (buffers[i].bufDuplicate != null)
-                                buffers[i].switchBuffers();
+                            {
+                                    buffers[i].switchBuffers();
+                            }
                         }
                     }
 
                 }
-
+                
 
                 internal void switchIOBuffers()
                 {
@@ -2927,6 +2955,9 @@ namespace Cekirdekler
                 /// </summary>
                 public void bindArray(DevicePipelineArray array_)
                 {
+                    // to do: if previous stage array is same, use its duplicate instead of creating a new duplicate
+                    // 3x arrays are created for even the transition buffers
+
                     ClPipelineStageBuffer newArray = null;
                     ClPipelineStageBuffer newArray2 = null;
                     if (array_.type == DevicePipelineArrayType.INPUT)
