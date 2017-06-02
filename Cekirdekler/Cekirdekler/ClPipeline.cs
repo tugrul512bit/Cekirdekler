@@ -2408,7 +2408,8 @@ namespace Cekirdekler
                     {
                         if (stages[i].hasInput)
                         {
-                            stages[i].copyInputDataToUnusedEntrance();
+                            if(!stages[i].stopHostDeviceTransmission)
+                                stages[i].copyInputDataToUnusedEntrance();
                         }
                     }
                 }
@@ -2419,7 +2420,8 @@ namespace Cekirdekler
                     {
                         if (stages[i].hasOutput)
                         {
-                            stages[i].copyOutputDataFromUnusedExit();
+                            if(!stages[i].stopHostDeviceTransmission)
+                                stages[i].copyOutputDataFromUnusedExit();
                         }
                     }
                 }
@@ -2448,7 +2450,7 @@ namespace Cekirdekler
                         for (int i = 0; i < stages.Count; i++)
                         {
 
-                            if (stages[i].hasInput || stages[i].hasOutput)
+                            if ((stages[i].hasInput || stages[i].hasOutput) && !stages[i].stopHostDeviceTransmission)
                             {
                                 cruncher.enqueueModeAsyncEnable = true;
                                 cruncher.noComputeMode = true;
@@ -2596,6 +2598,15 @@ namespace Cekirdekler
             /// </summary>
             public class DevicePipelineStage
             {
+                /// <summary>
+                /// <para> when set, this makes pipeline skip any future buffer read/write operations from host to device and device to host</para>
+                /// <para> only for this pipeline stage instance </para>
+                /// </summary>
+                public bool stopHostDeviceTransmission
+                {
+                    get;set;
+                }
+
                 internal void debugBuffers()
                 {
                     Console.WriteLine("--------------------------");
