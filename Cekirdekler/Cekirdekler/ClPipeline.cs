@@ -2393,6 +2393,7 @@ namespace Cekirdekler
                             {
                                 if (stage.buffers[i].buf == stages[stages.Count - 2].buffers[j].buf)
                                 {
+                                    // to do: if buf has zeroCopy and similar flags set, bufDuplicate should get it too
                                     stage.buffers[i].bufDuplicate = stages[stages.Count - 2].buffers[j].bufDuplicate;
                                 }
                             }
@@ -2401,59 +2402,39 @@ namespace Cekirdekler
                 }
 
                 private int runCounter { get; set; }
-
-                /// <summary>
-                /// <para>pushes data to entrance of pipeline, all stages run, pops results from end point
-                /// </para>
-                /// <param name="data">array of input parameters(arrays)</param>
-                /// </summary>
-                public void feed()
+                private void serialI()
                 {
-                    // to do: odd number of stages
-                    //        even number of stages
-                    //        single stage
-                    //        i-o in intermediate stages
-
-
-
-
-                    if (cruncher == null)
+                    for (int i = 0; i < stages.Count; i++)
                     {
-                        cruncher = new ClNumberCruncher(singleDevice, kernelCodesToCompile);
-                    }
-
-                    if (serialMode)
-                    {
-
-                        //Console.WriteLine("*************************************");
-                        //    for (int i = 0; i < stages.Count; i++)
-                        //    {
-                        //          stages[i].debugBuffers();
-                        //    }
-                        //Console.WriteLine("*************************************");
-
-
-                        for (int i = 0; i < stages.Count; i++)
+                        if (stages[i].hasInput)
                         {
-                            if (stages[i].hasInput)
-                            {
-                                stages[i].copyInputDataToUnusedEntrance();
-                            }
-                            cruncher.enqueueMode = true;
-
-                            stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
-                            cruncher.enqueueMode = false;
-
-                            if (stages[i].hasOutput)
-                            {
-                                stages[i].copyOutputDataFromUnusedExit();
-                            }
+                            stages[i].copyInputDataToUnusedEntrance();
                         }
-
                     }
-                    else
+                }
+
+                private void serialO()
+                {
+                    for (int i = 0; i < stages.Count; i++)
                     {
-                        cruncher.enqueueMode = true;
+                        if (stages[i].hasOutput)
+                        {
+                            stages[i].copyOutputDataFromUnusedExit();
+                        }
+                    }
+                }
+
+                private void feedSerial()
+                {
+                    for (int i = 0; i < stages.Count; i++)
+                    {
+                        stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                    }
+                }
+
+                private void feedParallel()
+                {
+                    
 
                         if (runCounter == 0)
                         {
@@ -2466,7 +2447,6 @@ namespace Cekirdekler
 
                         for (int i = 0; i < stages.Count; i++)
                         {
-                            // stages[i].debugBuffers();
 
                             if (stages[i].hasInput || stages[i].hasOutput)
                             {
@@ -2502,12 +2482,45 @@ namespace Cekirdekler
                         {
                             stages[i].switchBuffers();
                         }
-                        cruncher.enqueueMode = false;
+                    
+                }
+
+                private void feedBegin()
+                {
+
+                    if (cruncher == null)
+                    {
+                        cruncher = new ClNumberCruncher(singleDevice, kernelCodesToCompile);
                     }
+                    if (!serialMode)
+                        cruncher.enqueueMode = true;
 
+                }
 
-
+                private void feedEnd()
+                {
+                    if(!serialMode)
+                        cruncher.enqueueMode = false;
                     runCounter++;
+                }
+
+                /// <summary>
+                /// <para>pushes data to entrance of pipeline, all stages run, pops results from end point
+                /// </para>
+                /// <param name="data">array of input parameters(arrays)</param>
+                /// </summary>
+                public void feed()
+                {
+                    if (serialMode)
+                        serialI();
+                    feedBegin();
+                    if (serialMode)
+                        feedSerial();
+                    else
+                        feedParallel();
+                    feedEnd();
+                    if (serialMode)
+                        serialO();
                 }
 
                 /// <summary>
@@ -2515,13 +2528,23 @@ namespace Cekirdekler
                 /// </summary>
                 public void feedAsync(Delegate del)
                 {
-
+                    if (serialMode)
+                        serialI();
+                    feedBegin();
+                    if (serialMode)
+                        feedSerial();
+                    else
+                        feedParallel();
+                    del.DynamicInvoke();
+                    feedEnd();
+                    if (serialMode)
+                        serialO();
                 }
 
                 /// <summary>
                 /// asynchronously starts enqueuing stages and synchronizes when feedAsyncEnd is called
                 /// </summary>
-                public void feedAsyncStart()
+                public void feedAsyncBegin()
                 {
 
                 }
