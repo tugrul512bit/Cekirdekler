@@ -2546,7 +2546,13 @@ namespace Cekirdekler
                 /// </summary>
                 public void feedAsyncBegin()
                 {
-
+                    if (serialMode)
+                        serialI();
+                    feedBegin();
+                    if (serialMode)
+                        feedSerial();
+                    else
+                        feedParallel();
                 }
 
                 /// <summary>
@@ -2554,7 +2560,9 @@ namespace Cekirdekler
                 /// </summary>
                 public void feedAsyncEnd()
                 {
-
+                    feedEnd();
+                    if (serialMode)
+                        serialO();
                 }
 
                 /// <summary>
