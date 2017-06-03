@@ -2430,7 +2430,24 @@ namespace Cekirdekler
                 {
                     for (int i = 0; i < stages.Count; i++)
                     {
+                        if ((stages[i].hasInput) && !stages[i].stopHostDeviceTransmission)
+                        {
+                            cruncher.noComputeMode = true;
+                            stages[i].enableInput();
+                            stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                            cruncher.noComputeMode = false;
+                            stages[i].disableInput();
+                        }
                         stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                        if ((stages[i].hasOutput) && !stages[i].stopHostDeviceTransmission)
+                        {
+                            cruncher.noComputeMode = true;
+                            stages[i].enableOutput();
+                            stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                            cruncher.noComputeMode = false;
+                            stages[i].disableOutput();
+                        }
+
                     }
                 }
 
