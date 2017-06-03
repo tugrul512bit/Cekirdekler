@@ -275,7 +275,8 @@ namespace Cekirdekler
         /// <param name="devicesForGPGPU">one or more devices for GPGPU</param>
         /// <param name="kernelString">something like: @"multi-line C# string that has multiple kernel definitions"</param>
         /// <param name="noPipelining">disables extra command queue allocation, can't enable driver-driven pipelining later. Useful for device to device pipelining with many stages.</param>
-        public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,bool noPipelining=false)
+        /// <param name="computeQueueConcurrency">max number of command queues to send commands asynchronously, max=16, min=1</param>
+        public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,bool noPipelining=false,int computeQueueConcurrency=16)
         {
             repeatCount = 1;
             numberOfErrorsHappened = 0;
@@ -298,7 +299,7 @@ namespace Cekirdekler
                 errorNotification = 1;
                 return;
             }
-            numberCruncher = new Cores(devicesForGPGPU, kernelString, kernelNames_.ToArray(), noPipelining);
+            numberCruncher = new Cores(devicesForGPGPU, kernelString, kernelNames_.ToArray(), computeQueueConcurrency, noPipelining);
             if (numberCruncher.errorCode() != 0)
             {
                 errorMessage_ = numberCruncher.errorMessage();

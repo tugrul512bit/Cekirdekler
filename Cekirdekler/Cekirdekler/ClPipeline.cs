@@ -2366,13 +2366,16 @@ namespace Cekirdekler
                 private string kernelCodesToCompile { get; set; }
                 private ClNumberCruncher cruncher { get; set; }
                 private ClDevices singleDevice { get; set; }
+                private int currentComputeQueueConcurrency{get;set;}
                 /// <summary>
                 /// N stages pipeline defined in a selected device
                 /// </summary>
                 /// <param name="selectedDevice"></param>
                 /// <param name="kernelCodesC99"></param>
-                public DevicePipeline(ClDevices selectedDevice,string kernelCodesC99)
+                /// <param name="computeQueueConcurrency">max number of command queues to use asynchronously. max=16, min=1</param>
+                public DevicePipeline(ClDevices selectedDevice,string kernelCodesC99,int computeQueueConcurrency=16)
                 {
+                    currentComputeQueueConcurrency = computeQueueConcurrency;
                     singleDevice = selectedDevice[0];
                     stages = new List<DevicePipelineStage>();
                     kernelCodesToCompile = new StringBuilder(kernelCodesC99).ToString();
@@ -2492,19 +2495,23 @@ namespace Cekirdekler
                         cruncher.flush();
                         cruncher.enqueueModeAsyncEnable = false;
 
-                        if (stages[i].hasInput)
-                        {
-                            stages[i].copyInputDataToUnusedEntrance();
-                        }
 
-                        if (stages[i].hasOutput)
-                        {
-                            stages[i].copyOutputDataFromUnusedExit();
-                        }
 
 
                     }
 
+                    Parallel.For(0, stages.Count, i => {
+                        if (stages[i].hasInput && !stages[i].stopHostDeviceTransmission)
+                        {
+                            stages[i].copyInputDataToUnusedEntrance();
+                        }
+
+                        if (stages[i].hasOutput && !stages[i].stopHostDeviceTransmission)
+                        {
+                            stages[i].copyOutputDataFromUnusedExit();
+                        }
+                    });
+                    
 
                     for (int i = 0; i < stages.Count; i++)
                     {
@@ -2518,7 +2525,7 @@ namespace Cekirdekler
 
                     if (cruncher == null)
                     {
-                        cruncher = new ClNumberCruncher(singleDevice, kernelCodesToCompile);
+                        cruncher = new ClNumberCruncher(singleDevice, kernelCodesToCompile,false, currentComputeQueueConcurrency);
                     }
                     if (!serialMode)
                         cruncher.enqueueMode = true;

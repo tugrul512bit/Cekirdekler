@@ -206,8 +206,9 @@ namespace ClObject
         /// <param name="kernels_">string wrapper containing all kernels</param>
         /// <param name="kernelNames_">names of kernels to be compiled on this device</param>
         /// <param name="noPipelining">if enabled, does not allocate multiple command queues(driver-driven pipelining can't be enabled). Useful for device-to-device pipelining with many stages(to overcome abundant resource usages)</param>
-        public Worker(ClDevice device_, ClString kernels_, ClString[] kernelNames_, bool noPipelining = false)
+        public Worker(ClDevice device_, ClString kernels_, ClString[] kernelNames_, int computeQueueConcurrencyParameter=16, bool noPipelining = false)
         {
+            computeQueueConcurrency = computeQueueConcurrencyParameter;
             {
                 programAndKernelErrorCode = 0;
                 device = device_;
@@ -330,9 +331,10 @@ namespace ClObject
             return lastUsedCQ;
         }
 
+        internal int computeQueueConcurrency { get; set; }
         internal ClCommandQueue nextComputeQueue(int indexCounter)
         {
-            switch (indexCounter % 16)
+            switch (indexCounter % (((computeQueueConcurrency>16)||(computeQueueConcurrency < 1))?16: computeQueueConcurrency))
             {
                 case 0:numComputeQueueUsed[0]++; lastUsedCQ = commandQueue;  return commandQueue;
                 case 1:numComputeQueueUsed[1]++;   lastUsedCQ = commandQueue2; return commandQueue2;
