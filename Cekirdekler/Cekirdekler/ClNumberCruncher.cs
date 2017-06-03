@@ -69,6 +69,11 @@ namespace Cekirdekler
             set { if (numberCruncher != null) numberCruncher.noComputeMode = value; }
         }
 
+        internal void flush()
+        {
+           ClObject.Worker.flush( numberCruncher.lastUsedCommandQueueOfFirstDevice().h());
+        }
+
         /// <summary>
         /// <para>only for single gpu(or device to device pipeline stages)</para>
         /// <para>used by enqueueMode to distribute each compute job to a different queue or not</para>

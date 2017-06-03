@@ -265,6 +265,12 @@ namespace Cekirdekler
             }
         }
 
+
+        internal ClCommandQueue lastUsedCommandQueueOfFirstDevice()
+        {
+            return workers[0].lastUsedComputeQueue();
+        }
+
         /// <summary>
         /// Main class for scheduling device queues and controlling work distributions
         /// </summary>

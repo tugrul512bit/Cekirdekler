@@ -2379,6 +2379,8 @@ namespace Cekirdekler
                     cruncher = null;
                 }
 
+
+
                 /// <summary>
                 /// add next stage at the end of current pipeline
                 /// </summary>
@@ -2428,6 +2430,7 @@ namespace Cekirdekler
 
                 private void feedSerial()
                 {
+                    cruncher.enqueueMode = true;
                     for (int i = 0; i < stages.Count; i++)
                     {
                         if ((stages[i].hasInput) && !stages[i].stopHostDeviceTransmission)
@@ -2449,59 +2452,65 @@ namespace Cekirdekler
                         }
 
                     }
+                    cruncher.enqueueMode = false;
                 }
 
                 private void feedParallel()
                 {
-                    
 
-                        if (runCounter == 0)
-                        {
-                            for (int i = 0; i < stages.Count; i++)
-                            {
-                                if ((i % 2) == 0)
-                                    stages[i].switchBuffers();
-                            }
-                        }
 
+                    if (runCounter == 0)
+                    {
                         for (int i = 0; i < stages.Count; i++)
                         {
+                            if ((i % 2) == 0)
+                                stages[i].switchBuffers();
+                        }
+                    }
 
-                            if ((stages[i].hasInput || stages[i].hasOutput) && !stages[i].stopHostDeviceTransmission)
-                            {
-                                cruncher.enqueueModeAsyncEnable = true;
-                                cruncher.noComputeMode = true;
-                                stages[i].enableInput();
-                                stages[i].enableOutput();
-                                stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
-                                cruncher.noComputeMode = false;
-                                stages[i].switchIOBuffers();
-                                stages[i].disableInput();
-                                stages[i].disableOutput();
-                                cruncher.enqueueModeAsyncEnable = false;
-                            }
+                    for (int i = 0; i < stages.Count; i++)
+                    {
 
+                        if ((stages[i].hasInput || stages[i].hasOutput) && !stages[i].stopHostDeviceTransmission)
+                        {
                             cruncher.enqueueModeAsyncEnable = true;
+                            cruncher.noComputeMode = true;
+                            stages[i].enableInput();
+                            stages[i].enableOutput();
                             stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                            cruncher.noComputeMode = false;
+                            stages[i].switchIOBuffers();
+                            stages[i].disableInput();
+                            stages[i].disableOutput();
+                            cruncher.flush();
                             cruncher.enqueueModeAsyncEnable = false;
 
-                            if (stages[i].hasInput)
-                            {
-                                stages[i].copyInputDataToUnusedEntrance();
-                            }
-
-                            if (stages[i].hasOutput)
-                            {
-                                stages[i].copyOutputDataFromUnusedExit();
-                            }
                         }
 
+                        cruncher.enqueueModeAsyncEnable = true;
+                        stages[i].regroupParameters().compute(cruncher, i, stages[i].kernelNames, stages[i].globalRange, stages[i].localRange);
+                        cruncher.flush();
+                        cruncher.enqueueModeAsyncEnable = false;
 
-                        for (int i = 0; i < stages.Count; i++)
+                        if (stages[i].hasInput)
                         {
-                            stages[i].switchBuffers();
+                            stages[i].copyInputDataToUnusedEntrance();
                         }
-                    
+
+                        if (stages[i].hasOutput)
+                        {
+                            stages[i].copyOutputDataFromUnusedExit();
+                        }
+
+
+                    }
+
+
+                    for (int i = 0; i < stages.Count; i++)
+                    {
+                        stages[i].switchBuffers();
+                    }
+
                 }
 
                 private void feedBegin()

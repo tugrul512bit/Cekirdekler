@@ -53,13 +53,16 @@ namespace ClObject
         internal static extern void finish(IntPtr hCommandQueue);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void flush(IntPtr hCommandQueue);
+        internal static extern void flush(IntPtr hCommandQueue);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern void wait2(IntPtr hCommandQueue, IntPtr hCommandQueue2);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern void wait3(IntPtr hCommandQueue, IntPtr hCommandQueue2, IntPtr hCommandQueue3);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void waitN(IntPtr [] hCommandQueueListToWait, IntPtr hCommandQueueToSync, int nQueues);
 
         private ClDevice device = null;
         private ClContext context = null;
@@ -266,54 +269,89 @@ namespace ClObject
         internal int[] numComputeQueueUsed = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
         internal void finishUsedComputeQueues()
         {
-                Parallel.For(0, 16, i => {
-                    if(numComputeQueueUsed[i]>0)
+            List<IntPtr> finishList = new List<IntPtr>();
+
+            //Parallel.For(0, 16, i => {
+            for (int i = 0; i < 16; i++)
+            {
+                if (numComputeQueueUsed[i] > 0)
+                {
+                    numComputeQueueUsed[i] = 0;
+                    switch (i)
                     {
-                        numComputeQueueUsed[i] = 0;
-                        switch (i)
-                        {
-                            case 0: computeQueueFinish();return;
-                            case 1: computeQueueFinish2();return;
-                            case 2: computeQueueFinish3();return;
-                            case 3: computeQueueFinish4();return;
-                            case 4: computeQueueFinish5();return;
-                            case 5: computeQueueFinish6();return;
-                            case 6: computeQueueFinish7();return;
-                            case 7: computeQueueFinish8();return;
-                            case 8: computeQueueFinish9();return;
-                            case 9: computeQueueFinish10();return;
-                            case 10: computeQueueFinish11();return;
-                            case 11: computeQueueFinish12();return;
-                            case 12: computeQueueFinish13();return;
-                            case 13: computeQueueFinish14();return;
-                            case 14: computeQueueFinish15();return;
-                            case 15: computeQueueFinish16();return;
-                        }
+                        case 0: finishList.Add(commandQueue.h()); continue;
+                        case 1: finishList.Add(commandQueue2.h()); continue;
+                        case 2: finishList.Add(commandQueue3.h()); continue;
+                        case 3: finishList.Add(commandQueue4.h()); continue;
+                        case 4: finishList.Add(commandQueue5.h()); continue;
+                        case 5: finishList.Add(commandQueue6.h()); continue;
+                        case 6: finishList.Add(commandQueue7.h()); continue;
+                        case 7: finishList.Add(commandQueue8.h()); continue;
+                        case 8: finishList.Add(commandQueue9.h()); continue;
+                        case 9: finishList.Add(commandQueue10.h()); continue;
+                        case 10: finishList.Add(commandQueue11.h()); continue;
+                        case 11: finishList.Add(commandQueue12.h()); continue;
+                        case 12: finishList.Add(commandQueue13.h()); continue;
+                        case 13: finishList.Add(commandQueue14.h()); continue;
+                        case 14: finishList.Add(commandQueue15.h()); continue;
+                        case 15: finishList.Add(commandQueue16.h()); continue;
+
+                            //case 0: computeQueueFinish(); continue;
+                            //case 1: computeQueueFinish2(); continue;
+                            //case 2: computeQueueFinish3(); continue;
+                            //case 3: computeQueueFinish4(); continue;
+                            //case 4: computeQueueFinish5(); continue;
+                            //case 5: computeQueueFinish6(); continue;
+                            //case 6: computeQueueFinish7(); continue;
+                            //case 7: computeQueueFinish8(); continue;
+                            //case 8: computeQueueFinish9(); continue;
+                            //case 9: computeQueueFinish10(); continue;
+                            //case 10: computeQueueFinish11(); continue;
+                            //case 11: computeQueueFinish12(); continue;
+                            //case 12: computeQueueFinish13(); continue;
+                            //case 13: computeQueueFinish14(); continue;
+                            //case 14: computeQueueFinish15(); continue;
+                            //case 15: computeQueueFinish16(); continue;
                     }
-                });
+                }
+            }
+            // });
+            //return;
+            IntPtr[] hCommandQueueToWaitArray = finishList.ToArray();
+
+            waitN(hCommandQueueToWaitArray, commandQueue.h(), hCommandQueueToWaitArray.Length);
+
+
         }
+
+        private ClCommandQueue lastUsedCQ { get; set; }
+        internal ClCommandQueue lastUsedComputeQueue()
+        {
+            return lastUsedCQ;
+        }
+
         internal ClCommandQueue nextComputeQueue(int indexCounter)
         {
             switch (indexCounter % 16)
             {
-                case 0:numComputeQueueUsed[0]++;return commandQueue;
-                case 1:numComputeQueueUsed[1]++;return commandQueue2;
-                case 2:numComputeQueueUsed[2]++;return commandQueue3;
-                case 3:numComputeQueueUsed[3]++;return commandQueue4;
-                case 4:numComputeQueueUsed[4]++;return commandQueue5;
-                case 5:numComputeQueueUsed[5]++;return commandQueue6;
-                case 6:numComputeQueueUsed[6]++;return commandQueue7;
-                case 7:numComputeQueueUsed[7]++;return commandQueue8;
-                case 8:numComputeQueueUsed[8]++;return commandQueue9;
-                case 9: numComputeQueueUsed[9]++; return commandQueue10;
-                case 10:numComputeQueueUsed[10]++;return commandQueue11;
-                case 11:numComputeQueueUsed[11]++;return commandQueue12;
-                case 12:numComputeQueueUsed[12]++;return commandQueue13;
-                case 13:numComputeQueueUsed[13]++;return commandQueue14;
-                case 14:numComputeQueueUsed[14]++;return commandQueue15;
-                case 15: numComputeQueueUsed[15]++; return commandQueue16;
+                case 0:numComputeQueueUsed[0]++; lastUsedCQ = commandQueue;  return commandQueue;
+                case 1:numComputeQueueUsed[1]++;   lastUsedCQ = commandQueue2; return commandQueue2;
+                case 2:numComputeQueueUsed[2]++;   lastUsedCQ = commandQueue3; return commandQueue3;
+                case 3:numComputeQueueUsed[3]++;   lastUsedCQ = commandQueue4; return commandQueue4;
+                case 4:numComputeQueueUsed[4]++;   lastUsedCQ = commandQueue5; return commandQueue5;
+                case 5:numComputeQueueUsed[5]++;   lastUsedCQ = commandQueue6; return commandQueue6;
+                case 6:numComputeQueueUsed[6]++;   lastUsedCQ = commandQueue7; return commandQueue7;
+                case 7:numComputeQueueUsed[7]++;   lastUsedCQ = commandQueue8; return commandQueue8;
+                case 8:numComputeQueueUsed[8]++;   lastUsedCQ = commandQueue9; return commandQueue9;
+                case 9: numComputeQueueUsed[9]++;  lastUsedCQ = commandQueue10; return commandQueue10;
+                case 10:numComputeQueueUsed[10]++; lastUsedCQ = commandQueue11; return commandQueue11;
+                case 11:numComputeQueueUsed[11]++; lastUsedCQ = commandQueue12; return commandQueue12;
+                case 12:numComputeQueueUsed[12]++; lastUsedCQ = commandQueue13; return commandQueue13;
+                case 13:numComputeQueueUsed[13]++; lastUsedCQ = commandQueue14; return commandQueue14;
+                case 14:numComputeQueueUsed[14]++; lastUsedCQ = commandQueue15; return commandQueue15;
+                case 15: numComputeQueueUsed[15]++;lastUsedCQ = commandQueue16; return commandQueue16;
 
-                default: numComputeQueueUsed[0]++; return commandQueue;
+                default: numComputeQueueUsed[0]++; lastUsedCQ = commandQueue; return commandQueue;
             }
 
         }
