@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cekirdekler
@@ -2361,6 +2362,7 @@ namespace Cekirdekler
             /// </summary>
             public class DevicePipeline
             {
+
                 private bool serialMode { get; set; }
                 private List<DevicePipelineStage> stages { get; set; }
                 private string kernelCodesToCompile { get; set; }
@@ -2370,8 +2372,8 @@ namespace Cekirdekler
                 /// <summary>
                 /// N stages pipeline defined in a selected device
                 /// </summary>
-                /// <param name="selectedDevice"></param>
-                /// <param name="kernelCodesC99"></param>
+                /// <param name="selectedDevice">this can be a CPU, GPU, ...</param>
+                /// <param name="kernelCodesC99">kernel string to be compiled for all stages</param>
                 /// <param name="computeQueueConcurrency">max number of command queues to use asynchronously. max=16, min=1</param>
                 public DevicePipeline(ClDevices selectedDevice,string kernelCodesC99,int computeQueueConcurrency=16)
                 {
@@ -2382,7 +2384,19 @@ namespace Cekirdekler
                     cruncher = null;
                 }
 
+                /// <summary>
+                /// <para>not implemented yet</para>
+                /// <para>enables query of begin-end time span data from all operations to get an idea of efficiency gained</para>
+                /// </summary>
+                public bool queryTimelineOverlapPercentage { get { throw new NotImplementedException(); } set { throw new NotImplementedException(); } }
 
+                /// <summary>
+                /// <para>not implemented yet</para>
+                /// <para>if a stage was totally hidden in timeline by other stages, it has 100</para>
+                /// <para>if a stage was not overlapped not even a bit, it has zero value</para>
+                /// <para>each element of this int array indicates a stage in pipeline with same index/position</para>
+                /// </summary>
+                public int[] stagesOverlappingPercentages { get { throw new NotImplementedException(); } set { throw new NotImplementedException(); } }
 
                 /// <summary>
                 /// add next stage at the end of current pipeline
@@ -2500,17 +2514,18 @@ namespace Cekirdekler
 
                     }
 
-                    Parallel.For(0, stages.Count, i => {
-                        if (stages[i].hasInput && !stages[i].stopHostDeviceTransmission)
-                        {
-                            stages[i].copyInputDataToUnusedEntrance();
-                        }
+                    // moved from here to a separate method
+                    //Parallel.For(0, stages.Count, i => {
+                    //    if (stages[i].hasInput && !stages[i].stopHostDeviceTransmission)
+                    //    {
+                    //        stages[i].copyInputDataToUnusedEntrance();
+                    //    }
 
-                        if (stages[i].hasOutput && !stages[i].stopHostDeviceTransmission)
-                        {
-                            stages[i].copyOutputDataFromUnusedExit();
-                        }
-                    });
+                    //    if (stages[i].hasOutput && !stages[i].stopHostDeviceTransmission)
+                    //    {
+                    //        stages[i].copyOutputDataFromUnusedExit();
+                    //    }
+                    //});
                     
 
                     for (int i = 0; i < stages.Count; i++)
@@ -2530,6 +2545,21 @@ namespace Cekirdekler
                     if (!serialMode)
                         cruncher.enqueueMode = true;
 
+                }
+
+                private void parallelIO()
+                {
+                    Parallel.For(0, stages.Count, i => {
+                        if (stages[i].hasInput && !stages[i].stopHostDeviceTransmission)
+                        {
+                            stages[i].copyInputDataToUnusedEntrance();
+                        }
+
+                        if (stages[i].hasOutput && !stages[i].stopHostDeviceTransmission)
+                        {
+                            stages[i].copyOutputDataFromUnusedExit();
+                        }
+                    });
                 }
 
                 private void feedEnd()
@@ -2552,7 +2582,11 @@ namespace Cekirdekler
                     if (serialMode)
                         feedSerial();
                     else
+                    {
                         feedParallel();
+                        parallelIO();
+                    }
+                    
                     feedEnd();
                     if (serialMode)
                         serialO();
@@ -2569,7 +2603,10 @@ namespace Cekirdekler
                     if (serialMode)
                         feedSerial();
                     else
+                    {
                         feedParallel();
+                        parallelIO();
+                    }
                     del.DynamicInvoke();
                     feedEnd();
                     if (serialMode)
@@ -2587,7 +2624,10 @@ namespace Cekirdekler
                     if (serialMode)
                         feedSerial();
                     else
+                    {
                         feedParallel();
+                        parallelIO();
+                    }
                 }
 
                 /// <summary>

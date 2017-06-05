@@ -32,17 +32,17 @@ namespace Cekirdekler
     public enum AcceleratorType : int
     {
         /// <summary>
-        /// sadece işlemcileri kullanır
+        /// only selects CPUs
         /// </summary>
         CPU = 1,
 
         /// <summary>
-        /// sadece ekran kartlarını ve entegre grafik çiplerini kullanır
+        /// only selects GPUs and iGPUs
         /// </summary>
         GPU = 2,
 
         /// <summary>
-        /// sadece özel hızlandırıcıları kullanır
+        /// special accelerators
         /// </summary>
         ACC = 4,
 
