@@ -228,7 +228,15 @@ namespace Cekirdekler
             }
 
             deletePlatformList(handlePlatformList);
+            allErrorsString = "";
+            errorNotification = 0;
 
+            if ((selectedDevicesForGPGPU.Keys == null) || (selectedDevicesForGPGPU.Keys.ToArray().Length < 1))
+            {
+                allErrorsString += "No OpenCL-capable device was found." + Environment.NewLine;
+                errorNotification++;
+                return;
+            }
 
             kernels = new ClString(kernelFileString);
             kernelNames = new ClString[kernelFunctionNamesInKernelFileString.Length];
@@ -238,7 +246,6 @@ namespace Cekirdekler
             {
                 kernelNames[i] = new ClString(kernelFunctionNamesInKernelFileString[i]);
             }
-            errorNotification = 0;
 
 
             List<Worker> tmp = new List<Worker>();
@@ -253,7 +260,6 @@ namespace Cekirdekler
             }
             workers = tmp.ToArray();
             workerThreads = new Thread[workers.Length];
-            allErrorsString = "";
             for (int i = 0; i < workers.Length; i++)
             {
                 errorNotification += workers[i].getErrorCode();
@@ -287,6 +293,16 @@ namespace Cekirdekler
         {
             localRange = 256;
             Dictionary<ClPlatform, List<ClDevice>> selectedDevicesForGPGPU = new Dictionary<ClPlatform, List<ClDevice>>();
+            allErrorsString = "";
+            errorNotification = 0;
+
+            if ((devicesForGPGPU==null) || (devicesForGPGPU.Length<1) )
+            {
+                allErrorsString += "No OpenCL-capable device was found." + Environment.NewLine;
+                errorNotification++;
+                return;
+            }
+
 
             for (int i = 0; i < devicesForGPGPU.devices.Length; i++)
             {
@@ -304,7 +320,6 @@ namespace Cekirdekler
             {
                 kernelNames[i] = new ClString(kernelFunctionNamesInKernelFileString[i]);
             }
-            errorNotification = 0;
 
 
             List<Worker> tmp = new List<Worker>();
@@ -319,7 +334,6 @@ namespace Cekirdekler
             }
             workers = tmp.ToArray();
             workerThreads = new Thread[workers.Length];
-            allErrorsString = "";
             for (int i = 0; i < workers.Length; i++)
             {
                 errorNotification += workers[i].getErrorCode();

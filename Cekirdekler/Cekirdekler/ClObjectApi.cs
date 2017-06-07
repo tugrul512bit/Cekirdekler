@@ -171,6 +171,10 @@ namespace Cekirdekler
             /// <returns></returns>
             public string [][]platformVendorNames()
             {
+                if((platforms==null) || (platforms.Length<1))
+                {
+                    return null;    
+                }
                 string[][] tmp = new string[platforms.Length][];
                 for(int i=0;i<platforms.Length;i++)
                 {
@@ -751,6 +755,13 @@ namespace Cekirdekler
                 Console.WriteLine("--------------");
                 Console.WriteLine("Selected platforms:");
                 string[][] names = platformVendorNames();
+                if ((names == null))
+                {
+                    Console.WriteLine("No platforms found!");
+                    result.AppendLine("No platforms found!");
+                    return result.ToString();
+                }
+
                 for (int i = 0; i < names.Length; i++)
                 {
                     Console.WriteLine("#"+i+":");
@@ -893,7 +904,13 @@ namespace Cekirdekler
 
                 Console.WriteLine("---------");
                 Console.WriteLine("Selected devices:");
-                for(int i=0;i<devices.Length;i++)
+                if((devices==null) || (devices.Length==0))
+                {
+                    Console.WriteLine("No devices found!");
+                    result.AppendLine("No devices found!");
+                    return result.ToString();
+                }
+                for (int i=0;i<devices.Length;i++)
                 {
                     string stringToAddForDeviceName = "#" + i + ": " + devices[i].name().Trim()+"("+devices[i].vendorName().Trim()+")";
                     int spaces = stringToAddForDeviceName.Length;

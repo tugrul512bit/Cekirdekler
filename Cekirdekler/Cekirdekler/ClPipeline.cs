@@ -3232,5 +3232,38 @@ namespace Cekirdekler
 
             }
         }
+
+
+        /// <summary>
+        /// <para>Namespace to build a pool of workloads or workers to optimize for performance</para>
+        /// <para></para>
+        /// </summary>
+        namespace Pool
+        {
+            /// <summary>
+            /// to pick a specific scheduler algorithm
+            /// </summary>
+            public enum ClNumberCruncherPoolType:int
+            {
+
+            }
+
+            /// <summary>
+            /// to schedule kernel,read,write actions whenever a number cruncher is ready
+            /// </summary>
+            public class ClNumberCruncherPool
+            {
+
+                /// <summary>
+                /// <para>creates a worker pool with a type</para>
+                /// <para>any ClNumberCruncher instance added to this pool will work accordingly with the type algorithm</para>
+                /// </summary>
+                /// <param name="poolType"></param>
+                public ClNumberCruncherPool(ClNumberCruncherPoolType poolType)
+                {
+                    
+                }
+            }
+        }
     }
 }
