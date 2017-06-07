@@ -3245,6 +3245,32 @@ namespace Cekirdekler
             /// </summary>
             public enum ClNumberCruncherPoolType:int
             {
+                /// <summary>
+                /// <para>executes newly added tasks one by one in the order they were added</para>
+                /// <para>completes task before moving to next task</para>
+                /// </summary>
+                WORK_FIRST_COME_FIRST_SERVE = 1,
+
+                /// <summary>
+                /// <para>picks tasks by their global range values and their user defined compute-to-workitem ratios</para>
+                /// <para>completes task before moving to next task</para>
+                /// </summary>
+                WORK_SHORTEST_JOB_FIRST = 2,
+
+                /// <summary>
+                /// <para>picks a group of tasks then iteratively picks tasks in a FCFS way</para>
+                /// <para>then cycles from beginning and repeats until all picked tasks are complete</para>
+                /// <para>executes only a single enqueued command in task before moving to next task</para>
+                /// <para>quantum here is a single read/write or a single kernel</para>
+                /// <para>meant to arrive finish points all tasks at the same time </para>
+                /// </summary>
+                WORK_ROUND_ROBIN = 4,
+
+                /// <summary>
+                /// <para>picks highest priority tasks first</para>
+                /// <para>completes task before moving to next task</para>
+                /// </summary>
+                WORK_PRIORITY_BASED = 8,
 
             }
 
