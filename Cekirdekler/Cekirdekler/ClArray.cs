@@ -22,6 +22,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Cekirdekler;
 using ClObject;
+using Cekirdekler.Pipeline.Pool;
 
 namespace Cekirdekler
 {
@@ -44,10 +45,34 @@ namespace Cekirdekler
             /// <param name="pipeline">true: pipeline is on</param>
             /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
             /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
+            /// <param name="readWritesReady">
+            /// <para>used by ClTask. compute() uses predetermined array fields in this array instead of current values.</para>
+            /// <para>null = current values will be used</para>
+            /// </param>
+            /// <param name="elementsPerItemReady">
+            /// <para>used by ClTask. compute() uses predetermined per-item-elements-value in this array instead of current values.</para>
+            /// <para>null = current values will be used</para>
+            /// </param>
             void compute(ClNumberCruncher cruncher, int computeId, string kernelNamesString, int globalRange,
                                 int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
-                                bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4);
+                                bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4, string[] readWritesReady = null, int[] elementsPerItemReady = null);
 
+
+            /// <summary>
+            /// <para>creates task to compute later, meant to be used in pools mainly</para>
+            /// </summary>
+            /// <param name="cruncher"></param>
+            /// <param name="computeId"></param>
+            /// <param name="kernelNamesString">string that contains all kernel names(to be executed) separated by space or by , or by ;</param>
+            /// <param name="globalRange">total workitems to be distributed to devices</param>
+            /// <param name="localRange">workitems per local workgroup. default value is 256</param>
+            /// <param name="ofsetGlobalRange">starting id for workitems.(for cluster add-on)</param>
+            /// <param name="pipeline">true: pipeline is on</param>
+            /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
+            /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
+            ClTask task(ClNumberCruncher cruncher, int computeId, string kernelNamesString, int globalRange,
+                                int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
+                                bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4);
         }
 
 
@@ -476,6 +501,26 @@ namespace Cekirdekler
 
 
             /// <summary>
+            /// <para>creates task to compute later, meant to be used in pools mainly</para>
+            /// </summary>
+            /// <param name="cruncher"></param>
+            /// <param name="computeId"></param>
+            /// <param name="kernelNamesString">string that contains all kernel names(to be executed) separated by space or by , or by ;</param>
+            /// <param name="globalRange">total workitems to be distributed to devices</param>
+            /// <param name="localRange">workitems per local workgroup. default value is 256</param>
+            /// <param name="ofsetGlobalRange">starting id for workitems.(for cluster add-on)</param>
+            /// <param name="pipeline">true: pipeline is on</param>
+            /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
+            /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
+            public ClTask task(ClNumberCruncher cruncher, int computeId, string kernelNamesString, int globalRange,
+                                int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
+                                bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
+            {
+
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
             /// <para>blocking compute operation that does read + compute + write </para>
             /// </summary>
             /// <param name="cruncher"></param>
@@ -487,9 +532,17 @@ namespace Cekirdekler
             /// <param name="pipeline">true: pipeline is on</param>
             /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
             /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
+            /// <param name="readWritesReady">
+            /// <para>used by ClTask. compute() uses predetermined array fields in this array instead of current values.</para>
+            /// <para>null = current values will be used</para>
+            /// </param>
+            /// <param name="elementsPerItemReady">
+            /// <para>used by ClTask. compute() uses predetermined per-item-elements-value in this array instead of current values.</para>
+            /// <para>null = current values will be used</para>
+            /// </param>
             public void compute(ClNumberCruncher cruncher, int computeId, string kernelNamesString, int globalRange,
                                 int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
-                                bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
+                                bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4, string[] readWritesReady = null, int[] elementsPerItemReady = null)
             {
                 if (cruncher.numberOfErrorsHappened > 0)
                 {
@@ -1483,8 +1536,10 @@ namespace Cekirdekler
                 return bd;
             }
 
+
+
             /// <summary>
-            /// <para>blocking compute operation that does read + compute + write </para>
+            /// <para>creates task to compute later, meant to be used in pools mainly</para>
             /// </summary>
             /// <param name="cruncher"></param>
             /// <param name="computeId"></param>
@@ -1495,9 +1550,60 @@ namespace Cekirdekler
             /// <param name="pipeline">true: pipeline is on</param>
             /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
             /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
-            public void compute(ClNumberCruncher cruncher, int computeId, string kernelNamesString, int globalRange,
+            public ClTask task(ClNumberCruncher cruncher, int computeId, string kernelNamesString, int globalRange,
                                 int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
                                 bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
+            {
+                string[] kernelsTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n", "@" }, StringSplitOptions.RemoveEmptyEntries);
+
+                object[] arrs_ = new object[] { this };
+                int[] lengths_ = new int[] { this.Length };
+                string[] reads_ = new string[] { read ? " read " : "" };
+                string[] partialReads_ = new string[] { partialRead ? " partial " : "" };
+                string[] writes_ = new string[] { write ? " write " : "" };
+                string[] writeAlls_ = new string[] { writeAll ? " all " : "" };
+                string[] readWrites_ = new string[reads_.Length];
+                string[] readOnlys_ = new string[] { readOnly ? " ro " : "" };
+                string[] writeOnlys_ = new string[] { writeOnly ? " wo " : "" };
+                string[] zeroCopys_ = new string[] { zeroCopy ? " zc " : "" };
+                for (int i = 0; i < readWrites_.Length; i++)
+                {
+                    StringBuilder sb = new StringBuilder(partialReads_[i]);
+                    sb.Append(reads_[i]);
+                    sb.Append(writes_[i]);
+                    sb.Append(writeAlls_[i]);
+                    sb.Append(readOnlys_[i]);
+                    sb.Append(writeOnlys_[i]);
+                    sb.Append(zeroCopys_[i]);
+                    readWrites_[i] = sb.ToString();
+                }
+                int[] elemsPerWorkItem_ = new int[] { numberOfElementsPerWorkItem };
+                throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// <para>blocking compute operation that does read + compute + write unless enqueueMode is enabled in number cruncher </para>
+            /// </summary>
+            /// <param name="cruncher"></param>
+            /// <param name="computeId"></param>
+            /// <param name="kernelNamesString">string that contains all kernel names(to be executed) separated by space or by , or by ;</param>
+            /// <param name="globalRange">total workitems to be distributed to devices</param>
+            /// <param name="localRange">workitems per local workgroup. default value is 256</param>
+            /// <param name="ofsetGlobalRange">starting id for workitems.(for cluster add-on)</param>
+            /// <param name="pipeline">true: pipeline is on</param>
+            /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
+            /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
+            /// <param name="readWritesReady">
+            /// <para>used by ClTask. compute() uses predetermined array fields in this array instead of current values.</para>
+            /// <para>null = current values will be used</para>
+            /// </param>
+            /// <param name="elementsPerItemReady">
+            /// <para>used by ClTask. compute() uses predetermined per-item-elements-value in this array instead of current values.</para>
+            /// <para>null = current values will be used</para>
+            /// </param>
+            public void compute(ClNumberCruncher cruncher, int computeId, string kernelNamesString, int globalRange,
+                                int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
+                                bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4, string [] readWritesReady=null, int [] elementsPerItemReady=null)
             {
                 
                 if(cruncher.numberOfErrorsHappened>0)
@@ -1570,7 +1676,8 @@ namespace Cekirdekler
                         return;
                     }
                 }
-                string[] kernellerTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n","@" }, StringSplitOptions.RemoveEmptyEntries);
+
+                string[] kernelsTmp = kernelNamesString.Split(new string[] { " ", ",", ";", "-", "\n","@" }, StringSplitOptions.RemoveEmptyEntries);
 
                 object[] arrs_ = new object[] { this };
                 int[] lengths_ = new int[] {this.Length };
@@ -1612,10 +1719,11 @@ namespace Cekirdekler
                 }
 
                 cruncher.numberCruncher.compute(
-                    kernellerTmp, cruncher.repeatCount, cruncher.repeatCount>1?cruncher.repeatKernelName:"",
-                    arrs_, readWrites_, elemsPerWorkItem_,
+                    kernelsTmp, cruncher.repeatCount, cruncher.repeatCount > 1 ? cruncher.repeatKernelName : "",
+                    arrs_, readWritesReady==null?readWrites_: readWritesReady, elementsPerItemReady==null? elemsPerWorkItem_: elementsPerItemReady,
                     globalRange, computeId, ofsetGlobalRange,
                     pipeline, pipelineBlobs, pipelineType, localRange);
+
                 if (cruncher.performanceFeed)
                 {
                     if ((cruncher.numberCruncher != null))
@@ -1623,6 +1731,7 @@ namespace Cekirdekler
                     else
                         Console.WriteLine("Error: Number cruncher core object was not allocated properly.");
                 }
+                
             }
 
 

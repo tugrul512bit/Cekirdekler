@@ -3244,6 +3244,7 @@ namespace Cekirdekler
             /// <summary>
             /// <para>created only with parameters.task() in the place of .compute() with ClArray (and ClParameterGroup instances)</para>
             /// <para>to be computed later in a pool(of tasks) by a pool of devices</para>
+            /// <para>main advantage is to stop code duplication where a lot of read/write state changes are needed between compute() operations</para>
             /// </summary>
             public class ClTask
             {
@@ -3272,7 +3273,7 @@ namespace Cekirdekler
 
                 /// <summary>
                 /// <para>pushes a new ClTask instance to one end of queue to compute later</para>
-                /// <para>compute operations start from other end of queue</para>
+                /// <para>compute operations are issued from other end of queue</para>
                 /// </summary>
                 public void feed(ClTask task)
                 {
