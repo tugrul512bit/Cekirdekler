@@ -3240,14 +3240,54 @@ namespace Cekirdekler
         /// </summary>
         namespace Pool
         {
+
+            /// <summary>
+            /// <para>created only with parameters.task() in the place of .compute() with ClArray (and ClParameterGroup instances)</para>
+            /// <para>to be computed later in a pool(of tasks) by a pool of devices</para>
+            /// </summary>
+            public class ClTask
+            {
+                /// <summary>
+                /// only ClParameterGroup or a ClArray can create this
+                /// </summary>
+                internal ClTask()
+                {
+
+                }
+            }
+
+
+            /// <summary>
+            /// a pool of tasks to be computed by a pool of devices with optional scheduling algorithms
+            /// </summary>
+            public class ClTaskPool
+            {
+                /// <summary>
+                /// creaetes a pool that receives tasks
+                /// </summary>
+                public ClTaskPool()
+                {
+
+                }
+
+                /// <summary>
+                /// <para>pushes a new ClTask instance to one end of queue to compute later</para>
+                /// <para>compute operations start from other end of queue</para>
+                /// </summary>
+                public void feed(ClTask task)
+                {
+
+                }
+            }
+
             /// <summary>
             /// to pick a specific scheduler algorithm
             /// </summary>
-            public enum ClNumberCruncherPoolType:int
+            public enum ClDevicePoolType:int
             {
                 /// <summary>
                 /// <para>executes newly added tasks one by one in the order they were added</para>
-                /// <para>completes task before moving to next task</para>
+                /// <para>completes task before moving to next task so its better to have multiple devices in pool</para>
                 /// </summary>
                 WORK_FIRST_COME_FIRST_SERVE = 1,
 
@@ -3263,6 +3303,7 @@ namespace Cekirdekler
                 /// <para>executes only a single enqueued command in task before moving to next task</para>
                 /// <para>quantum here is a single read/write or a single kernel</para>
                 /// <para>meant to arrive finish points all tasks at the same time </para>
+                /// <para>even a single device works on many tasks in parallel</para>
                 /// </summary>
                 WORK_ROUND_ROBIN = 4,
 
@@ -3272,12 +3313,27 @@ namespace Cekirdekler
                 /// </summary>
                 WORK_PRIORITY_BASED = 8,
 
+                /// <summary>
+                /// <para>all devices in pool work at the same time and synchronize on host after each task or quanta</para>
+                /// <para>if there are two devices, packet size is 2</para>
+                /// </summary>
+                WORKER_PACKET = 16,
+
+                /// <summary>
+                /// whenever a device becomes ready after computing a task, immediately issues another task
+                /// </summary>
+                WORKER_COMPUTE_AT_WILL=32,
+
+
+
             }
 
             /// <summary>
-            /// to schedule kernel,read,write actions whenever a number cruncher is ready
+            /// <para>instead of working for same workload (as in ClNumberCruncher class)</para>
+            /// <para>this container specializes to distribute work independently to differend devices</para>
+            /// <para>uses a multitude of scheduling algorithms</para>
             /// </summary>
-            public class ClNumberCruncherPool
+            public class ClDevicePool
             {
 
                 /// <summary>
@@ -3285,7 +3341,11 @@ namespace Cekirdekler
                 /// <para>any ClNumberCruncher instance added to this pool will work accordingly with the type algorithm</para>
                 /// </summary>
                 /// <param name="poolType"></param>
-                public ClNumberCruncherPool(ClNumberCruncherPoolType poolType)
+                /// <param name="totalQueues">
+                /// <para>maximum number of concurrent tasks to compute</para>
+                /// <para>default: number of devices * 3</para>
+                /// </param>
+                public ClDevicePool(ClDevicePoolType poolType, int totalQueues)
                 {
                     
                 }
