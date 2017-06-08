@@ -3242,9 +3242,12 @@ namespace Cekirdekler
         {
 
             /// <summary>
-            /// <para>created only with parameters.task() in the place of .compute() with ClArray (and ClParameterGroup instances)</para>
-            /// <para>to be computed later in a pool(of tasks) by a pool of devices</para>
+            /// <para>a piece of work to be done later</para>
+            /// <para>contains necessary info to complete a array.compute() operation</para>
+            /// <para>ClArray.task() ClParameterGroup.task()</para>
+            /// <para>is meant to be computed later in a pool(of tasks) by a pool of devices(each device compute a single task at a time or a part of it)</para>
             /// <para>main advantage is to stop code duplication where a lot of read/write state changes are needed between compute() operations</para>
+            /// <para>secondary advantage is to automate device selection for a group of tasks within pools</para>
             /// </summary>
             public class ClTask
             {
@@ -3265,6 +3268,15 @@ namespace Cekirdekler
                 internal bool pipelineType { get; set; }
                 internal int pipelineBlobs { get; set; }
 
+                /// <summary>
+                /// not implemented yet
+                /// </summary>
+                public int kernelRepeats { get { throw new NotImplementedException(); } set { throw new NotImplementedException(); } }
+
+                /// <summary>
+                /// not implemented yet
+                /// </summary>
+                public string kernelRepeatName { get { throw new NotImplementedException(); } set { throw new NotImplementedException(); } }
 
                 /// <summary>
                 /// computes this task using the given number cruncher
@@ -3301,6 +3313,100 @@ namespace Cekirdekler
 
 
             /// <summary>
+            /// type of task group that defines execution behavior of all of its tasks
+            /// </summary>
+            public enum ClTaskGroupType:int
+            {
+
+                /// <summary>
+                /// <para>all devices are free to pick tasks from task group</para>
+                /// <para>suitable for combinatorial logic based pipelines and independent workloads</para>
+                /// <para>a case of nbody+image processing+fluid dynamics being in same group is an example</para>
+                /// <para>the only advantage compared to non-grouped tasks is: WORK_ROUND_ROBIN type device pools will issue groups equally</para>
+                /// <para>so two different workloads can be given equal priority without defining any priority value</para>
+                /// </summary>
+                TASK_ASYNC = 1,
+
+                /// <summary>
+                /// <para>all tasks in a group is executed in same device always</para>
+                /// <para>doesn't guarantee to run on same device if repeated</para>
+                /// <para>doesn't guarantee to run tasks in the order they were added</para>
+                /// </summary>
+                TASK_SAME_DEVICE = 2,
+
+                /// <summary>
+                /// <para>repeating same task group is done by same device always</para>
+                /// <para>doesn't guarantee to run tasks in the order they were added</para>
+                /// <para>suitable for pipelines</para>
+                /// </summary>
+                TASK_REPEAT_SAME_DEVICE = 4,
+
+                /// <summary>
+                /// <para>all tasks in group is issued into same command queue of same device</para>
+                /// <para>every next task in group sees the updated bits of latest issued task in terms of memory consistency</para>
+                /// <para>running commands in an in-order queue is always synchronized before next command, on device side(kernels) and host side(buffer copy)</para>
+                /// <para>repeating a group doesn't guarantee same device nor same command queue</para>
+                /// </summary>
+                TASK_IN_ORDER = 8,
+
+                /// <summary>
+                /// <para>all tasks in group is issued into same command queue of same device</para>
+                /// <para>every next task in group sees the updated bits of latest issued task in terms of memory consistency</para>
+                /// <para>running commands in an in-order queue is always synchronized before next command, on device side(kernels) and host side(buffer copy)</para>
+                /// <para>repeating a group guarantees same device and same command queue to run</para>
+                /// <para>for WORK_ROUND_ROBIN enabled device pools, there may be a different task group's tasks between any two tasks of current group in a command queue</para>
+                /// </summary>
+                TASK_REPEAT_IN_ORDER = 16,
+
+            }
+
+            /// <summary>
+            /// <para>a group of tasks to be computed with same execution behavior</para>
+            /// </summary>
+            public class ClTaskGroup
+            {
+                /// <summary>
+                /// <para>a group of tasks to be computed with same execution behavior</para>
+                /// </summary>
+                public ClTaskGroup(ClTaskGroupType type)
+                {
+                    
+                }
+
+                /// <summary>
+                /// adds a new task
+                /// </summary>
+                /// <param name="task"></param>
+                public void add(ClTask task)
+                {
+
+                }
+
+            }
+
+            /// <summary>
+            /// defines type of task pool
+            /// </summary>
+            public enum ClTaskPoolType:int
+            {
+                /// <summary>
+                /// devices can't choose another pool before finishing all tasks in this pool
+                /// </summary>
+                TASK_UNTIL_COMPLETE=1,
+
+                /// <summary>
+                /// any device may pick another pool to continue
+                /// </summary>
+                TASK_ASYNC=2,
+
+                /// <summary>
+                /// <para>a device must pick another pool to continue</para>
+                /// <para>suitable for equally important task pools</para>
+                /// </summary>
+                TASK_SYNC = 4
+            }
+
+            /// <summary>
             /// a pool of tasks to be computed by a pool of devices with optional scheduling algorithms
             /// </summary>
             public class ClTaskPool
@@ -3321,7 +3427,19 @@ namespace Cekirdekler
                 {
 
                 }
+
+                /// <summary>
+                /// <para>pushes a new ClTaskGroup instance to one end of queue to compute later</para>
+                /// <para>compute operations are issued from other end of queue</para>
+                /// </summary>
+                public void feed(ClTaskGroup taskGroup)
+                {
+
+                }
             }
+
+
+
 
             /// <summary>
             /// to pick a specific scheduler algorithm
@@ -3391,6 +3509,17 @@ namespace Cekirdekler
                 public ClDevicePool(ClDevicePoolType poolType, int totalQueues)
                 {
                     
+                }
+
+                /// <summary>
+                /// <para>binds a new task pool to this device pool</para>
+                /// <para>older pools reside until completed(their queues and containers empty)</para>
+                /// <para>a device may choose a different pool for next task, depending on the task pool type</para>
+                /// </summary>
+                /// <param name="taskPool"></param>
+                public void bindTaskPool(ClTaskPool taskPool)
+                {
+
                 }
             }
         }
