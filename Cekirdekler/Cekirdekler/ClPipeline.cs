@@ -3317,9 +3317,15 @@ namespace Cekirdekler
             /// </summary>
             public enum ClTaskGroupType:int
             {
+                /// <summary>
+                /// <para>all devices work for this task group until all tasks in it are completed</para>
+                /// <para>this is default value</para>
+                /// <para></para>
+                /// </summary>
+                TASK_COMPLETE=0,
 
                 /// <summary>
-                /// <para>all devices are free to pick tasks from task group</para>
+                /// <para>all devices are free to pick tasks from this task group or any other group</para>
                 /// <para>suitable for combinatorial logic based pipelines and independent workloads</para>
                 /// <para>a case of nbody+image processing+fluid dynamics being in same group is an example</para>
                 /// <para>the only advantage compared to non-grouped tasks is: WORK_ROUND_ROBIN type device pools will issue groups equally</para>
@@ -3390,20 +3396,21 @@ namespace Cekirdekler
             public enum ClTaskPoolType:int
             {
                 /// <summary>
-                /// devices can't choose another pool before finishing all tasks in this pool
+                /// <para>devices can't choose another pool before finishing all tasks in this pool</para>
+                /// <para>default value</para>
                 /// </summary>
-                TASK_UNTIL_COMPLETE=1,
+                TASK__COMPLETE = 0,
 
                 /// <summary>
                 /// any device may pick another pool to continue
                 /// </summary>
-                TASK_ASYNC=2,
+                TASK_ASYNC=1,
 
                 /// <summary>
                 /// <para>a device must pick another pool to continue</para>
                 /// <para>suitable for equally important task pools</para>
                 /// </summary>
-                TASK_SYNC = 4
+                TASK_SYNC = 2
             }
 
             /// <summary>
@@ -3442,10 +3449,18 @@ namespace Cekirdekler
 
 
             /// <summary>
-            /// to pick a specific scheduler algorithm
+            /// <para>to pick a specific scheduler algorithm</para>
+            /// <para>WORKER_ and WORK_ prefixed types can be combined with OR</para>
             /// </summary>
             public enum ClDevicePoolType:int
             {
+
+                /// <summary>
+                /// <para>a device in pool issues a task, then next task is issued by next device only</para>
+                /// <para>default value</para>
+                /// </summary>
+                WORKER_ROUND_ROBIN=0,
+
                 /// <summary>
                 /// <para>executes newly added tasks one by one in the order they were added</para>
                 /// <para>completes task before moving to next task so its better to have multiple devices in pool</para>
@@ -3476,7 +3491,7 @@ namespace Cekirdekler
 
                 /// <summary>
                 /// <para>all devices in pool work at the same time and synchronize on host after each task or quanta</para>
-                /// <para>if there are two devices, packet size is 2</para>
+                /// <para>if there are two devices, packet size is 2, 2 tasks are issued at a time</para>
                 /// </summary>
                 WORKER_PACKET = 16,
 
@@ -3502,13 +3517,22 @@ namespace Cekirdekler
                 /// <para>any ClNumberCruncher instance added to this pool will work accordingly with the type algorithm</para>
                 /// </summary>
                 /// <param name="poolType"></param>
-                /// <param name="totalQueues">
+                /// <param name="maxQueues">
                 /// <para>maximum number of concurrent tasks to compute</para>
                 /// <para>default: number of devices * 3</para>
                 /// </param>
-                public ClDevicePool(ClDevicePoolType poolType, int totalQueues)
+                public ClDevicePool(ClDevicePoolType poolType, int maxQueues)
                 {
                     
+                }
+
+                /// <summary>
+                /// add devices to pool
+                /// </summary>
+                /// <param name="devices"></param>
+                public void addDevices(ClDevices devices)
+                {
+
                 }
 
                 /// <summary>
