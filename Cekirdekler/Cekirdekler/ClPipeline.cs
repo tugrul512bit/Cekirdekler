@@ -3511,39 +3511,258 @@ namespace Cekirdekler
             /// </summary>
             public class ClDevicePool
             {
+                object lockObj { get; set; }
+                ClDevicePoolType type { get; set; }
+                List<DevicePoolThread> devices { get; set; }
+                string kernelCode { get; set; }
+                List<ClTaskPool> taskPoolList { get; set; }
+                bool running { get; set; }
 
                 /// <summary>
                 /// <para>creates a worker pool with a type</para>
                 /// <para>any ClNumberCruncher instance added to this pool will work accordingly with the type algorithm</para>
                 /// </summary>
                 /// <param name="poolType"></param>
-                /// <param name="maxQueues">
-                /// <para>maximum number of concurrent tasks to compute</para>
-                /// <para>default: number of devices * 3</para>
-                /// </param>
-                public ClDevicePool(ClDevicePoolType poolType, int maxQueues)
+                /// <param name="kernelCodeToCompile"></param>
+                public ClDevicePool(ClDevicePoolType poolType,string kernelCodeToCompile)
                 {
-                    
+                    type = poolType;
+                    lockObj = new object();
+                    devices = new List<DevicePoolThread>();
+                    taskPoolList = new List<ClTaskPool>();
+                    running = false;
                 }
 
                 /// <summary>
-                /// add devices to pool
+                /// start running device-task-feed threads
                 /// </summary>
-                /// <param name="devices"></param>
-                public void addDevices(ClDevices devices)
+                public void start()
                 {
+                    bool tmp = true;
+                    running = true;
+                    while (tmp)
+                    {
+                        lock (lockObj)
+                        {
+                            // compute logic
 
+
+                            tmp = running;
+                        }
+                    }
                 }
 
                 /// <summary>
-                /// <para>binds a new task pool to this device pool</para>
+                /// <para>add devices to pool</para>
+                /// <para>can add in the middle of computation of a task pool</para>
+                /// <para>compilation of kernels can take some time</para>
+                /// <para>adds a new consumer thread for each new (logical) device instance.</para> 
+                /// <para>same device can be added multiple times, if there are enough resources in OpenCL side</para>
+                /// </summary>
+                /// <param name="devicesParameter"></param>
+                public void addDevices(ClDevices devicesParameter)
+                {
+                    lock(lockObj)
+                    {
+                        var newDevice = new DevicePoolThread(new ClNumberCruncher(devicesParameter,kernelCode));
+                        devices.Add(newDevice);
+                        newDevice.init();
+
+                    }
+                }
+
+                /// <summary>
+                /// <para>enqueues a new task pool to this device pool</para>
                 /// <para>older pools reside until completed(their queues and containers empty)</para>
                 /// <para>a device may choose a different pool for next task, depending on the task pool type</para>
+                /// <para>this re-initiates producer part</para>
                 /// </summary>
-                /// <param name="taskPool"></param>
-                public void bindTaskPool(ClTaskPool taskPool)
+                /// <param name="taskPoolParameter"></param>
+                public void enqueueTaskPool(ClTaskPool taskPoolParameter)
                 {
+                    lock(lockObj)
+                    {
+                        taskPoolList.Add(taskPoolParameter);
+                        Monitor.PulseAll(lockObj);
+                        Monitor.Wait(lockObj);
+                    }
+                }
 
+                /// <summary>
+                /// waits until all tasks are complete
+                /// </summary>
+                public void finish()
+                {
+                    lock(lockObj)
+                    {
+                        int count = 0;
+                        for(int i=0;i< taskPoolList.Count;i++)
+                        {
+                            count += taskPoolList[i].remainingTaskGroupsOrTasks();
+                        }
+                        for(int i=0;i<devices.Count;i++)
+                        {
+                            count += devices[i].remainingTasks();
+                        }
+                        while(count > 0)
+                        {
+                            Monitor.Wait(lockObj);
+                            count = 0;
+                            for (int i = 0; i < taskPoolList.Count; i++)
+                            {
+                                count += taskPoolList[i].remainingTaskGroupsOrTasks();
+                            }
+                            for (int i = 0; i < devices.Count; i++)
+                            {
+                                count += devices[i].remainingTasks();
+                            }
+                        }
+                    }
+                }
+            }
+
+            class DeviceQueuePair
+            {
+                public List<ClNumberCruncher> cruncher { get; set; }
+                public PoolTaskQueue queue { get; set; }
+            }
+
+            /// <summary>
+            /// queue for producer-consumer
+            /// </summary>
+            class PoolTaskQueue
+            {
+                bool shutDown { get; set; }
+                object syncObj { get; set; }
+                Queue<ClTask> queue { get; set; }
+                public int size { get; set; }
+                public PoolTaskQueue(int sizeParameter = 100)
+                {
+                    syncObj = new object();
+                    queue = new Queue<ClTask>();
+                    size = sizeParameter;
+                    shutDown = false;
+                }
+
+                public void disable()
+                {
+                    lock(syncObj)
+                    {
+                        shutDown = true;
+                        Monitor.PulseAll(syncObj);
+                    }
+                }
+
+                public void enable()
+                {
+                    lock(syncObj)
+                    {
+                        shutDown = false;
+                        Monitor.PulseAll(syncObj);
+                    }
+                }
+
+                public void push(ClTask task)
+                {
+                    lock (syncObj)
+                    {
+                        while (queue.Count >= size)
+                        {
+                            Monitor.Wait(syncObj);
+                            if (shutDown)
+                                break;
+                        }
+
+                        if(!shutDown)
+                            queue.Enqueue(task);
+
+                        Monitor.PulseAll(syncObj);
+                    }
+                }
+
+                public ClTask pop()
+                {
+                    lock(syncObj)
+                    {
+                        while(queue.Count<=0)
+                        {
+                            Monitor.Wait(syncObj);
+                            if (shutDown)
+                                break;
+                        }
+                        if (shutDown)
+                            return null;
+                        return queue.Dequeue();
+                    }
+                }
+
+
+            }
+
+            class DevicePoolThread
+            {
+                object syncObj { get; set; }
+                ClNumberCruncher numberCruncher { get; set; }
+                Queue<ClTask> taskQueue { get; set; }
+                bool computeComplete { get; set; }
+                public DevicePoolThread(ClNumberCruncher numberCruncherParameter)
+                {
+                    syncObj = new object();
+                    numberCruncher = numberCruncherParameter;
+                    computeComplete = true;
+                }
+
+                public int remainingTasks()
+                {
+                    int count = 0;
+                    lock (syncObj)
+                    {
+                        count = taskQueue.Count+(computeComplete?0:1);
+                    }
+                    return count;
+                }
+
+                public void init()
+                {
+                    lock(syncObj)
+                    {
+
+                    }
+                }
+
+                public void start()
+                {
+                    lock(syncObj)
+                    {
+
+                    }
+                }
+
+                public void stop()
+                {
+                    lock(syncObj)
+                    {
+
+                    }
+                }
+
+                public void selectDevice()
+                {
+                    lock(syncObj)
+                    {
+
+                    }
+                }
+
+                /// <summary>
+                /// select a queue of a device pool(which is fed with tasks from task pools)
+                /// </summary>
+                public void selectQueue(Queue<ClTask> queueParameter)
+                {
+                    lock (syncObj)
+                    {
+                        taskQueue = queueParameter;
+                    }
                 }
             }
         }
