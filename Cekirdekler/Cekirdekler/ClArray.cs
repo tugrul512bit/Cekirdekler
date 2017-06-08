@@ -70,7 +70,7 @@ namespace Cekirdekler
             /// <param name="pipeline">true: pipeline is on</param>
             /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
             /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
-            ClTask task(ClNumberCruncher cruncher, int computeId, string kernelNamesString, int globalRange,
+            ClTask task(int computeId, string kernelNamesString, int globalRange,
                                 int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
                                 bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4);
         }
@@ -512,11 +512,11 @@ namespace Cekirdekler
             /// <param name="pipeline">true: pipeline is on</param>
             /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
             /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
-            public ClTask task(ClNumberCruncher cruncher, int computeId, string kernelNamesString, int globalRange,
+            public ClTask task(int computeId, string kernelNamesString, int globalRange,
                                 int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
                                 bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
             {
-
+                // gets current array states read/write ... to use later in compute() without using array states of that time
                 throw new NotImplementedException();
             }
 
@@ -1541,7 +1541,6 @@ namespace Cekirdekler
             /// <summary>
             /// <para>creates task to compute later, meant to be used in pools mainly</para>
             /// </summary>
-            /// <param name="cruncher"></param>
             /// <param name="computeId"></param>
             /// <param name="kernelNamesString">string that contains all kernel names(to be executed) separated by space or by , or by ;</param>
             /// <param name="globalRange">total workitems to be distributed to devices</param>
@@ -1550,7 +1549,7 @@ namespace Cekirdekler
             /// <param name="pipeline">true: pipeline is on</param>
             /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
             /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
-            public ClTask task(ClNumberCruncher cruncher, int computeId, string kernelNamesString, int globalRange,
+            public ClTask task(int computeId, string kernelNamesString, int globalRange,
                                 int localRange = 256, int ofsetGlobalRange = 0, bool pipeline = false,
                                 bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
             {
@@ -1578,7 +1577,9 @@ namespace Cekirdekler
                     readWrites_[i] = sb.ToString();
                 }
                 int[] elemsPerWorkItem_ = new int[] { numberOfElementsPerWorkItem };
-                throw new NotImplementedException();
+                return new ClTask(computeId, kernelNamesString, globalRange,
+                                localRange , ofsetGlobalRange , pipeline ,
+                                pipelineType, pipelineBlobs ,readWrites_,elemsPerWorkItem_);
             }
 
             /// <summary>

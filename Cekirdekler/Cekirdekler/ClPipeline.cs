@@ -3248,12 +3248,44 @@ namespace Cekirdekler
             /// </summary>
             public class ClTask
             {
+                // frozen array states
+                internal string[] readWrite { get; set; }
+                internal int[] elementsPerItem { get; set; }
+
+                // compute parameters
+                internal int computeId { get; set; }
+                internal string kernelNamesString { get; set; }
+                internal int globalRange { get; set; }
+                internal int localRange { get; set; }
+                internal int ofsetGlobalRange { get; set; }
+                internal bool pipeline { get; set; }
+                internal bool pipelineType { get; set; }
+                internal int pipelineBlobs { get; set; }
+
+
+                internal void compute(ClNumberCruncher numberCruncher)
+                {
+
+                }
+
                 /// <summary>
                 /// only ClParameterGroup or a ClArray can create this
                 /// </summary>
-                internal ClTask()
+                internal ClTask(int computeIdParameter, string kernelNamesStringParameter, int globalRangeParameter,
+                                int localRangeParameter = 256, int ofsetGlobalRangeParameter = 0, bool pipelineParameter = false,
+                                bool pipelineTypeParameter = Cores.PIPELINE_EVENT, int pipelineBlobsParameter = 4,string[] readWriteParameter=null,int[] elementsPerItemParameter=null)
                 {
+                    computeId = computeIdParameter;
+                    kernelNamesString = new StringBuilder( kernelNamesStringParameter).ToString();
+                    globalRange = globalRangeParameter;
+                    localRange = localRangeParameter;
+                    ofsetGlobalRange = ofsetGlobalRangeParameter;
+                    pipeline = pipelineParameter;
+                    pipelineType = pipelineTypeParameter;
+                    pipelineBlobs = pipelineBlobsParameter;
 
+                    readWrite = readWriteParameter;
+                    elementsPerItem = elementsPerItemParameter;
                 }
             }
 
