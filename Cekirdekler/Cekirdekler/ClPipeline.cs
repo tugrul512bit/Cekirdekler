@@ -3248,6 +3248,9 @@ namespace Cekirdekler
             /// </summary>
             public class ClTask
             {
+                // data to compute (single array or ClParameterGroup)
+                internal ICanCompute data { get; set; }
+
                 // frozen array states
                 internal string[] readWrite { get; set; }
                 internal int[] elementsPerItem { get; set; }
@@ -3263,18 +3266,25 @@ namespace Cekirdekler
                 internal int pipelineBlobs { get; set; }
 
 
-                internal void compute(ClNumberCruncher numberCruncher)
+                /// <summary>
+                /// computes this task using the given number cruncher
+                /// </summary>
+                /// <param name="numberCruncher"></param>
+                public void compute(ClNumberCruncher numberCruncher)
                 {
-
+                    data.compute(numberCruncher, computeId, kernelNamesString, globalRange, localRange, ofsetGlobalRange, pipeline, pipelineType, pipelineBlobs, readWrite, elementsPerItem);
                 }
 
                 /// <summary>
                 /// only ClParameterGroup or a ClArray can create this
                 /// </summary>
-                internal ClTask(int computeIdParameter, string kernelNamesStringParameter, int globalRangeParameter,
+                internal ClTask(ICanCompute dataParameter, int computeIdParameter, string kernelNamesStringParameter, int globalRangeParameter,
                                 int localRangeParameter = 256, int ofsetGlobalRangeParameter = 0, bool pipelineParameter = false,
                                 bool pipelineTypeParameter = Cores.PIPELINE_EVENT, int pipelineBlobsParameter = 4,string[] readWriteParameter=null,int[] elementsPerItemParameter=null)
                 {
+
+                    data = dataParameter;
+
                     computeId = computeIdParameter;
                     kernelNamesString = new StringBuilder( kernelNamesStringParameter).ToString();
                     globalRange = globalRangeParameter;

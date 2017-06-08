@@ -517,7 +517,7 @@ namespace Cekirdekler
                                 bool pipelineType = Cores.PIPELINE_EVENT, int pipelineBlobs = 4)
             {
                 // gets current array states read/write ... to use later in compute() without using array states of that time
-                throw new NotImplementedException();
+                return new ClTask(this, computeId, kernelNamesString, globalRange, localRange, ofsetGlobalRange, pipeline, pipelineType, pipelineBlobs);
             }
 
             /// <summary>
@@ -646,7 +646,7 @@ namespace Cekirdekler
 
                 cruncher.numberCruncher.compute(
                     kernelsTmp, cruncher.repeatCount, cruncher.repeatCount > 1 ? cruncher.repeatKernelName : "",
-                    arrs_, readWrites_, elemPerWorkItem_,
+                    arrs_, (readWritesReady==null)?readWrites_:readWritesReady, (elementsPerItemReady==null)?elemPerWorkItem_:elementsPerItemReady,
                     globalRange, computeId, ofsetGlobalRange,
                     pipeline, pipelineBlobs, pipelineType, localRange);
                 if (cruncher.performanceFeed)
@@ -1577,7 +1577,7 @@ namespace Cekirdekler
                     readWrites_[i] = sb.ToString();
                 }
                 int[] elemsPerWorkItem_ = new int[] { numberOfElementsPerWorkItem };
-                return new ClTask(computeId, kernelNamesString, globalRange,
+                return new ClTask(this,computeId, kernelNamesString, globalRange,
                                 localRange , ofsetGlobalRange , pipeline ,
                                 pipelineType, pipelineBlobs ,readWrites_,elemsPerWorkItem_);
             }
@@ -1721,7 +1721,7 @@ namespace Cekirdekler
 
                 cruncher.numberCruncher.compute(
                     kernelsTmp, cruncher.repeatCount, cruncher.repeatCount > 1 ? cruncher.repeatKernelName : "",
-                    arrs_, readWritesReady==null?readWrites_: readWritesReady, elementsPerItemReady==null? elemsPerWorkItem_: elementsPerItemReady,
+                    arrs_, (readWritesReady==null)?readWrites_: readWritesReady, (elementsPerItemReady==null)? elemsPerWorkItem_: elementsPerItemReady,
                     globalRange, computeId, ofsetGlobalRange,
                     pipeline, pipelineBlobs, pipelineType, localRange);
 
