@@ -3566,7 +3566,7 @@ namespace Cekirdekler
                 Thread poolControlThread { get; set; }
                 bool packetProcessingStarted { get; set; }
                 bool packetProcessingComplete { get; set; }
-
+                Random rand { get; set; }
                 /// <summary>
                 /// <para>creates a worker pool with a type</para>
                 /// <para>any ClNumberCruncher instance added to this pool will work accordingly with the type algorithm</para>
@@ -3588,7 +3588,7 @@ namespace Cekirdekler
                         running = false;
                         taskPoolCounter = 0;
                         deviceCounter = 0;
-                        
+                        rand = new Random();
                     }
                     ThreadStart ts = new ThreadStart(produceTasks);
 
@@ -3645,21 +3645,30 @@ namespace Cekirdekler
                             }
                             else if(type==ClDevicePoolType.DEVICE_COMPUTE_AT_WILL)
                             {
-                                int minQueue = 1000000000;
-                                int selectedId = -1;
+                                float[] speeds = new float[devices.Count];
+                                float totalSpeed = 0;
                                 for(int i=0;i<devices.Count;i++)
                                 {
-                                    int tasks = devices[i].remainingTasks();
-                                    if(minQueue> tasks)
-                                    {
-                                        minQueue = tasks;
-                                        selectedId = i;
-                                    }
+                                    speeds[i] = devices[i].markerReachSpeed();
+                                    totalSpeed += speeds[i];
                                 }
 
-                                if ((selectedId!=-1) && (minQueue < 5))
+                                for (int i = 0; i < devices.Count; i++)
                                 {
-                                    selectedDevice = devices[selectedId]; 
+                                    speeds[i] /= totalSpeed;
+                                }
+
+
+                                while (selectedDevice == null)
+                                {
+                                    for (int i = 0; i < devices.Count; i++)
+                                    {
+
+                                        if ((rand.NextDouble() < speeds[i]) && (devices[i].markersRemaining() < 2))
+                                        {
+                                            selectedDevice = devices[i];
+                                        }
+                                    }
                                 }
                             }
                             
@@ -3669,6 +3678,10 @@ namespace Cekirdekler
                                 if (taskPoolQueue.Count > 0)
                                 {
                                     currentTaskPool = taskPoolQueue.Dequeue();
+                                    for(int i=0;i<devices.Count;i++)
+                                    {
+                                        devices[i].enableEnqueueMode();
+                                    }
                                     deviceCounter = 0;
                                     continue;
                                 }
@@ -3738,7 +3751,6 @@ namespace Cekirdekler
                 /// <param name="taskPoolParameter"></param>
                 public void enqueueTaskPool(ClTaskPool taskPoolParameter)
                 {
-
                     lock (syncObj)
                     {
                         taskPoolQueue.Enqueue(taskPoolParameter.duplicate());
@@ -3755,6 +3767,9 @@ namespace Cekirdekler
                     int count = 0;
                     lock (syncObj)
                     {
+
+
+
                         count += taskPoolQueue.Count;
                         if (currentTaskPool != null)
                             count += currentTaskPool.remainingTaskGroupsOrTasks();
@@ -3764,7 +3779,7 @@ namespace Cekirdekler
                     {
                         lock (syncObj)
                         {
-                            count += devices[i].remainingTasks();
+                            count += devices[i].remainingTasks() + devices[i].markersRemaining() ;
                         }
                     }
                     while (count > 0)
@@ -3781,12 +3796,23 @@ namespace Cekirdekler
 
                             for (int i = 0; i < devices.Count; i++)
                             {
-                                count += devices[i].remainingTasks();
+                                count += devices[i].remainingTasks() ;
+                            }
+
+                            for (int i = 0; i < devices.Count; i++)
+                            {
+                                count += devices[i].markersRemaining();
                             }
                         }
                     }
 
-
+                    lock(syncObj)
+                    {
+                        for (int i = 0; i < devices.Count; i++)
+                        {
+                            devices[i].disableEnqueueMode();
+                        }
+                    }
 
                 }
 
@@ -3892,17 +3918,87 @@ namespace Cekirdekler
                 bool computeComplete { get; set; }
                 bool running { get; set; }
                 bool paused { get; set; }
+                private Queue<bool> queueModeChange { get; set; }
+                private bool numberCruncherEnqueueMode {get;set;}
+                int lastMarkersReached { get; set; }
+                Stopwatch swThread { get; set; }
+                float [] markerSpeedHistory { get; set; }
+                int markerSpeedCounter { get; set; }
                 public DevicePoolThread(ClNumberCruncher numberCruncherParameter)
                 {
                     syncObj = new object();
                     numberCruncher = numberCruncherParameter;
                     computeComplete = true;
+                    lastMarkersReached = 0;
                     taskQueue = new Queue<ClTask>();
                     running = true;
                     paused = false;
+                    markerSpeedHistory = new float[5];
+                    numberCruncherEnqueueMode = false;
+                    markerSpeedCounter = 0;
+                    queueModeChange = new Queue<bool>();
                     ThreadStart ts = new ThreadStart(consumeTasks);
                     t = new Thread(ts);
                     t.Start();
+                }
+
+                public void enableEnqueueMode()
+                {
+                    lock (syncObj)
+                    {
+                        numberCruncher.enqueueMode = true;
+                        Monitor.PulseAll(syncObj);
+                    }
+                }
+
+                public void disableEnqueueMode()
+                {
+                    lock (syncObj)
+                    {
+                        queueModeChange.Enqueue(false);
+                        Monitor.PulseAll(syncObj);
+                    }
+                }
+
+                public float markerReachSpeed()
+                {
+                    float smoothedSpeed = 0;
+                    lock (syncObj)
+                    {
+                        float result = 0;
+                        float time = 0;
+
+                        int currentReached = numberCruncher.countMarkersReached();
+                        if ((swThread != null) && ((currentReached- lastMarkersReached)>0))
+                        {
+                            swThread.Stop();
+                            time = (float)swThread.Elapsed.TotalMilliseconds;
+                            time += 0.001f;
+                            swThread.Reset();
+                            swThread.Start();
+
+                            result = (((float)currentReached) - ((float)lastMarkersReached)) / time;
+                            lastMarkersReached = currentReached;
+                            markerSpeedHistory[markerSpeedCounter % 5] = result;
+                            markerSpeedCounter++;
+                            for (int i = 0; i < 5; i++)
+                            {
+                                smoothedSpeed += markerSpeedHistory[i];
+                            }
+                            smoothedSpeed /= 5.0f;
+                        }
+                    }
+                    return smoothedSpeed+0.001f;
+                }
+
+                public int markersRemaining()
+                {
+                    int count = 0;
+                    lock(syncObj)
+                    {
+                        count += numberCruncher.countMarkersRemaining(); 
+                    }
+                    return count;
                 }
 
                 public int remainingTasks()
@@ -3911,17 +4007,22 @@ namespace Cekirdekler
                     lock (syncObj)
                     {
                         count = taskQueue.Count+(computeComplete?0:1);
+                        Monitor.PulseAll(syncObj);
                     }
+
                     return count;
                 }
 
                 //producer-consumer work flow's consumer part that computes distributed tasks
                 void consumeTasks()
                 {
+                    if (swThread == null)
+                        swThread = new Stopwatch();
                     bool working = true;
                     while (working)
                     {
                         ClTask currentTask = null;
+                        bool ? newMode = null;
                         lock (syncObj)
                         {
                             working = running;
@@ -3936,14 +4037,37 @@ namespace Cekirdekler
                                 Monitor.PulseAll(syncObj);
                                 Monitor.Wait(syncObj);
                             }
+
+                            if (queueModeChange.Count > 0)
+                                newMode = queueModeChange.Dequeue();
                         }
 
                         if(currentTask!=null)
                         {
+
+                            int markersRemainingCurrent = 1000000000;
+                            while(markersRemainingCurrent>2)
+                            {
+                                lock(syncObj)
+                                {
+                                    markersRemainingCurrent= markersRemaining();
+                                }
+                            }
                             currentTask.compute(numberCruncher);
-                            lock(syncObj)
+
+                            if (newMode == false)
+                                numberCruncher.enqueueMode = false;
+                            lock (syncObj)
                             {
                                 computeComplete = true;
+                            }
+                        }
+                        else
+                        {
+                            lock(syncObj)
+                            {
+                                Monitor.PulseAll(syncObj);
+                                Monitor.Wait(syncObj);
                             }
                         }
                     }
@@ -3963,6 +4087,7 @@ namespace Cekirdekler
                     lock(syncObj)
                     {
                         paused = true;
+                        Monitor.PulseAll(syncObj);
 
                     }
                 }
@@ -3983,6 +4108,17 @@ namespace Cekirdekler
                 /// </summary>
                 public void feedTask(ClTask taskParameter)
                 {
+                    int len = 1000000000;
+                    while (len > 2)
+                    {
+                        lock (syncObj)
+                        {
+                            Monitor.PulseAll(syncObj);
+                            Monitor.Wait(syncObj);
+                            len = taskQueue.Count;
+                        }
+                    }
+
                     lock (syncObj)
                     {
                         taskQueue.Enqueue(taskParameter);

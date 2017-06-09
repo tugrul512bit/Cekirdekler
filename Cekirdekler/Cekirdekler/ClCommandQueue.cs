@@ -32,6 +32,15 @@ namespace ClObject
         private static extern IntPtr createCommandQueue(IntPtr hContext, IntPtr hDevice, int async);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void addMarkerToCommandQueue(IntPtr hCommandQueue);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int getMarkerCounterOfCommandQueue(IntPtr hCommandQueue);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void resetMarkerCounterOfCommandQueue(IntPtr hCommandQueue);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern void deleteCommandQueue(IntPtr hCommandQueue);
 
         private IntPtr hCommandQueue;
@@ -48,6 +57,7 @@ namespace ClObject
             hContext = context.h();
             hDevice = context.hd();
             hCommandQueue = createCommandQueue(hContext, hDevice,async);
+            addedMarkers = 0;
         }
 
         /// <summary>
@@ -58,6 +68,33 @@ namespace ClObject
         {
             return hCommandQueue;
         }
+
+
+        int addedMarkers { get; set; }
+
+        public int getAddedMarkers()
+        {
+            return addedMarkers;
+        }
+
+        public void addMarkerForCounting()
+        {
+            addedMarkers++;
+            addMarkerToCommandQueue(hCommandQueue);
+        }
+
+        public int getMarkerCounter()
+        {
+            return getMarkerCounterOfCommandQueue(hCommandQueue);
+        }
+
+        public int resetMarkerCounter()
+        {
+            return getMarkerCounterOfCommandQueue(hCommandQueue);
+        }
+
+       
+
 
         /// <summary>
         /// handle to context object in C++ which holds this command queue
@@ -83,7 +120,6 @@ namespace ClObject
         /// </summary>
         public void dispose()
         {
-
             if (hCommandQueue!=IntPtr.Zero)
                 deleteCommandQueue(hCommandQueue);
             hCommandQueue = IntPtr.Zero;

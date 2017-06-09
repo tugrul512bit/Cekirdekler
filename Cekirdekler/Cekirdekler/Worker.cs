@@ -268,6 +268,50 @@ namespace ClObject
         }
 
         internal int[] numComputeQueueUsed = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+
+
+        internal int countMarkers()
+        {
+            int result = commandQueue.getAddedMarkers();
+            result += commandQueue2.getAddedMarkers();
+            result += commandQueue3.getAddedMarkers();
+            result += commandQueue4.getAddedMarkers();
+            result += commandQueue5.getAddedMarkers();
+            result += commandQueue6.getAddedMarkers();
+            result += commandQueue7.getAddedMarkers();
+            result += commandQueue8.getAddedMarkers();
+            result += commandQueue9.getAddedMarkers();
+            result += commandQueue10.getAddedMarkers();
+            result += commandQueue11.getAddedMarkers();
+            result += commandQueue12.getAddedMarkers();
+            result += commandQueue13.getAddedMarkers();
+            result += commandQueue14.getAddedMarkers();
+            result += commandQueue15.getAddedMarkers();
+            result += commandQueue16.getAddedMarkers();
+            return result;
+        }
+
+        internal int countMarkerCallbacks()
+        {
+            int result = commandQueue.getMarkerCounter();
+            result+= commandQueue2.getMarkerCounter();
+            result+= commandQueue3.getMarkerCounter();
+            result+= commandQueue4.getMarkerCounter();
+            result+= commandQueue5.getMarkerCounter();
+            result+= commandQueue6.getMarkerCounter();
+            result+= commandQueue7.getMarkerCounter();
+            result+= commandQueue8.getMarkerCounter();
+            result+= commandQueue9.getMarkerCounter();
+            result+= commandQueue10.getMarkerCounter();
+            result+= commandQueue11.getMarkerCounter();
+            result+= commandQueue12.getMarkerCounter();
+            result+= commandQueue13.getMarkerCounter();
+            result+= commandQueue14.getMarkerCounter();
+            result+= commandQueue15.getMarkerCounter();
+            result+= commandQueue16.getMarkerCounter();
+            return result;
+        }
+
         internal void finishUsedComputeQueues()
         {
             List<IntPtr> finishList = new List<IntPtr>();
@@ -325,7 +369,7 @@ namespace ClObject
 
         }
 
-        private ClCommandQueue lastUsedCQ { get; set; }
+        internal ClCommandQueue lastUsedCQ { get; set; }
         internal ClCommandQueue lastUsedComputeQueue()
         {
             return lastUsedCQ;
@@ -336,24 +380,23 @@ namespace ClObject
         {
             switch (indexCounter % (((computeQueueConcurrency>16)||(computeQueueConcurrency < 1))?16: computeQueueConcurrency))
             {
-                case 0:numComputeQueueUsed[0]++; lastUsedCQ = commandQueue;  return commandQueue;
-                case 1:numComputeQueueUsed[1]++;   lastUsedCQ = commandQueue2; return commandQueue2;
-                case 2:numComputeQueueUsed[2]++;   lastUsedCQ = commandQueue3; return commandQueue3;
-                case 3:numComputeQueueUsed[3]++;   lastUsedCQ = commandQueue4; return commandQueue4;
-                case 4:numComputeQueueUsed[4]++;   lastUsedCQ = commandQueue5; return commandQueue5;
-                case 5:numComputeQueueUsed[5]++;   lastUsedCQ = commandQueue6; return commandQueue6;
-                case 6:numComputeQueueUsed[6]++;   lastUsedCQ = commandQueue7; return commandQueue7;
-                case 7:numComputeQueueUsed[7]++;   lastUsedCQ = commandQueue8; return commandQueue8;
-                case 8:numComputeQueueUsed[8]++;   lastUsedCQ = commandQueue9; return commandQueue9;
-                case 9: numComputeQueueUsed[9]++;  lastUsedCQ = commandQueue10; return commandQueue10;
-                case 10:numComputeQueueUsed[10]++; lastUsedCQ = commandQueue11; return commandQueue11;
-                case 11:numComputeQueueUsed[11]++; lastUsedCQ = commandQueue12; return commandQueue12;
-                case 12:numComputeQueueUsed[12]++; lastUsedCQ = commandQueue13; return commandQueue13;
-                case 13:numComputeQueueUsed[13]++; lastUsedCQ = commandQueue14; return commandQueue14;
-                case 14:numComputeQueueUsed[14]++; lastUsedCQ = commandQueue15; return commandQueue15;
-                case 15: numComputeQueueUsed[15]++;lastUsedCQ = commandQueue16; return commandQueue16;
-
-                default: numComputeQueueUsed[0]++; lastUsedCQ = commandQueue; return commandQueue;
+                case 0:numComputeQueueUsed[0]++;   lastUsedCQ = commandQueue;     return commandQueue;
+                case 1:numComputeQueueUsed[1]++;   lastUsedCQ = commandQueue2;   return commandQueue2;
+                case 2:numComputeQueueUsed[2]++;   lastUsedCQ = commandQueue3;   return commandQueue3;
+                case 3:numComputeQueueUsed[3]++;   lastUsedCQ = commandQueue4;   return commandQueue4;
+                case 4:numComputeQueueUsed[4]++;   lastUsedCQ = commandQueue5;   return commandQueue5;
+                case 5:numComputeQueueUsed[5]++;   lastUsedCQ = commandQueue6;   return commandQueue6;
+                case 6:numComputeQueueUsed[6]++;   lastUsedCQ = commandQueue7;   return commandQueue7;
+                case 7:numComputeQueueUsed[7]++;   lastUsedCQ = commandQueue8;   return commandQueue8;
+                case 8:numComputeQueueUsed[8]++;   lastUsedCQ = commandQueue9;   return commandQueue9;
+                case 9: numComputeQueueUsed[9]++;  lastUsedCQ = commandQueue10;  return commandQueue10;
+                case 10:numComputeQueueUsed[10]++; lastUsedCQ = commandQueue11;  return commandQueue11;
+                case 11:numComputeQueueUsed[11]++; lastUsedCQ = commandQueue12;  return commandQueue12;
+                case 12:numComputeQueueUsed[12]++; lastUsedCQ = commandQueue13;  return commandQueue13;
+                case 13:numComputeQueueUsed[13]++; lastUsedCQ = commandQueue14;  return commandQueue14;
+                case 14:numComputeQueueUsed[14]++; lastUsedCQ = commandQueue15;  return commandQueue15;
+                case 15: numComputeQueueUsed[15]++;lastUsedCQ = commandQueue16;  return commandQueue16;
+                default: numComputeQueueUsed[0]++; lastUsedCQ = commandQueue;    return commandQueue;
             }
 
         }

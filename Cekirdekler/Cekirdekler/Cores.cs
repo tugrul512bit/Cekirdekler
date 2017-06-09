@@ -920,6 +920,7 @@ namespace Cekirdekler
                             if (enqueueMode)
                             {
                                 workers[0].numComputeQueueUsed[0]++;
+                                workers[0].commandQueue.addMarkerForCounting();
                             }
                         }
                     }
@@ -938,6 +939,28 @@ namespace Cekirdekler
             }
             lastUsedComputeId = computeId;
 
+        }
+
+        internal int countMarkers()
+        {
+
+            int result = 0;
+            for (int i = 0; i < workers.Length; i++)
+            {
+                result += workers[i].countMarkers();
+            }
+            return result;
+        }
+
+        internal int countMarkerCallbacks()
+        {
+
+            int result = 0;
+            for(int i=0;i<workers.Length;i++)
+            {
+                result += workers[i].countMarkerCallbacks();
+            }
+            return result;
         }
 
         internal int lastUsedComputeId = 0;

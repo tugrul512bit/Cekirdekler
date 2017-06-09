@@ -309,8 +309,29 @@ namespace Cekirdekler
                 numberOfErrorsHappened++;
                 return;
             }
+        }
 
+        /// <summary>
+        /// <para>counts all remaining markers to reach in all command queues in all devices</para>
+        /// <para>for finer grained scheduling/control</para>
+        /// </summary>
+        /// <returns></returns>
+        public int countMarkersRemaining()
+        {
+            int result = 0;
+            result += (numberCruncher.countMarkers()- numberCruncher.countMarkerCallbacks());
+            return result;
+        }
 
+        /// <summary>
+        /// number of markers reached
+        /// </summary>
+        /// <returns></returns>
+        public int countMarkersReached()
+        {
+            int result = 0;
+            result += numberCruncher.countMarkerCallbacks();
+            return result;
         }
 
         private string errorMessage_;
