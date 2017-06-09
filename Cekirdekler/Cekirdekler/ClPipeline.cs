@@ -3646,24 +3646,27 @@ namespace Cekirdekler
                                     }
                                 }
                             }
-                            
+
 
                             if (currentTaskPool == null)
                             {
                                 if (taskPoolQueue.Count > 0)
                                 {
                                     currentTaskPool = taskPoolQueue.Dequeue();
-                                        for (int i = 0; i < devices.Count; i++)
-                                        {
-                                            devices[i].enableEnqueueMode();
-                                        }
+                                    deviceQueueLimiter = 1+currentTaskPool.remainingTaskGroupsOrTasks()/40;
+                                    for (int i = 0; i < devices.Count; i++)
+                                    {
+                                        devices[i].changeDeviceQueueLimit(deviceQueueLimiter);
+                                        devices[i].enableEnqueueMode();
+                                    }
                                     deviceCounter = 0;
                                     continue;
                                 }
                             }
                             else if (currentTaskPool.remainingTaskGroupsOrTasks() <= 0)
+                            {
                                 currentTaskPool = null;
-
+                            }
 
 
                             if (currentTaskPool != null)
@@ -3914,6 +3917,14 @@ namespace Cekirdekler
                     ThreadStart ts = new ThreadStart(consumeTasks);
                     t = new Thread(ts);
                     t.Start();
+                }
+
+                public void changeDeviceQueueLimit(int newValue)
+                {
+                    lock(syncObj)
+                    {
+                        deviceQueueLimiter = newValue;
+                    }
                 }
 
                 public void enableEnqueueMode()
