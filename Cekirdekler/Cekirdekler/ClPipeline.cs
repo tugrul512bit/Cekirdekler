@@ -3529,46 +3529,19 @@ namespace Cekirdekler
                 /// <para>a device in pool issues a task, then next task is issued by next device only</para>
                 /// <para>default value</para>
                 /// </summary>
-                WORKER_ROUND_ROBIN=0,
+                DEVICE_ROUND_ROBIN=0,
 
-                /// <summary>
-                /// <para>executes newly added tasks one by one in the order they were added</para>
-                /// <para>completes task before moving to next task so its better to have multiple devices in pool</para>
-                /// </summary>
-                WORK_FIRST_COME_FIRST_SERVE = 1,
-
-                /// <summary>
-                /// <para>picks tasks by their global range values and their user defined compute-to-workitem ratios</para>
-                /// <para>completes task before moving to next task</para>
-                /// </summary>
-                WORK_SHORTEST_JOB_FIRST = 2,
-
-                /// <summary>
-                /// <para>picks a group of tasks then iteratively picks tasks in a FCFS way</para>
-                /// <para>then cycles from beginning and repeats until all picked tasks are complete</para>
-                /// <para>executes only a single enqueued command in task before moving to next task</para>
-                /// <para>quantum here is a single read/write or a single kernel</para>
-                /// <para>meant to arrive finish points all tasks at the same time </para>
-                /// <para>even a single device works on many tasks in parallel</para>
-                /// </summary>
-                WORK_ROUND_ROBIN = 4,
-
-                /// <summary>
-                /// <para>picks highest priority tasks first</para>
-                /// <para>completes task before moving to next task</para>
-                /// </summary>
-                WORK_PRIORITY_BASED = 8,
 
                 /// <summary>
                 /// <para>all devices in pool work at the same time and synchronize on host after each task or quanta</para>
-                /// <para>if there are two devices, packet size is 2, 2 tasks are issued at a time</para>
+                /// <para>if there are two devices, packet size is 2 and 2 tasks are issued at a time and they wait eachother before getting new work</para>
                 /// </summary>
-                WORKER_PACKET = 16,
+                DEVICE_PACKET = 1,
 
                 /// <summary>
                 /// whenever a device becomes ready after computing a task, immediately issues another task
                 /// </summary>
-                WORKER_COMPUTE_AT_WILL=32,
+                WORKER_COMPUTE_AT_WILL=2,
 
 
 
@@ -3591,7 +3564,8 @@ namespace Cekirdekler
                 int taskPoolCounter { get; set; }
                 int deviceCounter { get; set; }
                 Thread poolControlThread { get; set; }
-
+                bool packetProcessingStarted { get; set; }
+                bool packetProcessingComplete { get; set; }
 
                 /// <summary>
                 /// <para>creates a worker pool with a type</para>
@@ -3608,6 +3582,8 @@ namespace Cekirdekler
                     {
                         devices = new List<DevicePoolThread>();
                         taskPoolQueue = new Queue<ClTaskPool>();
+                        packetProcessingStarted = false;
+                        packetProcessingComplete = true;
                         currentTaskPool = null;
                         running = false;
                         taskPoolCounter = 0;
@@ -3635,7 +3611,7 @@ namespace Cekirdekler
                             // compute logic
 
                             DevicePoolThread selectedDevice = null;
-                            if (type == ClDevicePoolType.WORKER_ROUND_ROBIN)
+                            if (type == ClDevicePoolType.DEVICE_ROUND_ROBIN)
                             {
 
                                 if (devices.Count > 0)
@@ -3644,12 +3620,42 @@ namespace Cekirdekler
                                     deviceCounter++;
                                 }
                             }
+                            else if(type==ClDevicePoolType.DEVICE_PACKET)
+                            {
+                                bool ready = (devices.Count>0);
+                                for(int i=0;i<devices.Count;i++)
+                                {
+                                    ready &= (devices[i].remainingTasks()<=0);
+                                }
 
+                                if (ready)
+                                    packetProcessingStarted = true;
+
+                                if (packetProcessingStarted || ((!packetProcessingStarted) && ready))
+                                {
+                                    selectedDevice = devices[deviceCounter % devices.Count];
+
+                                    if ((deviceCounter % devices.Count) == (devices.Count-1))
+                                    {
+                                        packetProcessingStarted = false;
+                                    }
+                                    deviceCounter++;
+
+                                }
+
+
+
+                            }
+                            
 
                             if (currentTaskPool == null)
                             {
-                                if(taskPoolQueue.Count>0)
+                                if (taskPoolQueue.Count > 0)
+                                {
                                     currentTaskPool = taskPoolQueue.Dequeue();
+                                    deviceCounter = 0;
+                                    continue;
+                                }
                             }
                             else if (currentTaskPool.remainingTaskGroupsOrTasks() <= 0)
                                 currentTaskPool = null;
