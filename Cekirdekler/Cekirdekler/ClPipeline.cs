@@ -3414,16 +3414,34 @@ namespace Cekirdekler
             }
 
             /// <summary>
-            /// a pool of tasks to be computed by a pool of devices with optional scheduling algorithms
+            /// <para>a pool of tasks to be computed by a pool of devices with optional scheduling algorithms</para>
+            /// <para>re-usable with resetting inner counter</para>
             /// </summary>
             public class ClTaskPool
             {
+                object syncObj { get; set; }
+                int counter { get; set; }
+                List<ClTask> taskList { get; set; }
+                ClTaskPoolType type { get; set; }
                 /// <summary>
                 /// creaetes a pool that receives tasks
                 /// </summary>
-                public ClTaskPool()
+                public ClTaskPool(ClTaskPoolType typeParameter)
                 {
+                    type = typeParameter;
+                    syncObj = new object();
+                    counter = 0;
+                }
 
+                /// <summary>
+                /// clears task counter and makes this pool re-usable again
+                /// </summary>
+                public void reset()
+                {
+                    lock (syncObj)
+                    {
+                        counter = 0;
+                    }
                 }
 
                 /// <summary>
@@ -3432,7 +3450,44 @@ namespace Cekirdekler
                 /// </summary>
                 public void feed(ClTask task)
                 {
+                    lock(syncObj)
+                    {
+                        taskList.Add(task);
+                    }
+                }
 
+                /// <summary>
+                /// get next task in the list
+                /// </summary>
+                public ClTask nextTask()
+                {
+                    ClTask next = null;
+                    lock (syncObj)
+                    {
+                        if(counter<taskList.Count && counter>=0)
+                        {
+                            next = taskList[counter];
+                        }
+                        counter++;
+                        Monitor.PulseAll(syncObj);
+                    }
+                    return next;
+                }
+
+                /// <summary>
+                /// returns number of tasks(and groups) left
+                /// </summary>
+                /// <returns></returns>
+                public int remainingTaskGroupsOrTasks()
+                {
+                    int num = 0;
+                    lock(syncObj)
+                    {
+                        num = taskList.Count - counter;
+                        if (num < 0)
+                            num = 0;
+                    }
+                    return num;
                 }
 
                 /// <summary>
@@ -3511,7 +3566,7 @@ namespace Cekirdekler
             /// </summary>
             public class ClDevicePool
             {
-                object lockObj { get; set; }
+                object syncObj { get; set; }
                 ClDevicePoolType type { get; set; }
                 List<DevicePoolThread> devices { get; set; }
                 string kernelCode { get; set; }
@@ -3527,7 +3582,7 @@ namespace Cekirdekler
                 public ClDevicePool(ClDevicePoolType poolType,string kernelCodeToCompile)
                 {
                     type = poolType;
-                    lockObj = new object();
+                    syncObj = new object();
                     devices = new List<DevicePoolThread>();
                     taskPoolList = new List<ClTaskPool>();
                     running = false;
@@ -3542,7 +3597,7 @@ namespace Cekirdekler
                     running = true;
                     while (tmp)
                     {
-                        lock (lockObj)
+                        lock (syncObj)
                         {
                             // compute logic
 
@@ -3562,7 +3617,7 @@ namespace Cekirdekler
                 /// <param name="devicesParameter"></param>
                 public void addDevices(ClDevices devicesParameter)
                 {
-                    lock(lockObj)
+                    lock(syncObj)
                     {
                         var newDevice = new DevicePoolThread(new ClNumberCruncher(devicesParameter,kernelCode));
                         devices.Add(newDevice);
@@ -3580,11 +3635,11 @@ namespace Cekirdekler
                 /// <param name="taskPoolParameter"></param>
                 public void enqueueTaskPool(ClTaskPool taskPoolParameter)
                 {
-                    lock(lockObj)
+                    lock(syncObj)
                     {
                         taskPoolList.Add(taskPoolParameter);
-                        Monitor.PulseAll(lockObj);
-                        Monitor.Wait(lockObj);
+                        Monitor.PulseAll(syncObj);
+                        Monitor.Wait(syncObj);
                     }
                 }
 
@@ -3593,7 +3648,7 @@ namespace Cekirdekler
                 /// </summary>
                 public void finish()
                 {
-                    lock(lockObj)
+                    lock(syncObj)
                     {
                         int count = 0;
                         for(int i=0;i< taskPoolList.Count;i++)
@@ -3606,7 +3661,8 @@ namespace Cekirdekler
                         }
                         while(count > 0)
                         {
-                            Monitor.Wait(lockObj);
+                            Monitor.PulseAll(syncObj);
+                            Monitor.Wait(syncObj);
                             count = 0;
                             for (int i = 0; i < taskPoolList.Count; i++)
                             {
@@ -3621,11 +3677,6 @@ namespace Cekirdekler
                 }
             }
 
-            class DeviceQueuePair
-            {
-                public List<ClNumberCruncher> cruncher { get; set; }
-                public PoolTaskQueue queue { get; set; }
-            }
 
             /// <summary>
             /// queue for producer-consumer
@@ -3705,11 +3756,16 @@ namespace Cekirdekler
                 ClNumberCruncher numberCruncher { get; set; }
                 Queue<ClTask> taskQueue { get; set; }
                 bool computeComplete { get; set; }
+                bool running { get; set; }
+                bool paused { get; set; }
                 public DevicePoolThread(ClNumberCruncher numberCruncherParameter)
                 {
                     syncObj = new object();
                     numberCruncher = numberCruncherParameter;
                     computeComplete = true;
+                    taskQueue = new Queue<ClTask>();
+                    running = true;
+                    paused = false;
                 }
 
                 public int remainingTasks()
@@ -3724,9 +3780,33 @@ namespace Cekirdekler
 
                 public void init()
                 {
-                    lock(syncObj)
+                    bool working = true;
+                    while (working)
                     {
+                        ClTask currentTask = null;
+                        lock (syncObj)
+                        {
+                            working = running;
+                            if (taskQueue.Count>0)
+                            {
+                                currentTask = taskQueue.Dequeue();
+                                computeComplete = false;
+                            }
 
+                            while(paused)
+                            {
+                                Monitor.PulseAll(syncObj);
+                                Monitor.Wait(syncObj);
+                            }
+                        }
+                        if(currentTask!=null)
+                        {
+                            currentTask.compute(numberCruncher);
+                            lock(syncObj)
+                            {
+                                computeComplete = true;
+                            }
+                        }
                     }
                 }
 
@@ -3734,25 +3814,29 @@ namespace Cekirdekler
                 {
                     lock(syncObj)
                     {
-
+                        paused = false;
+                        Monitor.PulseAll(syncObj);
                     }
                 }
 
-                public void stop()
+                public void pause()
                 {
                     lock(syncObj)
                     {
+                        paused = true;
 
                     }
                 }
 
-                public void selectDevice()
+                public void dispose()
                 {
                     lock(syncObj)
                     {
-
+                        running = false;
+                        Monitor.PulseAll(syncObj);
                     }
                 }
+
 
                 /// <summary>
                 /// select a queue of a device pool(which is fed with tasks from task pools)
