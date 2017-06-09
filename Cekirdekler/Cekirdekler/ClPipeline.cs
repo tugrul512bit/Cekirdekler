@@ -3541,7 +3541,7 @@ namespace Cekirdekler
                 /// <summary>
                 /// whenever a device becomes ready after computing a task, immediately issues another task
                 /// </summary>
-                WORKER_COMPUTE_AT_WILL=2,
+                DEVICE_COMPUTE_AT_WILL = 2,
 
 
 
@@ -3588,6 +3588,7 @@ namespace Cekirdekler
                         running = false;
                         taskPoolCounter = 0;
                         deviceCounter = 0;
+                        
                     }
                     ThreadStart ts = new ThreadStart(produceTasks);
 
@@ -3613,7 +3614,6 @@ namespace Cekirdekler
                             DevicePoolThread selectedDevice = null;
                             if (type == ClDevicePoolType.DEVICE_ROUND_ROBIN)
                             {
-
                                 if (devices.Count > 0)
                                 {
                                     selectedDevice = devices[deviceCounter % devices.Count];
@@ -3642,9 +3642,25 @@ namespace Cekirdekler
                                     deviceCounter++;
 
                                 }
+                            }
+                            else if(type==ClDevicePoolType.DEVICE_COMPUTE_AT_WILL)
+                            {
+                                int minQueue = 1000000000;
+                                int selectedId = -1;
+                                for(int i=0;i<devices.Count;i++)
+                                {
+                                    int tasks = devices[i].remainingTasks();
+                                    if(minQueue> tasks)
+                                    {
+                                        minQueue = tasks;
+                                        selectedId = i;
+                                    }
+                                }
 
-
-
+                                if ((selectedId!=-1) && (minQueue < 5))
+                                {
+                                    selectedDevice = devices[selectedId]; 
+                                }
                             }
                             
 
