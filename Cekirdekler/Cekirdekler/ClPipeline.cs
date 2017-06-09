@@ -3422,7 +3422,7 @@ namespace Cekirdekler
                 object syncObj { get; set; }
                 int counter { get; set; }
                 List<ClTask> taskList { get; set; }
-                ClTaskPoolType type { get; set; }
+                internal ClTaskPoolType type { get; set; }
                 /// <summary>
                 /// creaetes a pool that receives tasks
                 /// </summary>
@@ -3430,7 +3430,11 @@ namespace Cekirdekler
                 {
                     type = typeParameter;
                     syncObj = new object();
-                    counter = 0;
+                    lock (syncObj)
+                    {
+                        counter = 0;
+                        taskList = new List<ClTask>();
+                    }
                 }
 
                 /// <summary>
@@ -3450,6 +3454,14 @@ namespace Cekirdekler
                 /// </summary>
                 public void feed(ClTask task)
                 {
+                    bool empty = true;
+                    while(empty)
+                    {
+                        lock(syncObj)
+                        {
+                            empty = (taskList == null);
+                        }
+                    }
                     lock(syncObj)
                     {
                         taskList.Add(task);
@@ -3461,6 +3473,14 @@ namespace Cekirdekler
                 /// </summary>
                 public ClTask nextTask()
                 {
+                    bool empty = true;
+                    while (empty)
+                    {
+                        lock (syncObj)
+                        {
+                            empty = (taskList == null);
+                        }
+                    }
                     ClTask next = null;
                     lock (syncObj)
                     {
@@ -3480,6 +3500,14 @@ namespace Cekirdekler
                 /// <returns></returns>
                 public int remainingTaskGroupsOrTasks()
                 {
+                    bool empty = true;
+                    while (empty)
+                    {
+                        lock (syncObj)
+                        {
+                            empty = (taskList == null);
+                        }
+                    }
                     int num = 0;
                     lock(syncObj)
                     {
@@ -3572,6 +3600,10 @@ namespace Cekirdekler
                 string kernelCode { get; set; }
                 List<ClTaskPool> taskPoolList { get; set; }
                 bool running { get; set; }
+                int taskPoolCounter { get; set; }
+                int deviceCounter { get; set; }
+                Thread poolControlThread { get; set; }
+                ClTaskPool roundRobinSelectedTaskPool { get; set; }
 
                 /// <summary>
                 /// <para>creates a worker pool with a type</para>
@@ -3579,19 +3611,29 @@ namespace Cekirdekler
                 /// </summary>
                 /// <param name="poolType"></param>
                 /// <param name="kernelCodeToCompile"></param>
-                public ClDevicePool(ClDevicePoolType poolType,string kernelCodeToCompile)
+                public ClDevicePool(ClDevicePoolType poolType, string kernelCodeToCompile)
                 {
                     type = poolType;
+                    kernelCode = kernelCodeToCompile;
                     syncObj = new object();
                     devices = new List<DevicePoolThread>();
                     taskPoolList = new List<ClTaskPool>();
                     running = false;
+                    taskPoolCounter = 0;
+                    deviceCounter = 0;
+                    roundRobinSelectedTaskPool = null;
+                    ThreadStart ts = new ThreadStart(produceTasks);
+
+                    poolControlThread = new Thread(ts);
+
+                    poolControlThread.Start();
+
                 }
 
                 /// <summary>
-                /// start running device-task-feed threads
+                /// producer-consumer work flow's producer part that distributes tasks
                 /// </summary>
-                public void start()
+                void produceTasks()
                 {
                     bool tmp = true;
                     running = true;
@@ -3601,8 +3643,53 @@ namespace Cekirdekler
                         {
                             // compute logic
 
+                            DevicePoolThread selectedDevice = null;
+                            if (type == ClDevicePoolType.WORKER_ROUND_ROBIN)
+                            {
 
+                                if (devices.Count > 0)
+                                {
+                                    selectedDevice = devices[deviceCounter % devices.Count];
+                                    deviceCounter++;
+                                }
+                            }
+
+
+
+                            ClTaskPool selectedTaskPool = null;
+
+                            if (roundRobinSelectedTaskPool != null)
+                            {
+                                if (roundRobinSelectedTaskPool.remainingTaskGroupsOrTasks() > 0)
+                                    selectedTaskPool = roundRobinSelectedTaskPool;
+                            }
+                            else
+                            {
+                                selectedTaskPool = taskPoolList[taskPoolCounter% taskPoolList.Count];
+                                taskPoolCounter++;
+                            }
+
+                            if (selectedTaskPool != null)
+                            {
+
+                                if (selectedTaskPool.type == ClTaskPoolType.TASK__COMPLETE)
+                                {
+                                    if (roundRobinSelectedTaskPool == null)
+                                        roundRobinSelectedTaskPool = selectedTaskPool;
+
+                                    if ((selectedDevice != null))
+                                    {
+                                        ClTask selectedTask = selectedTaskPool.nextTask();
+                                        if (selectedTask != null)
+                                        {
+
+                                            selectedDevice.feedTask(selectedTask);
+                                        }
+                                    }
+                                }
+                            }
                             tmp = running;
+                            Monitor.PulseAll(syncObj);
                         }
                     }
                 }
@@ -3617,12 +3704,13 @@ namespace Cekirdekler
                 /// <param name="devicesParameter"></param>
                 public void addDevices(ClDevices devicesParameter)
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
-                        var newDevice = new DevicePoolThread(new ClNumberCruncher(devicesParameter,kernelCode));
-                        devices.Add(newDevice);
-                        newDevice.init();
 
+                        var newDevice = new DevicePoolThread(new ClNumberCruncher(devicesParameter, kernelCode));
+
+                        devices.Add(newDevice);
+                        Monitor.PulseAll(syncObj);
                     }
                 }
 
@@ -3635,11 +3723,12 @@ namespace Cekirdekler
                 /// <param name="taskPoolParameter"></param>
                 public void enqueueTaskPool(ClTaskPool taskPoolParameter)
                 {
-                    lock(syncObj)
+
+                    lock (syncObj)
                     {
+
                         taskPoolList.Add(taskPoolParameter);
                         Monitor.PulseAll(syncObj);
-                        Monitor.Wait(syncObj);
                     }
                 }
 
@@ -3648,19 +3737,27 @@ namespace Cekirdekler
                 /// </summary>
                 public void finish()
                 {
-                    lock(syncObj)
+
+                    int count = 0;
+                    for (int i = 0; i < taskPoolList.Count; i++)
                     {
-                        int count = 0;
-                        for(int i=0;i< taskPoolList.Count;i++)
+                        lock (syncObj)
                         {
                             count += taskPoolList[i].remainingTaskGroupsOrTasks();
                         }
-                        for(int i=0;i<devices.Count;i++)
+                    }
+                    for (int i = 0; i < devices.Count; i++)
+                    {
+                        lock (syncObj)
                         {
                             count += devices[i].remainingTasks();
                         }
-                        while(count > 0)
+                    }
+                    while (count > 0)
+                    {
+                        lock (syncObj)
                         {
+
                             Monitor.PulseAll(syncObj);
                             Monitor.Wait(syncObj);
                             count = 0;
@@ -3674,6 +3771,16 @@ namespace Cekirdekler
                             }
                         }
                     }
+
+                    for (int i=0;i<devices.Count;i++)
+                    {
+                        lock (syncObj)
+                        {
+                            devices[i].dispose();
+                            Monitor.PulseAll(syncObj);
+                        }
+                    }
+
                 }
             }
 
@@ -3752,6 +3859,7 @@ namespace Cekirdekler
 
             class DevicePoolThread
             {
+                Thread t { get; set; }
                 object syncObj { get; set; }
                 ClNumberCruncher numberCruncher { get; set; }
                 Queue<ClTask> taskQueue { get; set; }
@@ -3766,6 +3874,9 @@ namespace Cekirdekler
                     taskQueue = new Queue<ClTask>();
                     running = true;
                     paused = false;
+                    ThreadStart ts = new ThreadStart(consumeTasks);
+                    t = new Thread(ts);
+                    t.Start();
                 }
 
                 public int remainingTasks()
@@ -3778,7 +3889,8 @@ namespace Cekirdekler
                     return count;
                 }
 
-                public void init()
+                //producer-consumer work flow's consumer part that computes distributed tasks
+                void consumeTasks()
                 {
                     bool working = true;
                     while (working)
@@ -3799,6 +3911,7 @@ namespace Cekirdekler
                                 Monitor.Wait(syncObj);
                             }
                         }
+
                         if(currentTask!=null)
                         {
                             currentTask.compute(numberCruncher);
@@ -3833,6 +3946,7 @@ namespace Cekirdekler
                     lock(syncObj)
                     {
                         running = false;
+                        paused = false;
                         Monitor.PulseAll(syncObj);
                     }
                 }
@@ -3841,11 +3955,11 @@ namespace Cekirdekler
                 /// <summary>
                 /// select a queue of a device pool(which is fed with tasks from task pools)
                 /// </summary>
-                public void selectQueue(Queue<ClTask> queueParameter)
+                public void feedTask(ClTask taskParameter)
                 {
                     lock (syncObj)
                     {
-                        taskQueue = queueParameter;
+                        taskQueue.Enqueue(taskParameter);
                     }
                 }
             }
