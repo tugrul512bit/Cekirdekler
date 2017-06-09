@@ -3390,28 +3390,7 @@ namespace Cekirdekler
 
             }
 
-            /// <summary>
-            /// defines type of task pool
-            /// </summary>
-            public enum ClTaskPoolType:int
-            {
-                /// <summary>
-                /// <para>devices can't choose another pool before finishing all tasks in this pool</para>
-                /// <para>default value</para>
-                /// </summary>
-                TASK__COMPLETE = 0,
 
-                /// <summary>
-                /// any device may pick another pool to continue
-                /// </summary>
-                TASK_ASYNC=1,
-
-                /// <summary>
-                /// <para>a device must pick another pool to continue</para>
-                /// <para>suitable for equally important task pools</para>
-                /// </summary>
-                TASK_SYNC = 2
-            }
 
             /// <summary>
             /// <para>a pool of tasks to be computed by a pool of devices with optional scheduling algorithms</para>
@@ -3422,19 +3401,27 @@ namespace Cekirdekler
                 object syncObj { get; set; }
                 int counter { get; set; }
                 List<ClTask> taskList { get; set; }
-                internal ClTaskPoolType type { get; set; }
                 /// <summary>
                 /// creaetes a pool that receives tasks
                 /// </summary>
-                public ClTaskPool(ClTaskPoolType typeParameter)
+                public ClTaskPool()
                 {
-                    type = typeParameter;
                     syncObj = new object();
                     lock (syncObj)
                     {
                         counter = 0;
                         taskList = new List<ClTask>();
                     }
+                }
+
+                internal ClTaskPool duplicate()
+                {
+                    ClTaskPool result = new ClTaskPool();
+                    for(int i=0;i<taskList.Count;i++)
+                    {
+                        result.feed(taskList[i]);
+                    }
+                    return result;
                 }
 
                 /// <summary>
@@ -3598,12 +3585,13 @@ namespace Cekirdekler
                 ClDevicePoolType type { get; set; }
                 List<DevicePoolThread> devices { get; set; }
                 string kernelCode { get; set; }
-                List<ClTaskPool> taskPoolList { get; set; }
+                Queue<ClTaskPool> taskPoolQueue { get; set; }
+                ClTaskPool currentTaskPool { get; set; }
                 bool running { get; set; }
                 int taskPoolCounter { get; set; }
                 int deviceCounter { get; set; }
                 Thread poolControlThread { get; set; }
-                ClTaskPool roundRobinSelectedTaskPool { get; set; }
+
 
                 /// <summary>
                 /// <para>creates a worker pool with a type</para>
@@ -3616,12 +3604,15 @@ namespace Cekirdekler
                     type = poolType;
                     kernelCode = kernelCodeToCompile;
                     syncObj = new object();
-                    devices = new List<DevicePoolThread>();
-                    taskPoolList = new List<ClTaskPool>();
-                    running = false;
-                    taskPoolCounter = 0;
-                    deviceCounter = 0;
-                    roundRobinSelectedTaskPool = null;
+                    lock (syncObj)
+                    {
+                        devices = new List<DevicePoolThread>();
+                        taskPoolQueue = new Queue<ClTaskPool>();
+                        currentTaskPool = null;
+                        running = false;
+                        taskPoolCounter = 0;
+                        deviceCounter = 0;
+                    }
                     ThreadStart ts = new ThreadStart(produceTasks);
 
                     poolControlThread = new Thread(ts);
@@ -3655,36 +3646,27 @@ namespace Cekirdekler
                             }
 
 
-
-                            ClTaskPool selectedTaskPool = null;
-
-                            if (roundRobinSelectedTaskPool != null)
+                            if (currentTaskPool == null)
                             {
-                                if (roundRobinSelectedTaskPool.remainingTaskGroupsOrTasks() > 0)
-                                    selectedTaskPool = roundRobinSelectedTaskPool;
+                                if(taskPoolQueue.Count>0)
+                                    currentTaskPool = taskPoolQueue.Dequeue();
                             }
-                            else
-                            {
-                                selectedTaskPool = taskPoolList[taskPoolCounter% taskPoolList.Count];
-                                taskPoolCounter++;
-                            }
+                            else if (currentTaskPool.remainingTaskGroupsOrTasks() <= 0)
+                                currentTaskPool = null;
 
-                            if (selectedTaskPool != null)
+
+
+                            if (currentTaskPool != null)
                             {
 
-                                if (selectedTaskPool.type == ClTaskPoolType.TASK__COMPLETE)
+
+                                if ((selectedDevice != null))
                                 {
-                                    if (roundRobinSelectedTaskPool == null)
-                                        roundRobinSelectedTaskPool = selectedTaskPool;
-
-                                    if ((selectedDevice != null))
+                                    ClTask selectedTask = currentTaskPool.nextTask();
+                                    if (selectedTask != null)
                                     {
-                                        ClTask selectedTask = selectedTaskPool.nextTask();
-                                        if (selectedTask != null)
-                                        {
 
-                                            selectedDevice.feedTask(selectedTask);
-                                        }
+                                        selectedDevice.feedTask(selectedTask);
                                     }
                                 }
                             }
@@ -3695,30 +3677,41 @@ namespace Cekirdekler
                 }
 
                 /// <summary>
-                /// <para>add devices to pool</para>
+                /// <para>add a device to pool</para>
                 /// <para>can add in the middle of computation of a task pool</para>
                 /// <para>compilation of kernels can take some time</para>
                 /// <para>adds a new consumer thread for each new (logical) device instance.</para> 
                 /// <para>same device can be added multiple times, if there are enough resources in OpenCL side</para>
                 /// </summary>
                 /// <param name="devicesParameter"></param>
-                public void addDevices(ClDevices devicesParameter)
+                public void addDevice(ClDevices devicesParameter)
                 {
                     lock (syncObj)
                     {
-
-                        var newDevice = new DevicePoolThread(new ClNumberCruncher(devicesParameter, kernelCode));
-
-                        devices.Add(newDevice);
+                        if (devicesParameter.Length > 1)
+                        {
+                            var newDevice = new DevicePoolThread(new ClNumberCruncher(devicesParameter[0], kernelCode));
+                            devices.Add(newDevice);
+                        }
+                        else if(devicesParameter.Length==1)
+                        {
+                            var newDevice = new DevicePoolThread(new ClNumberCruncher(devicesParameter, kernelCode));
+                            devices.Add(newDevice);
+                        }
+                        else
+                        {
+                            Console.WriteLine("No device was selected.");
+                        }
                         Monitor.PulseAll(syncObj);
                     }
                 }
 
                 /// <summary>
-                /// <para>enqueues a new task pool to this device pool</para>
+                /// <para>enqueues a duplicate of taskPoolParameter(task pool) to this device pool</para>
                 /// <para>older pools reside until completed(their queues and containers empty)</para>
                 /// <para>a device may choose a different pool for next task, depending on the task pool type</para>
                 /// <para>this re-initiates producer part</para>
+                /// <para>enqueues a duplicate of taskPoolParameter so </para>
                 /// </summary>
                 /// <param name="taskPoolParameter"></param>
                 public void enqueueTaskPool(ClTaskPool taskPoolParameter)
@@ -3726,8 +3719,7 @@ namespace Cekirdekler
 
                     lock (syncObj)
                     {
-
-                        taskPoolList.Add(taskPoolParameter);
+                        taskPoolQueue.Enqueue(taskPoolParameter.duplicate());
                         Monitor.PulseAll(syncObj);
                     }
                 }
@@ -3739,13 +3731,13 @@ namespace Cekirdekler
                 {
 
                     int count = 0;
-                    for (int i = 0; i < taskPoolList.Count; i++)
+                    lock (syncObj)
                     {
-                        lock (syncObj)
-                        {
-                            count += taskPoolList[i].remainingTaskGroupsOrTasks();
-                        }
+                        count += taskPoolQueue.Count;
+                        if (currentTaskPool != null)
+                            count += currentTaskPool.remainingTaskGroupsOrTasks();
                     }
+
                     for (int i = 0; i < devices.Count; i++)
                     {
                         lock (syncObj)
@@ -3761,10 +3753,10 @@ namespace Cekirdekler
                             Monitor.PulseAll(syncObj);
                             Monitor.Wait(syncObj);
                             count = 0;
-                            for (int i = 0; i < taskPoolList.Count; i++)
-                            {
-                                count += taskPoolList[i].remainingTaskGroupsOrTasks();
-                            }
+                            count += taskPoolQueue.Count;
+                            if (currentTaskPool != null)
+                                count += currentTaskPool.remainingTaskGroupsOrTasks();
+
                             for (int i = 0; i < devices.Count; i++)
                             {
                                 count += devices[i].remainingTasks();
@@ -3772,7 +3764,16 @@ namespace Cekirdekler
                         }
                     }
 
-                    for (int i=0;i<devices.Count;i++)
+
+
+                }
+
+                /// <summary>
+                /// disposes devices
+                /// </summary>
+                public void dispose()
+                {
+                    for (int i = 0; i < devices.Count; i++)
                     {
                         lock (syncObj)
                         {
@@ -3780,7 +3781,6 @@ namespace Cekirdekler
                             Monitor.PulseAll(syncObj);
                         }
                     }
-
                 }
             }
 
@@ -3850,7 +3850,11 @@ namespace Cekirdekler
                         }
                         if (shutDown)
                             return null;
-                        return queue.Dequeue();
+
+                        if (queue.Count > 0)
+                            return queue.Dequeue();
+                        else
+                            return null;
                     }
                 }
 
