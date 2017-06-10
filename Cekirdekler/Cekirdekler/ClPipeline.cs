@@ -3564,6 +3564,8 @@ namespace Cekirdekler
                 Random rand { get; set; }
                 int deviceQueueLimiter { get; set; }
                 bool fineGrainedQueueControl { get; set; }
+                bool multiQueueEnabled { get; set; }
+                List<float[]> smoothedSpeeds { get; set; }
                 /// <summary>
                 /// <para>creates a worker pool with a type</para>
                 /// <para>any ClNumberCruncher instance added to this pool will work accordingly with the type algorithm</para>
@@ -3576,14 +3578,17 @@ namespace Cekirdekler
                 /// <para>default:false</para>
                 /// <para>false: every task is synchronized on host, better balancing between devices, low "many-task" performance</para>
                 /// </param>
-                public ClDevicePool(ClDevicePoolType poolType, string kernelCodeToCompile,bool fineGrainedQueueControlParameter=false)
+                /// <param name="multiQueueEnabledParameter">enables multiple command queues per device to compute tasks(default:false)</param>
+                public ClDevicePool(ClDevicePoolType poolType, string kernelCodeToCompile,bool fineGrainedQueueControlParameter=false, bool multiQueueEnabledParameter=false)
                 {
+                    multiQueueEnabled = multiQueueEnabledParameter;
                     fineGrainedQueueControl = fineGrainedQueueControlParameter;
                     type = poolType;
                     kernelCode = kernelCodeToCompile;
                     syncObj = new object();
                     lock (syncObj)
                     {
+                        smoothedSpeeds = new List<float[]>();
                         devices = new List<DevicePoolThread>();
                         taskPoolQueue = new Queue<ClTaskPool>();
                         currentTaskPool = null;
@@ -3592,9 +3597,17 @@ namespace Cekirdekler
                         deviceCounter = 0;
                         rand = new Random();
                         if (poolType == ClDevicePoolType.DEVICE_COMPUTE_AT_WILL)
+                        {
                             deviceQueueLimiter = 2;
+                            if (multiQueueEnabledParameter)
+                                deviceQueueLimiter *= 16;
+                        }
                         else
+                        {
                             deviceQueueLimiter = 25;
+                            if (multiQueueEnabledParameter)
+                                deviceQueueLimiter *=16;
+                        }
                     }
                     ThreadStart ts = new ThreadStart(produceTasks);
 
@@ -3631,23 +3644,37 @@ namespace Cekirdekler
                                 if (fineGrainedQueueControl)
                                 {
                                     deviceCounter++;
+                                    while(smoothedSpeeds.Count<devices.Count)
+                                    {
+                                        float[] hist = new float[5];
+                                        for (int k = 0; k < 5; k++)
+                                            hist[k] = 0.001f;
+                                        smoothedSpeeds.Add(hist);
+                                    }
                                     float[] speeds = new float[devices.Count];
                                     float totalSpeed = 0.001f;
                                     for (int i = 0; i < devices.Count; i++)
                                     {
-                                        speeds[i] = devices[i].markerReachSpeed();
+                                        smoothedSpeeds[i][4] = smoothedSpeeds[i][3];
+                                        smoothedSpeeds[i][3] = smoothedSpeeds[i][2];
+                                        smoothedSpeeds[i][2] = smoothedSpeeds[i][1];
+                                        smoothedSpeeds[i][1] = smoothedSpeeds[i][0];
+                                        smoothedSpeeds[i][0] = devices[i].markerReachSpeed();
+                                        speeds[i] = (smoothedSpeeds[i][0] + smoothedSpeeds[i][1] + smoothedSpeeds[i][2] + smoothedSpeeds[i][3] + smoothedSpeeds[i][4])/5.0f;
                                         totalSpeed += speeds[i];
                                     }
-
+                                    //string str = "";
                                     for (int i = 0; i < devices.Count; i++)
                                     {
                                         speeds[i] += 0.001f;
 
                                         speeds[i] /= totalSpeed;
+                                    //    str += " " + speeds[i] + " ";
                                     }
+                                    //Console.WriteLine(str);
 
-
-                                    while (selectedDevice == null)
+                                    int rctr = 0;
+                                    while ((selectedDevice == null) || (rctr<5))
                                     {
                                         for (int i = 0; i < devices.Count; i++)
                                         {
@@ -3657,6 +3684,11 @@ namespace Cekirdekler
                                                 selectedDevice = devices[i];
                                             }
                                         }
+                                        rctr++;
+
+                                        // too many tries
+                                        if (rctr >= 5)
+                                            selectedDevice = devices[deviceCounter%devices.Count];
                                     }
                                 }
                                 else
@@ -3735,17 +3767,17 @@ namespace Cekirdekler
                     {
                         if (devicesParameter.Length > 1)
                         {
-                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter[0], kernelCode);
+                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter[0], kernelCode,false,16);
                             cruncherNew.fineGrainedQueueControl = fineGrainedQueueControl;
-                            var newDevice = new DevicePoolThread(cruncherNew, deviceQueueLimiter);
+                            var newDevice = new DevicePoolThread(cruncherNew, deviceQueueLimiter, multiQueueEnabled);
                             
                             devices.Add(newDevice);
                         }
                         else if(devicesParameter.Length==1)
                         {
-                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter, kernelCode);
+                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter, kernelCode,false,16);
                             cruncherNew.fineGrainedQueueControl = fineGrainedQueueControl;
-                            var newDevice = new DevicePoolThread(cruncherNew, deviceQueueLimiter);
+                            var newDevice = new DevicePoolThread(cruncherNew, deviceQueueLimiter,multiQueueEnabled);
                             devices.Add(newDevice);
                         }
                         else
@@ -3940,8 +3972,10 @@ namespace Cekirdekler
                 float [] markerSpeedHistory { get; set; }
                 int markerSpeedCounter { get; set; }
                 int deviceQueueLimiter { get; set; }
-                public DevicePoolThread(ClNumberCruncher numberCruncherParameter,int deviceQueueLimiterParameter)
+                bool multiQueueEnabled { get; set; }
+                public DevicePoolThread(ClNumberCruncher numberCruncherParameter,int deviceQueueLimiterParameter,bool multiQueueEnabledParameter)
                 {
+                    multiQueueEnabled = multiQueueEnabledParameter;
                     deviceQueueLimiter = deviceQueueLimiterParameter;
                     syncObj = new object();
                     numberCruncher = numberCruncherParameter;
@@ -3950,7 +3984,7 @@ namespace Cekirdekler
                     taskQueue = new Queue<ClTask>();
                     running = true;
                     paused = false;
-                    markerSpeedHistory = new float[5];
+                    markerSpeedHistory = new float[15];
                     numberCruncherEnqueueMode = false;
                     markerSpeedCounter = 0;
                     queueModeChange = new Queue<bool>();
@@ -3964,6 +3998,8 @@ namespace Cekirdekler
                     lock(syncObj)
                     {
                         deviceQueueLimiter = newValue;
+                        if (multiQueueEnabled)
+                            deviceQueueLimiter *= 16;
                     }
                 }
 
@@ -4004,13 +4040,13 @@ namespace Cekirdekler
 
                             result = (((float)currentReached) - ((float)lastMarkersReached)) / time;
                             lastMarkersReached = currentReached;
-                            markerSpeedHistory[markerSpeedCounter % 5] = result;
+                            markerSpeedHistory[markerSpeedCounter % 15] = result;
                             markerSpeedCounter++;
-                            for (int i = 0; i < 5; i++)
+                            for (int i = 0; i < 15; i++)
                             {
                                 smoothedSpeed += markerSpeedHistory[i];
                             }
-                            smoothedSpeed /= 5.0f;
+                            smoothedSpeed /= 15.0f;
                         }
                     }
                     return smoothedSpeed+0.001f;
@@ -4069,7 +4105,7 @@ namespace Cekirdekler
 
                         if(currentTask!=null)
                         {
-
+                            
                             int markersRemainingCurrent = 1000000000;
                             while (markersRemainingCurrent> deviceQueueLimiter)
                             {
@@ -4078,7 +4114,14 @@ namespace Cekirdekler
                                     markersRemainingCurrent= markersRemaining();
                                 }
                             }
+                            
+                            if(multiQueueEnabled)
+                                numberCruncher.enqueueModeAsyncEnable = true;
+
                             currentTask.compute(numberCruncher);
+
+                            if (multiQueueEnabled)
+                                numberCruncher.enqueueModeAsyncEnable = false;
 
 
                             lock (syncObj)
