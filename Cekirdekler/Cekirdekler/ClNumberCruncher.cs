@@ -69,6 +69,21 @@ namespace Cekirdekler
             set { if (numberCruncher != null) numberCruncher.noComputeMode = value; }
         }
 
+        /// <summary>
+        /// <para>to watch command queues with finer grained resolution</para>
+        /// <para>true = a marker is added to the last used command queue</para>
+        /// <para>a callback is triggered when a marker is reached, to increment counter for that command queue</para>
+        /// <para>total count is queried by countMarkers()</para>
+        /// <para>total reached markers are queried by countMarkerCallbacks()</para>
+        /// <para>so the remaining markers are countMarkers() - countMarkerCallbacks()</para>
+        /// <para>high performance penalty for many repeated light workload kernels (2-3 microseconds gap becomes 150-200 microseconds)</para>
+        /// </summary>
+        public bool fineGrainedQueueControl
+        {
+            get { if (numberCruncher != null) return numberCruncher.fineGrainedQueueControl; else return false; }
+            set { if (numberCruncher != null) numberCruncher.fineGrainedQueueControl = value; }
+        }
+
         internal void flush()
         {
            ClObject.Worker.flush( numberCruncher.lastUsedCommandQueueOfFirstDevice().h());

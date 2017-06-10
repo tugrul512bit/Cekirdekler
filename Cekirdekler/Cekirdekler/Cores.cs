@@ -441,6 +441,15 @@ namespace Cekirdekler
         internal int[] tmpGlobalRanges;
         internal double[] tmpThroughputs;
 
+        /// <summary>
+        /// <para>true = a marker is added to the used command queue and a callback increments a counter for that command queue</para>
+        /// <para>total count is queried by countMarkers()</para>
+        /// <para>total reached markers are queried by countMarkerCallbacks()</para>
+        /// <para>so the remaining markers are countMarkers() - countMarkerCallbacks()</para>
+        /// <para>has performance penalty for many repeated light workload kernels (2-3 microseconds gap becomes 200-300 microseconds)</para>
+        /// </summary>
+        public bool fineGrainedQueueControl { get; set; }
+
         // to protect unmanaged arrays being garbage collected before its opencl buffer is released
         // in a LRU manner(later will be implemented)
         private Dictionary<object,bool> strongReferences { get; set; }
@@ -920,7 +929,19 @@ namespace Cekirdekler
                             if (enqueueMode)
                             {
                                 workers[0].numComputeQueueUsed[0]++;
-                                workers[0].commandQueue.addMarkerForCounting();
+
+                                if (fineGrainedQueueControl)
+                                {
+                                    if(enqueueModeAsyncEnable && (workers[0].lastUsedCQ != null))
+                                    {
+                                        workers[0].lastUsedCQ.addMarkerForCounting();
+                                    }
+                                    else
+                                    {
+                                        workers[0].commandQueue.addMarkerForCounting();
+                                    }
+
+                                }
                             }
                         }
                     }

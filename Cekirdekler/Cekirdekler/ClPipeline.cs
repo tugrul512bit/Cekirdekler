@@ -3563,14 +3563,22 @@ namespace Cekirdekler
                 Thread poolControlThread { get; set; }
                 Random rand { get; set; }
                 int deviceQueueLimiter { get; set; }
+                bool fineGrainedQueueControl { get; set; }
                 /// <summary>
                 /// <para>creates a worker pool with a type</para>
                 /// <para>any ClNumberCruncher instance added to this pool will work accordingly with the type algorithm</para>
                 /// </summary>
                 /// <param name="poolType"></param>
                 /// <param name="kernelCodeToCompile"></param>
-                public ClDevicePool(ClDevicePoolType poolType, string kernelCodeToCompile)
+                /// <param name="fineGrainedQueueControlParameter">
+                /// <para>on-flight device feed speed adjustment</para>
+                /// <para>true: enables event-callback based task feed adjustment without and slow host synchronization</para>
+                /// <para>default:false</para>
+                /// <para>false: every task is synchronized on host, better balancing between devices, low "many-task" performance</para>
+                /// </param>
+                public ClDevicePool(ClDevicePoolType poolType, string kernelCodeToCompile,bool fineGrainedQueueControlParameter=false)
                 {
+                    fineGrainedQueueControl = fineGrainedQueueControlParameter;
                     type = poolType;
                     kernelCode = kernelCodeToCompile;
                     syncObj = new object();
@@ -3620,30 +3628,52 @@ namespace Cekirdekler
                             }
                             else if(type==ClDevicePoolType.DEVICE_COMPUTE_AT_WILL)
                             {
-                                float[] speeds = new float[devices.Count];
-                                float totalSpeed = 0;
-                                for(int i=0;i<devices.Count;i++)
+                                if (fineGrainedQueueControl)
                                 {
-                                    speeds[i] = devices[i].markerReachSpeed();
-                                    totalSpeed += speeds[i];
-                                }
-
-                                for (int i = 0; i < devices.Count; i++)
-                                {
-                                    speeds[i] /= totalSpeed;
-                                }
-
-
-                                while (selectedDevice == null)
-                                {
+                                    deviceCounter++;
+                                    float[] speeds = new float[devices.Count];
+                                    float totalSpeed = 0.001f;
                                     for (int i = 0; i < devices.Count; i++)
                                     {
+                                        speeds[i] = devices[i].markerReachSpeed();
+                                        totalSpeed += speeds[i];
+                                    }
 
-                                        if ((rand.NextDouble() < speeds[i]) && (devices[i].markersRemaining() < deviceQueueLimiter))
+                                    for (int i = 0; i < devices.Count; i++)
+                                    {
+                                        speeds[i] += 0.001f;
+
+                                        speeds[i] /= totalSpeed;
+                                    }
+
+
+                                    while (selectedDevice == null)
+                                    {
+                                        for (int i = 0; i < devices.Count; i++)
                                         {
-                                            selectedDevice = devices[i];
+
+                                            if ((rand.NextDouble() < speeds[i]) && (devices[i].markersRemaining() < deviceQueueLimiter))
+                                            {
+                                                selectedDevice = devices[i];
+                                            }
                                         }
                                     }
+                                }
+                                else
+                                {
+                                    int[] queueRemaining = new int[devices.Count];
+                                    int minQueue = 1000000000;
+                                    int selectedId = -1;
+                                    for(int i=0;i<devices.Count;i++)
+                                    {
+                                        int remTask = devices[i].remainingTasks();
+                                        if (minQueue> remTask)
+                                        {
+                                            minQueue = remTask;
+                                            selectedId = i;
+                                        }
+                                    }
+                                    selectedDevice = devices[selectedId];
                                 }
                             }
 
@@ -3657,7 +3687,9 @@ namespace Cekirdekler
                                     for (int i = 0; i < devices.Count; i++)
                                     {
                                         devices[i].changeDeviceQueueLimit(deviceQueueLimiter);
-                                        devices[i].enableEnqueueMode();
+
+                                        if(fineGrainedQueueControl)
+                                            devices[i].enableEnqueueMode();
                                     }
                                     deviceCounter = 0;
                                     continue;
@@ -3703,12 +3735,17 @@ namespace Cekirdekler
                     {
                         if (devicesParameter.Length > 1)
                         {
-                            var newDevice = new DevicePoolThread(new ClNumberCruncher(devicesParameter[0], kernelCode), deviceQueueLimiter);
+                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter[0], kernelCode);
+                            cruncherNew.fineGrainedQueueControl = fineGrainedQueueControl;
+                            var newDevice = new DevicePoolThread(cruncherNew, deviceQueueLimiter);
+                            
                             devices.Add(newDevice);
                         }
                         else if(devicesParameter.Length==1)
                         {
-                            var newDevice = new DevicePoolThread(new ClNumberCruncher(devicesParameter, kernelCode), deviceQueueLimiter);
+                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter, kernelCode);
+                            cruncherNew.fineGrainedQueueControl = fineGrainedQueueControl;
+                            var newDevice = new DevicePoolThread(cruncherNew, deviceQueueLimiter);
                             devices.Add(newDevice);
                         }
                         else
@@ -3783,9 +3820,12 @@ namespace Cekirdekler
 
                     lock(syncObj)
                     {
-                        for (int i = 0; i < devices.Count; i++)
+                        if (fineGrainedQueueControl)
                         {
-                            devices[i].disableEnqueueMode();
+                            for (int i = 0; i < devices.Count; i++)
+                            {
+                                devices[i].disableEnqueueMode();
+                            }
                         }
                     }
 
@@ -4031,7 +4071,7 @@ namespace Cekirdekler
                         {
 
                             int markersRemainingCurrent = 1000000000;
-                            while(markersRemainingCurrent> deviceQueueLimiter)
+                            while (markersRemainingCurrent> deviceQueueLimiter)
                             {
                                 lock(syncObj)
                                 {
