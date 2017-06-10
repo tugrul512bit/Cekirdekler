@@ -3626,6 +3626,7 @@ namespace Cekirdekler
                     running = true;
                     while (tmp)
                     {
+
                         lock (syncObj)
                         {
                             // compute logic
@@ -3671,7 +3672,7 @@ namespace Cekirdekler
                                     }
 
                                     int rctr = 0;
-                                    while ((selectedDevice == null) || (rctr<5))
+                                    while ((selectedDevice == null) && (rctr<5))
                                     {
                                         for (int i = 0; i < devices.Count; i++)
                                         {
@@ -3764,6 +3765,7 @@ namespace Cekirdekler
                 /// <param name="devicesParameter"></param>
                 public void addDevice(ClDevices devicesParameter)
                 {
+
                     lock (syncObj)
                     {
                         if (devicesParameter.Length > 1)
@@ -3799,11 +3801,14 @@ namespace Cekirdekler
                 /// <param name="taskPoolParameter"></param>
                 public void enqueueTaskPool(ClTaskPool taskPoolParameter)
                 {
+
                     lock (syncObj)
                     {
                         taskPoolQueue.Enqueue(taskPoolParameter.duplicate());
+
                         Monitor.PulseAll(syncObj);
                     }
+
                 }
 
                 /// <summary>
