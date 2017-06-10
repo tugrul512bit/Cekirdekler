@@ -3663,15 +3663,12 @@ namespace Cekirdekler
                                         speeds[i] = (smoothedSpeeds[i][0] + smoothedSpeeds[i][1] + smoothedSpeeds[i][2] + smoothedSpeeds[i][3] + smoothedSpeeds[i][4])/5.0f;
                                         totalSpeed += speeds[i];
                                     }
-                                    //string str = "";
                                     for (int i = 0; i < devices.Count; i++)
                                     {
                                         speeds[i] += 0.001f;
 
-                                        speeds[i] /= totalSpeed;
-                                    //    str += " " + speeds[i] + " ";
+                                        speeds[i] /= (totalSpeed+0.001f);
                                     }
-                                    //Console.WriteLine(str);
 
                                     int rctr = 0;
                                     while ((selectedDevice == null) || (rctr<5))
@@ -3688,7 +3685,11 @@ namespace Cekirdekler
 
                                         // too many tries
                                         if (rctr >= 5)
-                                            selectedDevice = devices[deviceCounter%devices.Count];
+                                        {
+                                            if(devices.Count>0)
+                                                selectedDevice = devices[deviceCounter % devices.Count];
+                                            
+                                        }
                                     }
                                 }
                                 else
