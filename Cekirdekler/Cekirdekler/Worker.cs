@@ -372,7 +372,10 @@ namespace ClObject
         internal ClCommandQueue lastUsedCQ { get; set; }
         internal ClCommandQueue lastUsedComputeQueue()
         {
-            return lastUsedCQ;
+            if (lastUsedCQ != null)
+                return lastUsedCQ;
+            else
+                return commandQueue;
         }
 
         internal int computeQueueConcurrency { get; set; }

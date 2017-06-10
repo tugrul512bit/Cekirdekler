@@ -86,7 +86,10 @@ namespace Cekirdekler
 
         internal void flush()
         {
-           ClObject.Worker.flush( numberCruncher.lastUsedCommandQueueOfFirstDevice().h());
+            if (numberCruncher != null)
+            {
+                ClObject.Worker.flush(numberCruncher.lastUsedCommandQueueOfFirstDevice().h());
+            }
         }
 
         /// <summary>
