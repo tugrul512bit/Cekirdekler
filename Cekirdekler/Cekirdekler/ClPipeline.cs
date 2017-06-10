@@ -3689,7 +3689,6 @@ namespace Cekirdekler
                                         {
                                             if(devices.Count>0)
                                                 selectedDevice = devices[deviceCounter % devices.Count];
-                                            
                                         }
                                     }
                                 }
@@ -3707,7 +3706,8 @@ namespace Cekirdekler
                                             selectedId = i;
                                         }
                                     }
-                                    selectedDevice = devices[selectedId];
+                                    if(selectedId!=-1)
+                                        selectedDevice = devices[selectedId];
                                 }
                             }
 
