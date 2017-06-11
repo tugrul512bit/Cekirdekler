@@ -4072,6 +4072,7 @@ namespace Cekirdekler
                     lock (syncObj)
                     {
                         count = (computeComplete?0:1);
+                        Monitor.PulseAll(syncObj);
                     }
                     return count;
                 }
@@ -4087,21 +4088,16 @@ namespace Cekirdekler
 
                         //Console.WriteLine("Pool-consumer getting task");
 
- 
-
                         lock (syncObj)
                         {
                             computeComplete = false;
                         }
 
-                        
                         newTask = pipe.pop();
 
                         //Console.WriteLine("Pool-consumer computing task");
                         if (newTask != null)
                         {
-
-
                             if (fineGrainedControl) 
                             {
                                 bool markersComplete = false;
@@ -4126,16 +4122,19 @@ namespace Cekirdekler
                                 }
 
                             }
-                            float probability=(((float)taskCounter)/((float)(maxTasks+1)));
-                            float testing =(float) rand.NextDouble(); 
-                            if(testing<probability)
+                            if (fineGrainedControl)
                             {
-                                numberCruncher.fineGrainedQueueControl = true;
-                            }
-                            else
-                            {
-                                numberCruncher.fineGrainedQueueControl = false;
-
+                                float probability = (((float)taskCounter) / ((float)(maxTasks + 1)));
+                                float testing = (float)rand.NextDouble();
+                                if (testing < probability)
+                                {
+                                    numberCruncher.fineGrainedQueueControl = true; 
+                                }
+                                else
+                                {
+                                    numberCruncher.fineGrainedQueueControl = false;
+                                     
+                                }
                             }
                             newTask.compute(numberCruncher);
                             taskCounter++;
@@ -4158,7 +4157,14 @@ namespace Cekirdekler
                         {
                             computeComplete = true;
                             working = running;
+                            if (newTask == null)
+                            {
+                                Monitor.PulseAll(syncObj);
+                                Monitor.Wait(syncObj);
+                            }
                         }
+
+
                     }
                     Console.WriteLine("Pool-consumer thread stopped.");
                 }
