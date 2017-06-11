@@ -3240,6 +3240,26 @@ namespace Cekirdekler
         /// </summary>
         namespace Pool
         {
+            /// <summary>
+            /// for building data-synchronization and similar "control" related tasks
+            /// </summary>
+            public enum TaskMessage:int
+            {
+                /// <summary>
+                /// does not do anything special
+                /// </summary>
+                TASK_MESSAGE_DEFAULT=0,
+
+                /// <summary>
+                /// synchronizes a single device which consumes this task
+                /// </summary>
+                TASK_MESSAGE_DEVICE_SYNCHRONIZATION=1,
+
+                /// <summary>
+                /// synchronizes a pool of devices which intercepts this task
+                /// </summary>
+                TASK_MESSAGE_GLOBAL_SYNCHRONIZATION = 2,
+            }
 
             /// <summary>
             /// <para>a piece of work to be done later</para>
@@ -3312,6 +3332,42 @@ namespace Cekirdekler
 
                     readWrite = readWriteParameter;
                     elementsPerItem = elementsPerItemParameter;
+                }
+
+                /// <summary>
+                /// <para>not implemented</para>
+                /// <para>true: makes this task executed by all devices</para>
+                /// </summary>
+                public bool duplicateToAllDevices { get; set; }
+
+                internal ClTask()
+                {
+
+                }
+
+                /// <summary>
+                /// <para>not implemented</para>
+                /// <para>when this task arrives at a (single)device, ensures synchronization on all queues of it</para>
+                /// <para>useful for only getting random partial results before pool completes</para>
+                /// </summary>
+                /// <returns></returns>
+                public static ClTask deviceBarrier()
+                {
+                    ClTask result = new ClTask();
+
+                    return result;
+                }
+
+                /// <summary>
+                /// <para>not implemented</para>
+                /// <para>when this task is intercepted by device pool(not devices), it ensures synchronization on all devices</para>
+                /// </summary>
+                /// <returns></returns>
+                public static ClTask globalBarrier()
+                {
+                    ClTask result = new ClTask();
+
+                    return result;
                 }
             }
 
