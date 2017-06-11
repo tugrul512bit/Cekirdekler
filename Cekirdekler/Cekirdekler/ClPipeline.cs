@@ -3544,6 +3544,8 @@ namespace Cekirdekler
 
             }
 
+            // todo: add cl::kernel cloning in C++ and C# (for each unique compute id + kernel name, with proper dictionary)
+
             /// <summary>
             /// <para>instead of working for same workload (as in ClNumberCruncher class)</para>
             /// <para>this container specializes to distribute work independently to differend devices</para>
