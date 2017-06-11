@@ -3241,7 +3241,8 @@ namespace Cekirdekler
         namespace Pool
         {
             /// <summary>
-            /// for building data-synchronization and similar "control" related tasks
+            /// <para>for building data-synchronization and similar "control" related tasks</para>
+            /// <para>all types can be combined (for example, 32|16 shuts all devices down)</para>
             /// </summary>
             public enum TaskMessage:int
             {
@@ -3251,14 +3252,59 @@ namespace Cekirdekler
                 TASK_MESSAGE_DEFAULT=0,
 
                 /// <summary>
-                /// synchronizes a single device which consumes this task
+                /// synchronizes a single device which consumes this task before running this task
                 /// </summary>
-                TASK_MESSAGE_DEVICE_SYNCHRONIZATION=1,
+                TASK_MESSAGE_DEVICE_SYNCHRONIZATION_FIRST=1,
 
                 /// <summary>
-                /// synchronizes a pool of devices which intercepts this task
+                /// synchronizes a single device which consumes this task after running this task
                 /// </summary>
-                TASK_MESSAGE_GLOBAL_SYNCHRONIZATION = 2,
+                TASK_MESSAGE_DEVICE_SYNCHRONIZATION_LAST = 2,
+
+                /// <summary>
+                /// synchronizes a pool of devices which intercepts this task before passing it to a device
+                /// </summary>
+                TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST = 4,
+
+                /// <summary>
+                /// synchronizes a pool of devices after a device consumes this task
+                /// </summary>
+                TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST = 8,
+
+                /// <summary>
+                /// runs this task on all devices when device pool intercepts this
+                /// </summary>
+                TASK_MESSAGE_BROADCAST_WORK = 16,
+
+                /// <summary>
+                /// any device consuming this task stops working after executing the task
+                /// </summary>
+                TASK_MESSAGE_SHUT_DOWN_LAST = 32,
+
+                /// <summary>
+                /// any device consuming this task stops working (task's operation is not executed)
+                /// </summary>
+                TASK_MESSAGE_SHUT_DOWN = 64,
+
+                /// <summary>
+                /// when pool intercepts this message, all devices enable multiple command queues to compute(before computing this task)
+                /// </summary>
+                TASK_MESSAGE_ENABLE_MULTI_QUEUE_FIRST = 128,
+
+                /// <summary>
+                /// when pool intercepts this message, all devices enable multiple command queues to compute(after computing this task)
+                /// </summary>
+                TASK_MESSAGE_ENABLE_MULTI_QUEUE_LAST = 256,
+
+                /// <summary>
+                /// when pool intercepts this message, all devices disable multiple command queues to compute(before computing this task)
+                /// </summary>
+                TASK_MESSAGE_DISABLE_MULTI_QUEUE_FIRST = 512,
+
+                /// <summary>
+                /// when pool intercepts this message, all devices disable multiple command queues to compute(after computing this task)
+                /// </summary>
+                TASK_MESSAGE_DISABLE_MULTI_QUEUE_LAST = 1024,
             }
 
             /// <summary>
