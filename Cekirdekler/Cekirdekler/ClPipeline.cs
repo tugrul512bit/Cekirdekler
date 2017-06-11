@@ -4126,7 +4126,7 @@ namespace Cekirdekler
                             {
                                 float probability = (((float)taskCounter) / ((float)(maxTasks + 1)));
                                 float testing = (float)rand.NextDouble();
-                                if (testing < probability)
+                                if ((testing < probability) || (taskCounter > (maxTasks - 2)))
                                 {
                                     numberCruncher.fineGrainedQueueControl = true; 
                                 }
