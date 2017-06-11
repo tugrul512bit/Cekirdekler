@@ -3539,7 +3539,14 @@ namespace Cekirdekler
                 DEVICE_ROUND_ROBIN = 1,
             }
 
-            // todo: add cl::kernel cloning in C++ and C# (for each unique compute id + kernel name, with proper dictionary)
+            // todo: add multiple queues, adjust task compute id values to use same kernel instances per queue at each repeat
+            //       kernel + queue1 = instance 1  ---- creates new kernel instance
+            //       kernel + queue2 = instance 2  ---- creates new kernel instance
+            //       kernel + queue3 = instance 3  ---- creates new kernel instance
+            //       repeating pool
+            //       kernel + queue1 = instance 1  --uses instance
+            //       kernel + queue2 = instance 2  --uses instance
+            //       kernel + queue3 = instance 3  --uses instance
 
             /// <summary>
             /// <para>instead of working for same workload (as in ClNumberCruncher class)</para>
@@ -3632,10 +3639,7 @@ namespace Cekirdekler
                 /// </summary>
                 void produceTasksComputeAtWill()
                 {
-                    lock (syncObj)
-                    {
-                        Console.WriteLine("pool-producer thread started.");
-                    }
+
                     bool tmp = true;
                     running = true;
                     while (tmp)
@@ -3683,7 +3687,6 @@ namespace Cekirdekler
 
                                 if (currentTaskPool != null)
                                 {
-                                    //Console.WriteLine("producer adding task to queue");
                                     ClTask newTask = currentTaskPool.nextTask();
                                     
                                     if (newTask != null)
@@ -3702,7 +3705,6 @@ namespace Cekirdekler
                                         }
 
                                     }
-                                    //Console.WriteLine("producer added task to queue");
                                 }
                             }
 
@@ -3715,10 +3717,7 @@ namespace Cekirdekler
                         }
                     }
 
-                    lock (syncObj)
-                    {
-                        Console.WriteLine("pool-producer thread stopped.");
-                    }
+
                 }
 
                 /// <summary>
@@ -3761,7 +3760,7 @@ namespace Cekirdekler
                         }
                         else
                         {
-                            Console.WriteLine("No device was selected.");
+                            Console.WriteLine("Error: No device was found.");
                         }
                         Monitor.PulseAll(syncObj);
 
@@ -3821,18 +3820,14 @@ namespace Cekirdekler
 
                                     // remaining fine grained markers
                                 }
-                                //Console.WriteLine("1:"+remainingWork);
 
                                 // add remaining producer-side tasks
                                 remainingWork += pipe.size();
-                                //Console.WriteLine("2:" + remainingWork);
 
                                 if (currentTaskPool != null)
                                     remainingWork += currentTaskPool.remainingTaskGroupsOrTasks();
-                                //Console.WriteLine("3:" + remainingWork);
 
                                 remainingWork += taskPoolQueue.Count;
-                                //Console.WriteLine("4:" + remainingWork);
                                 if (remainingWork > 0)
                                 {
                                     Monitor.PulseAll(syncObj);
@@ -3862,7 +3857,6 @@ namespace Cekirdekler
                         {
                             devices[i].dispose();
                             Monitor.PulseAll(syncObj);
-
                         }
                     }
                 }
@@ -4078,12 +4072,10 @@ namespace Cekirdekler
                 void consumeTasksComputeAtWill()
                 {
                     bool working = true;
-                    Console.WriteLine("Pool-consumer thread started");
                     while (working)
                     {
                         ClTask newTask = null;
 
-                        //Console.WriteLine("Pool-consumer getting task");
 
                         lock (syncObj)
                         {
@@ -4092,7 +4084,6 @@ namespace Cekirdekler
 
                         newTask = pipe.pop();
 
-                        //Console.WriteLine("Pool-consumer computing task");
                         if (newTask != null)
                         {
                             if (fineGrainedControl) 
@@ -4154,7 +4145,7 @@ namespace Cekirdekler
                         {
                             computeComplete = true;
                             working = running;
-                            if (newTask == null)
+                            if ((newTask == null) && (running))
                             {
                                 Monitor.PulseAll(syncObj);
                                 Monitor.Wait(syncObj);
@@ -4163,7 +4154,6 @@ namespace Cekirdekler
 
 
                     }
-                    Console.WriteLine("Pool-consumer thread stopped.");
                 }
 
 
@@ -4172,6 +4162,7 @@ namespace Cekirdekler
                     lock(syncObj)
                     {
                         paused = false;
+                        Monitor.PulseAll(syncObj);
                     }
                 }
 
@@ -4180,6 +4171,7 @@ namespace Cekirdekler
                     lock(syncObj)
                     {
                         paused = true;
+                        Monitor.PulseAll(syncObj);
 
                     }
                 }
@@ -4190,6 +4182,7 @@ namespace Cekirdekler
                     {
                         running = false;
                         paused = false;
+                        Monitor.PulseAll(syncObj);
                     }
                 }
             }
