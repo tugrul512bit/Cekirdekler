@@ -755,11 +755,12 @@ namespace Cekirdekler
                                 if (!noComputeMode)
                                 {
                                     // set argument is no an enqueue so need to be taken care of first 
+                                    // each worker is with different context, different device so being in parallel.for is not a problem
                                     for (int str = 0; str < kernelNames.Length; str++)
-                                        workers[i].kernelArgument(kernelNames[str], arrs, elementsPerWorkItem, readWrite);
+                                        workers[i].kernelArgument(kernelNames[str], arrs, elementsPerWorkItem, readWrite,computeId);
 
                                     if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1 /*1di 0 yapıldı*/)
-                                        workers[i].kernelArgument(syncKernelName, arrs, elementsPerWorkItem, readWrite);
+                                        workers[i].kernelArgument(syncKernelName, arrs, elementsPerWorkItem, readWrite, computeId);
                                 }
                                 workers[i].startBench();
 
@@ -847,11 +848,11 @@ namespace Cekirdekler
                                 // set argument is no an enqueue so need to be taken care of first 
                                 for (int str = 0; str < kernelNames.Length; str++)
                                 {
-                                    workers[0].kernelArgument(kernelNames[str], arrs, elementsPerWorkItem, readWrite);
+                                    workers[0].kernelArgument(kernelNames[str], arrs, elementsPerWorkItem, readWrite, computeId);
                                 }
 
                                 if (syncKernelName != null && !syncKernelName.Equals("") && numRepeats > 1 /*1di 0 yapıldı*/)
-                                    workers[0].kernelArgument(syncKernelName, arrs, elementsPerWorkItem, readWrite);
+                                    workers[0].kernelArgument(syncKernelName, arrs, elementsPerWorkItem, readWrite, computeId);
                             }
                             if (!enqueueMode)
                                 workers[0].startBench();
@@ -1207,9 +1208,9 @@ namespace Cekirdekler
                 if (selectedGlobalRanges[i] > 0)
                 {
 
-                    workers[i].kernelArgument(kernelName, arrs, elementsPerWorkitem, readWrite);
+                    workers[i].kernelArgument(kernelName, arrs, elementsPerWorkitem, readWrite, computeId);
                     if (syncKernelName != null && !syncKernelName.Equals("") && numberOfKernelRepeats > 1)
-                        workers[i].kernelArgument(syncKernelName, arrs, elementsPerWorkitem, readWrite);
+                        workers[i].kernelArgument(syncKernelName, arrs, elementsPerWorkitem, readWrite, computeId);
 
 
                     if (read_write == ONLY_READ || read_write == -1)

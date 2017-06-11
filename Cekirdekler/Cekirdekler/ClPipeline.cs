@@ -3524,24 +3524,19 @@ namespace Cekirdekler
             /// </summary>
             public enum ClDevicePoolType:int
             {
-
-                /// <summary>
-                /// <para>a device in pool issues a task, then next task is issued by next device only</para>
-                /// <para>better for identical devices</para>
-                /// <para>default value</para>
-                /// </summary>
-                DEVICE_ROUND_ROBIN=0,
-
-
-
                 /// <summary>
                 /// <para>whenever a device becomes ready after computing a task, immediately issues another task</para>
                 /// <para>better for asymmetric GPUs</para>
+                /// <para>default value</para>
                 /// </summary>
-                DEVICE_COMPUTE_AT_WILL = 1,
+                DEVICE_COMPUTE_AT_WILL = 0,
 
-
-
+                /// <summary>
+                /// <para>not implemented yet</para>
+                /// <para>a device in pool issues a task, then next task is issued by next device only</para>
+                /// <para>better for identical devices</para>
+                /// </summary>             
+                DEVICE_ROUND_ROBIN = 1,
             }
 
             // todo: add cl::kernel cloning in C++ and C# (for each unique compute id + kernel name, with proper dictionary)

@@ -179,7 +179,8 @@ namespace ClObject
         private ClString[] kernelNames = null;
         private ClProgram program = null;
 
-        private Dictionary<string, ClKernel> kernels = null;
+        private Dictionary<string, ClKernel> kernelsCompileTest = null;
+        private Dictionary<string, int> kernelsCompileTestIdValues = null;
 
         /// <summary>
         /// total time
@@ -258,14 +259,52 @@ namespace ClObject
                 program = new ClProgram(context, kernelStrings);
                 allWorkerErrorsString += program.errMsg() + Environment.NewLine + "----" + Environment.NewLine;
                 programAndKernelErrorCode += program.intProgramError;
-                kernels = new Dictionary<string, ClKernel>();
+                kernelsCompileTest = new Dictionary<string, ClKernel>();
+                kernelsCompileTestIdValues = new Dictionary<string, int>();
                 for (int i = 0; i < kernelNames_.Length; i++)
                 {
-                    kernels.Add(kernelNames_[i].read(), new ClKernel(program, kernelNames[i]));
-                    programAndKernelErrorCode += kernels[kernelNames_[i].read()].intKernelError;
+                    kernelsCompileTest.Add(kernelNames_[i].read(), new ClKernel(program, kernelNames[i]));
+                    programAndKernelErrorCode += kernelsCompileTest[kernelNames_[i].read()].intKernelError;
+                    kernelsCompileTestIdValues.Add(kernelNames_[i].read(), i);
                 }
             }
         }
+
+        /// <summary>
+        /// <para> to be able to run same kernel but with different parameters and in different queues, concurrently</para>
+        /// <para> to have multiple instances that can run same kernel with different parameters</para>
+        /// <para> to decrease number of clSetKernelArg() calls </para>
+        /// </summary>
+        /// <param name="nameParameter"></param>
+        /// <param name="idParameter">compute id to differentiate concurrent kernels with same function name</param>
+        /// <returns></returns>
+        internal ClKernel kernelWithId(string nameParameter,int idParameter)
+        {
+            if(kernelsCompileTest.ContainsKey(nameParameter))
+            {
+                string keyTmp = "_cekirdekler_concurrent_" + nameParameter + (idParameter.ToString());
+                // found name in compiled kernels list
+                if (kernelsCompileTest.ContainsKey(keyTmp))
+                {
+                    // found (name+id) in duplicated kernels list, return directly
+                }
+                else
+                {
+                    // not found
+                    // create a new one and return after adding to list
+                    kernelsCompileTest.Add(keyTmp, new ClKernel(program, kernelNames[kernelsCompileTestIdValues[nameParameter]]));
+                }
+                return kernelsCompileTest[keyTmp];
+
+            }
+            else
+            {
+                // there was not any kernel compiled with this name
+                Console.WriteLine("Error: kernel not found(\""+nameParameter+"\")");
+                return null;
+            }
+        }
+
 
         internal int[] numComputeQueueUsed = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
@@ -924,7 +963,7 @@ namespace ClObject
             }
         }
 
-        private Dictionary<string,object> kerneParameterlBinding=null;
+        private Dictionary<string,object> kernelParameterBinding=null;
 
         /// <summary>
         /// binds arrays to a kernel as arguments
@@ -932,33 +971,35 @@ namespace ClObject
         /// <param name="kernelName"></param>
         /// <param name="arrs"></param>
         /// <param name="numberOfElementsOrBytes"></param>
-        public void kernelArgument(string kernelName, object[] arrs, int[] numberOfElementsOrBytes,string[] readWrites_)
+        /// <param name="readWrites_"></param>
+        /// <param name="computeId"></param>
+        public void kernelArgument(string kernelName, object[] arrs, int[] numberOfElementsOrBytes,string[] readWrites_, int computeId)
         {
-            if (kerneParameterlBinding == null)
-                kerneParameterlBinding = new Dictionary<string, object>();
+            if (kernelParameterBinding == null)
+                kernelParameterBinding = new Dictionary<string, object>();
 
             {
                 for (int i = 0; i < arrs.Length; i++)
                 {
                     // number of elements could have changed too. todo: test
-                    string kernelKey = kernelName + "@@@" + i.ToString()+"@@@"+ numberOfElementsOrBytes[i]; 
-                    if (kerneParameterlBinding.ContainsKey(kernelKey))
+                    string kernelKey = kernelName + "@@@" + i.ToString()+"@@@"+ numberOfElementsOrBytes[i]+"@@@"+ (computeId.ToString()); 
+                    if (kernelParameterBinding.ContainsKey(kernelKey))
                     {
-                        if(kerneParameterlBinding[kernelKey]== arrs[i])
+                        if(kernelParameterBinding[kernelKey]== arrs[i])
                         {
                             // already has been set to this array, no action
                         }
                         else
                         {
-                            kerneParameterlBinding[kernelKey] = arrs[i];
-                            setKernelArgument(kernels[kernelName].h(), buffer(arrs[i], readWrites_[i].Contains("ro"), readWrites_[i].Contains("wo"), readWrites_[i].Contains("zc"), numberOfElementsOrBytes[i]).h(), i);
+                            kernelParameterBinding[kernelKey] = arrs[i];
+                            setKernelArgument(kernelWithId(kernelName,computeId).h(), buffer(arrs[i], readWrites_[i].Contains("ro"), readWrites_[i].Contains("wo"), readWrites_[i].Contains("zc"), numberOfElementsOrBytes[i]).h(), i);
                         }
                     }
                     else
                     {
                         // first time setting a parameter
-                        kerneParameterlBinding.Add(kernelKey, arrs[i]);
-                        setKernelArgument(kernels[kernelName].h(), buffer(arrs[i], readWrites_[i].Contains("ro"), readWrites_[i].Contains("wo"), readWrites_[i].Contains("zc"), numberOfElementsOrBytes[i]).h(), i);
+                        kernelParameterBinding.Add(kernelKey, arrs[i]);
+                        setKernelArgument(kernelWithId(kernelName,computeId).h(), buffer(arrs[i], readWrites_[i].Contains("ro"), readWrites_[i].Contains("wo"), readWrites_[i].Contains("zc"), numberOfElementsOrBytes[i]).h(), i);
 
                     }
                 }
@@ -978,7 +1019,7 @@ namespace ClObject
         public void compute(string kernelName, int reference, int globalRange, int localRange, int computeId,bool enqueueMode=false,ClCommandQueue cqSelection_=null)
         {
             {
-                int err = compute(cqSelection_==null?commandQueue.h(): cqSelection_.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h());
+                int err = compute(cqSelection_==null?commandQueue.h(): cqSelection_.h(), kernelWithId(kernelName,computeId).h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h());
             }
         }
 
@@ -996,7 +1037,7 @@ namespace ClObject
         public void computeRepeated(string kernelName, int reference, int globalRange, int localRange, int computeId,int repeats,bool enqueueMode=false,ClCommandQueue cqSelection_=null)
         {
             {
-                int err = computeRepeated(cqSelection_ == null ? commandQueue.h() : cqSelection_.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h(),repeats);
+                int err = computeRepeated(cqSelection_ == null ? commandQueue.h() : cqSelection_.h(), kernelWithId(kernelName,computeId).h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h(),repeats);
             }
         }
 
@@ -1015,10 +1056,10 @@ namespace ClObject
         public void computeRepeatedWithSyncKernel(string kernelName, int reference, int globalRange, int localRange, int computeId, int repeats, string syncKernelName, bool enqueueMode = false,ClCommandQueue cqSelection_=null)
         {
             {
-                int err = computeRepeatedWithSyncKernel(cqSelection_ == null ? commandQueue.h() : cqSelection_.h(), kernels[kernelName].h(), 
+                int err = computeRepeatedWithSyncKernel(cqSelection_ == null ? commandQueue.h() : cqSelection_.h(), kernelWithId(kernelName,computeId).h(), 
                     this.range(reference).h(), this.range(globalRange).h(), 
                     this.range(localRange).h(), repeats,
-                    kernels[syncKernelName].h(), this.range(0).h());
+                    kernelWithId(syncKernelName,computeId).h(), this.range(0).h());
             }
         }
 
@@ -1033,7 +1074,7 @@ namespace ClObject
         public void computeQueue(string kernelName, int reference, int globalRange, int localRange, int computeId)
         {
             {
-                int err = compute(commandQueue.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h());
+                int err = compute(commandQueue.h(), kernelWithId(kernelName,computeId).h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h());
                 //finish(commandQueue.h());
             }
         }
@@ -1053,7 +1094,7 @@ namespace ClObject
         public void computeQueueEvent(string kernelName, int reference, int globalRange, int localRange, int computeId, ClEventArray eArr, ClEvent e, int pipelineOrder=0,ClCommandQueue cqSelection=null)
         {
             {
-                int err = computeEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueue.h() : cqSelection.h()) : commandQueue2.h(), kernels[kernelName].h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h(), eArr.h(), e.h());
+                int err = computeEvent(pipelineOrder == 0 ? (cqSelection == null ? commandQueue.h() : cqSelection.h()) : commandQueue2.h(), kernelWithId(kernelName,computeId).h(), this.range(reference).h(), this.range(globalRange).h(), this.range(localRange).h(), eArr.h(), e.h());
                 //finish(commandQueue.h());
             }
         }
@@ -1566,9 +1607,9 @@ namespace ClObject
                 if (buffers != null)
                     buffers.Values.ToList<ClBuffer>().ForEach(s => { if (s != null) { s.dispose();s = null; } });
                 buffers = null;
-                if (kernels != null)
-                    kernels.Values.ToList<ClKernel>().ForEach(s => { if (s != null) { s.dispose();s = null; } });
-                kernels = null;
+                if (kernelsCompileTest != null)
+                    kernelsCompileTest.Values.ToList<ClKernel>().ForEach(s => { if (s != null) { s.dispose();s = null; } });
+                kernelsCompileTest = null;
                 if (program != null)
                     program.dispose();
                 program = null;
