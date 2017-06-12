@@ -3927,10 +3927,9 @@ namespace Cekirdekler
                                                     {
                                                         privateMessageStates[i] += (((feedback & ClPrivateMessage.FEEDBACK_SUCCESS) > 0) ? 1 : 0);
                                                     }
-                                                    if (privateMessageStates2[i] == 0)
-                                                    {
-                                                        privateMessageStates2[i] += ((devices[i].remainingTasks() == 0) ? 1 : 0);
-                                                    }
+                                                   
+                                                    privateMessageStates2[i] = (((devices[i].remainingTasks()+ devices[i].markersRemaining()) == 0) ? 1 : 0);
+                                                    
                                                     feedbackSuccessful &= ((privateMessageStates[i] != 0)&&(privateMessageStates2[i] != 0));
                                                     devices[i].pulse();
                                                 }
