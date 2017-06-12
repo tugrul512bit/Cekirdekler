@@ -42,7 +42,7 @@ namespace Cekirdekler
             /// <param name="globalRange">total workitems to be distributed to devices</param>
             /// <param name="localRange">workitems per local workgroup. default value is 256</param>
             /// <param name="ofsetGlobalRange">starting id for workitems.(for cluster add-on)</param>
-            /// <param name="pipeline">true: pipeline is on</param>
+            /// <param name="pipeline">true: kernel-partializing pipeline is on (this is out of OpenCL 1.2 specs so use at your own risk)</param>
             /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
             /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
             /// <param name="readWritesReady">
@@ -529,7 +529,7 @@ namespace Cekirdekler
             /// <param name="globalRange">total workitems to be distributed to devices</param>
             /// <param name="localRange">workitems per local workgroup. default value is 256</param>
             /// <param name="ofsetGlobalRange">starting id for workitems.(for cluster add-on)</param>
-            /// <param name="pipeline">true: pipeline is on</param>
+            /// <param name="pipeline">true: pipeline is on (this is out of OpenCL 1.2 specs so use at your own risk)</param>
             /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
             /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
             /// <param name="readWritesReady">
@@ -1591,7 +1591,7 @@ namespace Cekirdekler
             /// <param name="globalRange">total workitems to be distributed to devices</param>
             /// <param name="localRange">workitems per local workgroup. default value is 256</param>
             /// <param name="ofsetGlobalRange">starting id for workitems.(for cluster add-on)</param>
-            /// <param name="pipeline">true: pipeline is on</param>
+            /// <param name="pipeline">true: pipeline is on (this is out of OpenCL 1.2 specs so use at your own risk)</param>
             /// <param name="pipelineType">Cores.PIPELINE_EVENT means event-driven 3-queued pipelined read+compute+write operation. </param>
             /// <param name="pipelineBlobs">minimum 4, multiple of 4</param>
             /// <param name="readWritesReady">

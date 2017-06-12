@@ -3949,18 +3949,19 @@ namespace Cekirdekler
 
                                 if (currentTaskPool != null)
                                 {
-                                    ClTask newTask = currentTaskPool.nextTask();
-                                    
-                                    if (newTask != null)
+                                    ClPoolTaskIdPair data = new ClPoolTaskIdPair();
+                                    data.task = currentTaskPool.nextTask();
+                                    data.id = -1;
+                                    if (data.task != null)
                                     {
-                                        newTask.id = currentPoolId;
+                                        data.id = currentPoolId;
 
 
-                                        handleGlobalSyncFirst(newTask);
+                                        handleGlobalSyncFirst(data.task);
                                         // sends to common queue that all devices consume
-                                        pipe.push(newTask);
+                                        pipe.push(data);
 
-                                        handleGlobalSyncLast(newTask);
+                                        handleGlobalSyncLast(data.task);
 
                                         incrementLock = false;
                                     }
@@ -3975,9 +3976,6 @@ namespace Cekirdekler
                                     }
                                 }
                             }
-
-
- 
 
                             tmp = running;
                             Monitor.PulseAll(syncObj);
@@ -4184,6 +4182,13 @@ namespace Cekirdekler
                 }
             }
 
+            // for sending identical tasks with different id values without duplicating task
+            class ClPoolTaskIdPair
+            {
+                public ClTask task { get; set; }
+                public int id { get; set; }
+            }
+
             /// <summary>
             /// queue for producer-consumer
             /// </summary>
@@ -4191,11 +4196,11 @@ namespace Cekirdekler
             {
                 bool shutDown { get; set; }
                 object syncObj { get; set; }
-                Queue<ClTask> queue { get; set; }
+                Queue<ClPoolTaskIdPair> queue { get; set; }
                 public ClPoolTaskQueue()
                 {
                     syncObj = new object();
-                    queue = new Queue<ClTask>();
+                    queue = new Queue<ClPoolTaskIdPair>();
                     shutDown = false;
                 }
 
@@ -4223,17 +4228,18 @@ namespace Cekirdekler
                     }
                 }
 
-                public void push(ClTask task)
+                public void push(ClPoolTaskIdPair task)
                 {
                     lock (syncObj)
                     {
                         if (shutDown)
                             return;
+
                         queue.Enqueue(task);
                     }
                 }
 
-                public ClTask pop()
+                public ClPoolTaskIdPair pop()
                 {
                     lock(syncObj)
                     {
@@ -4390,7 +4396,7 @@ namespace Cekirdekler
                     bool working = true;
                     while (working)
                     {
-                        ClTask newTask = null;
+                        ClPoolTaskIdPair data = null;
 
 
                         lock (syncObj)
@@ -4398,7 +4404,7 @@ namespace Cekirdekler
                             computeComplete = false;
                         }
 
-                        newTask = pipe.pop();
+                        data = pipe.pop();
 
                         ClPrivateMessage command = privatePipe.pop();
 
@@ -4412,7 +4418,7 @@ namespace Cekirdekler
 
 
 
-                        if (newTask != null)
+                        if (data != null)
                         {
                             if (fineGrainedControl) 
                             {
@@ -4425,12 +4431,12 @@ namespace Cekirdekler
 
                             if (fineGrainedControl)
                             {
-                                if ((lastTaskId == newTask.id) && (!numberCruncher.enqueueMode))
+                                if ((lastTaskId == data.id) && (!numberCruncher.enqueueMode))
                                     numberCruncher.enqueueMode = true;
                             }
-                            if (newTask.id> lastTaskId)
+                            if (data.id> lastTaskId)
                             {
-                                lastTaskId = newTask.id;
+                                lastTaskId = data.id;
 
                                 if (fineGrainedControl)
                                 {
@@ -4442,11 +4448,11 @@ namespace Cekirdekler
                             if (fineGrainedControl)
                             {
                                 // to do: more GPUs mean less probability. Needs remaining tasks compared to max, not taskCounter
-                                if (newTask != null)
+                                if (data.task != null)
                                 {
-                                    float probability = (((float)(newTask.totalTasks-newTask.remainingTasks)) / ((float)(newTask.totalTasks + 1)));
+                                    float probability = (((float)(data.task.totalTasks- data.task.remainingTasks)) / ((float)(data.task.totalTasks + 1)));
                                     float testing = (float)rand.NextDouble();
-                                    if ((testing < (probability*probability)) || ((newTask.totalTasks - newTask.remainingTasks) > (newTask.totalTasks - 3)))
+                                    if ((testing < (probability*probability)) || ((data.task.totalTasks - data.task.remainingTasks) > (data.task.totalTasks - 3)))
                                     {
                                         numberCruncher.fineGrainedQueueControl = true;
                                     }
@@ -4458,7 +4464,7 @@ namespace Cekirdekler
                                 }
                             }
 
-                            newTask.compute(numberCruncher);
+                            data.task.compute(numberCruncher);
                             if (fineGrainedControl)
                                 numberCruncher.flush();
                         }
@@ -4478,7 +4484,7 @@ namespace Cekirdekler
                         {
                             computeComplete = true;
                             working = running;
-                            if ((newTask == null) && (running))
+                            if ((data == null) && (running))
                             {
                                 Monitor.PulseAll(syncObj);
                                 Monitor.Wait(syncObj);
@@ -4499,6 +4505,7 @@ namespace Cekirdekler
                             }
 
                         }
+
                         if ((command & ClPrivateMessage.MESSAGE_EXECUTE_FEEDBACK) > 0)
                         {
                             // reporting back to pool after message is processed
