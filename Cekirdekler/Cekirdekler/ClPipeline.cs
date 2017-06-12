@@ -3244,7 +3244,7 @@ namespace Cekirdekler
             /// <para>for building data-synchronization and similar "control" related tasks</para>
             /// <para>all types can be combined (for example, 32|16 shuts all devices down)</para>
             /// </summary>
-            public enum TaskMessage:int
+            public enum ClTaskType:int
             {
                 /// <summary>
                 /// does not do anything special
@@ -3317,6 +3317,11 @@ namespace Cekirdekler
             /// </summary>
             public class ClTask
             {
+
+                /// <summary>
+                /// additional role(or combined roles) of this task
+                /// </summary>
+                public ClTaskType type { get; set; } 
 
                 // to keep enqueue mode data
                 internal int id { get; set; }
@@ -3435,6 +3440,7 @@ namespace Cekirdekler
                     }
                     result.remainingTasks = remainingTasks;
                     result.totalTasks = totalTasks;
+                    result.type = type;
                     return result;
                 }
 
@@ -3702,6 +3708,24 @@ namespace Cekirdekler
                 DEVICE_ROUND_ROBIN = 1,
             }
 
+
+            // for handling pool - device control logic
+            enum ClPrivateMessage:int
+            {
+                // do nothing
+                MESSAGE_DEFAULT=0,
+
+                // synchronize a device
+                MESSAGE_SYNC=1,
+
+                // report back once message is executed at device
+                MESSAGE_EXECUTE_FEEDBACK=2,
+
+                // report back once message is received at device
+                MESSAGE_RECEIVE_FEEDBACK=4
+
+            }
+
             // todo: add multiple queues, adjust task compute id values to use same kernel instances per queue at each repeat
             //       kernel + queue1 = instance 1  ---- creates new kernel instance
             //       kernel + queue2 = instance 2  ---- creates new kernel instance
@@ -3855,7 +3879,16 @@ namespace Cekirdekler
                                     {
                                         newTask.id = currentPoolId;
 
+                                        if((newTask.type&ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST)>0)
+                                        {
+                                            // use private queues per device to ensure a synchronization
+
+                                            // then wait for private feedback queues before continuing
+
+                                        }
+                                        // sends to common queue that all devices consume
                                         pipe.push(newTask);
+
                                         incrementLock = false;
                                     }
                                     else
