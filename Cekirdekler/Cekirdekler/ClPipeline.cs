@@ -3836,6 +3836,67 @@ namespace Cekirdekler
 
                 }
 
+                void handleGlobalSyncLast(ClTask newTask)
+                {
+                    if ((newTask.type & ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST) > 0)
+                    {
+                        // use private queues per device to ensure a synchronization
+                        sendSyncedFeedbackCommand();
+
+                        // then wait for private feedback queues before continuing
+                        waitGlobalSyncedFeedback();
+                    }
+                }
+
+                void handleGlobalSyncFirst(ClTask newTask)
+                {
+                    if ((newTask.type & ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST) > 0)
+                    {
+                        // use private queues per device to ensure a synchronization
+                        sendSyncedFeedbackCommand();
+
+                        // then wait for private feedback queues before continuing
+                        waitGlobalSyncedFeedback();
+                    }
+                }
+
+                void sendSyncedFeedbackCommand()
+                {
+                    ClPrivateMessage msg = ClPrivateMessage.MESSAGE_SYNC | ClPrivateMessage.MESSAGE_EXECUTE_FEEDBACK;
+                    for (int i = 0; i < privatePipe.Count; i++)
+                    {
+                        privatePipe[i].push(msg);
+                    }
+                }
+
+                void waitGlobalSyncedFeedback()
+                {
+                    for (int i = 0; i < privatePipe.Count; i++)
+                    {
+                        privateMessageStates[i] = 0;
+                        privateMessageStates2[i] = 0;
+                    }
+                    bool feedbackSuccessful = false;
+                    while (!feedbackSuccessful)
+                    {
+                        feedbackSuccessful = true;
+                        for (int i = 0; i < privatePipe.Count; i++)
+                        {
+                            ClPrivateMessage feedback = privateFeedbackPipe[i].pop();
+                            if (privateMessageStates[i] == 0)
+                            {
+                                privateMessageStates[i] += (((feedback & ClPrivateMessage.FEEDBACK_SUCCESS) > 0) ? 1 : 0);
+                            }
+
+                            privateMessageStates2[i] = (((devices[i].remainingTasks() + devices[i].markersRemaining()) == 0) ? 1 : 0);
+
+                            feedbackSuccessful &= ((privateMessageStates[i] != 0) && (privateMessageStates2[i] != 0));
+                            devices[i].pulse();
+                        }
+                        feedbackSuccessful &= (pipe.size() == 0);
+                    }
+                }
+
                 /// <summary>
                 /// producer-consumer work flow's producer part that distributes tasks
                 /// </summary>
@@ -3893,56 +3954,13 @@ namespace Cekirdekler
                                     if (newTask != null)
                                     {
                                         newTask.id = currentPoolId;
-                                        Console.WriteLine("task issued: "+newTask.computeId);
 
 
-                                        
-                                        if ((newTask.type & ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST) > 0)
-                                        {
-                                            Console.WriteLine("pool sync start: task=" + ((newTask != null) ? (newTask.computeId) : 0));
-
-                                            // use private queues per device to ensure a synchronization
-                                            ClPrivateMessage msg = ClPrivateMessage.MESSAGE_SYNC | ClPrivateMessage.MESSAGE_EXECUTE_FEEDBACK;
-                                            for (int i = 0; i < privatePipe.Count; i++)
-                                            {
-                                                privatePipe[i].push(msg);
-                                            }
-
-                                            // then wait for private feedback queues before continuing
-                                            for (int i = 0; i < privatePipe.Count; i++)
-                                            {
-                                                privateMessageStates[i] = 0;
-                                                privateMessageStates2[i] = 0;
-                                            }
-                                            Stopwatch sw0 = new Stopwatch();
-                                            sw0.Start();
-                                            bool feedbackSuccessful = false;
-                                            while (!feedbackSuccessful)
-                                            {
-                                                feedbackSuccessful = true;
-                                                for (int i = 0; i < privatePipe.Count; i++)
-                                                {
-                                                    ClPrivateMessage feedback = privateFeedbackPipe[i].pop();
-                                                    if (privateMessageStates[i] == 0)
-                                                    {
-                                                        privateMessageStates[i] += (((feedback & ClPrivateMessage.FEEDBACK_SUCCESS) > 0) ? 1 : 0);
-                                                    }
-                                                   
-                                                    privateMessageStates2[i] = (((devices[i].remainingTasks()+ devices[i].markersRemaining()) == 0) ? 1 : 0);
-                                                    
-                                                    feedbackSuccessful &= ((privateMessageStates[i] != 0)&&(privateMessageStates2[i] != 0));
-                                                    devices[i].pulse();
-                                                }
-                                                feedbackSuccessful &= (pipe.size() == 0);
-
-                                            }
-                                            sw0.Stop();
-                                            // synchronization done
-                                            Console.WriteLine("pool sync end: task=" + ((newTask != null) ? (newTask.computeId) : 0)+" elapsed time="+sw0.ElapsedMilliseconds);
-
-                                        }
+                                        handleGlobalSyncFirst(newTask);
                                         // sends to common queue that all devices consume
                                         pipe.push(newTask);
+
+                                        handleGlobalSyncLast(newTask);
 
                                         incrementLock = false;
                                     }
@@ -4065,13 +4083,7 @@ namespace Cekirdekler
                     {
                         int remainingWork = 1000000000;
 
-                        if(fineGrainedQueueControl)
-                        {
-                            for(int i=0;i<devices.Count;i++)
-                            {
-                                devices[i].disableEnqueueMode();
-                            }
-                        }
+
 
                         while (remainingWork > 0)
                         {
@@ -4309,14 +4321,6 @@ namespace Cekirdekler
                 }
 
 
-                public void disableEnqueueMode()
-                {
-                    lock(syncObj)
-                    {
-                        disableEnqueueModeWaiting = true;
-                    }
-                }
-
                 public void changeDeviceQueueLimit(int newValue)
                 {
                     lock(syncObj)
@@ -4455,7 +4459,6 @@ namespace Cekirdekler
                             }
 
                             newTask.compute(numberCruncher);
-                            Console.WriteLine("device last computed task: "+newTask.computeId);
                             if (fineGrainedControl)
                                 numberCruncher.flush();
                         }
@@ -4491,7 +4494,6 @@ namespace Cekirdekler
                             if (fineGrainedControl)
                             {
                                 numberCruncher.enqueueMode = false; // synchronizes
-                                Console.WriteLine("device sync: task=" + ((newTask != null) ? (newTask.computeId) : 0)+" remaining tasks: "+ ((newTask != null) ? (newTask.remainingTasks) : 0));
                                 numberCruncher.enqueueMode = true; // re-enable it
                                 
                             }
