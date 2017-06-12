@@ -3338,6 +3338,11 @@ namespace Cekirdekler
                 internal bool pipelineType { get; set; }
                 internal int pipelineBlobs { get; set; }
 
+
+                // remaining-total tasks in pool
+                internal int remainingTasks { get; set; }
+                internal int totalTasks { get; set; }
+
                 /// <summary>
                 /// not implemented yet
                 /// </summary>
@@ -3380,11 +3385,60 @@ namespace Cekirdekler
                     elementsPerItem = elementsPerItemParameter;
                 }
 
-                /// <summary>
-                /// <para>not implemented</para>
-                /// <para>true: makes this task executed by all devices</para>
-                /// </summary>
-                public bool duplicateToAllDevices { get; set; }
+                internal ClTask duplicate()
+                {
+                    ClTask result = new ClTask();
+                    result.computeId = computeId;
+                    result.data = data;
+                    if (elementsPerItem == null)
+                    {
+                        result.elementsPerItem = null;
+                    }
+                    else
+                    {
+                        result.elementsPerItem = new int[elementsPerItem.Length];
+                        for (int i = 0; i < elementsPerItem.Length; i++)
+                        {
+                            result.elementsPerItem[i] = elementsPerItem[i];
+                        }
+                    }
+                    result.globalRange = globalRange;
+                    result.id = id;
+                    result.kernelNamesString = new StringBuilder(kernelNamesString).ToString();
+                    /*
+                    if (kernelRepeatName == null)
+                    {
+                        result.kernelRepeatName = null;
+                    }
+                    else
+                    {
+                        result.kernelRepeatName = new StringBuilder(kernelRepeatName).ToString();
+                    }
+                    */
+                    //result.kernelRepeats = kernelRepeats;
+                    result.localRange = localRange;
+                    result.ofsetGlobalRange = ofsetGlobalRange;
+                    result.pipeline = pipeline;
+                    result.pipelineBlobs = pipelineBlobs;
+                    result.pipelineType = pipelineType;
+                    if (readWrite == null)
+                    {
+                        result.readWrite = null;
+                    }
+                    else
+                    {
+                        result.readWrite = new string[readWrite.Length];
+                        for(int i=0;i<readWrite.Length;i++)
+                        {
+                            result.readWrite[i] = new StringBuilder(readWrite[i]).ToString();
+                        }
+                    }
+                    result.remainingTasks = remainingTasks;
+                    result.totalTasks = totalTasks;
+                    return result;
+                }
+
+
 
                 internal ClTask()
                 {
@@ -3542,7 +3596,7 @@ namespace Cekirdekler
                 }
 
                 /// <summary>
-                /// <para>pushes a new ClTask instance to one end of queue to compute later</para>
+                /// <para>pushes a duplicated instance of given ClTask instance to one end of queue to compute later</para>
                 /// <para>compute operations are issued from other end of queue</para>
                 /// </summary>
                 public void feed(ClTask task)
@@ -3550,7 +3604,14 @@ namespace Cekirdekler
 
                     lock(syncObj)
                     {
-                        taskList.Add(task);
+                        ClTask newTask = task.duplicate();
+                        taskList.Add(newTask);
+                        int total = taskList.Count;
+                        for(int i=0;i<total;i++)
+                        {
+                            taskList[i].remainingTasks = (total - i) - 1;
+                            taskList[i].totalTasks = total;
+                        }
                     }
                 }
 
@@ -3782,7 +3843,6 @@ namespace Cekirdekler
                                     for (int i = 0; i < devices.Count; i++)
                                     {
                                         devices[i].changeDeviceQueueLimit(deviceQueueLimiter);
-                                        devices[i].changeMaxTasksToCompute(rem);
                                     }
                                     Monitor.PulseAll(syncObj);
                                 }
@@ -3870,7 +3930,7 @@ namespace Cekirdekler
                 }
 
                 /// <summary>
-                /// <para>enqueues a duplicate of taskPoolParameter(task pool) to this device pool</para>
+                /// <para>enqueues a (deeply copied)duplicate of taskPoolParameter(task pool) to this device pool</para>
                 /// <para>older pools reside until completed(their queues and containers empty)</para>
                 /// <para>a device may choose a different pool for next task, depending on the task pool type</para>
                 /// <para>this re-initiates producer part</para>
@@ -4050,13 +4110,10 @@ namespace Cekirdekler
                 bool disableEnqueueModeWaiting { get; set; }
                 int lastTaskId { get; set; }
                 bool disableFeedback { get; set; }
-                int taskCounter { get; set; }
-                int maxTasks { get; set; }
                 Random rand { get; set; }
                 public DevicePoolThread(ClNumberCruncher numberCruncherParameter,int deviceQueueLimiterParameter,bool multiQueueEnabledParameter,bool fineGrainedControlParameter, ClDevicePoolType poolTypeParameter, PoolTaskQueue poolQueue)
                 {
                     rand = new Random();
-                    taskCounter = 0;
                     disableFeedback = false;
                     lastTaskId = -999999;
                     pipe = poolQueue;
@@ -4105,17 +4162,6 @@ namespace Cekirdekler
                             deviceQueueLimiter *= 16;
                     }
                 }
-
-                public void changeMaxTasksToCompute(int maxTasksParameter)
-                {
-                    lock(syncObj)
-                    {
-                        taskCounter = 0;
-                        maxTasks = maxTasksParameter;
-                    }
-                }
-
-
 
 
                 public float markerReachSpeed()
@@ -4214,20 +4260,23 @@ namespace Cekirdekler
                             }
                             if (fineGrainedControl)
                             {
-                                float probability = (((float)taskCounter) / ((float)(maxTasks + 1)));
-                                float testing = (float)rand.NextDouble();
-                                if ((testing < probability) || (taskCounter > (maxTasks - 2)))
+                                // to do: more GPUs mean less probability. Needs remaining tasks compared to max, not taskCounter
+                                if (newTask != null)
                                 {
-                                    numberCruncher.fineGrainedQueueControl = true; 
-                                }
-                                else
-                                {
-                                    numberCruncher.fineGrainedQueueControl = false;
-                                     
+                                    float probability = (((float)(newTask.totalTasks-newTask.remainingTasks)) / ((float)(newTask.totalTasks + 1)));
+                                    float testing = (float)rand.NextDouble();
+                                    if ((testing < (probability*probability)) || ((newTask.totalTasks - newTask.remainingTasks) > (newTask.totalTasks - 3)))
+                                    {
+                                        numberCruncher.fineGrainedQueueControl = true;
+                                    }
+                                    else
+                                    {
+                                        numberCruncher.fineGrainedQueueControl = false;
+
+                                    }
                                 }
                             }
                             newTask.compute(numberCruncher);
-                            taskCounter++;
                             if (fineGrainedControl)
                                 numberCruncher.flush();
                         }
