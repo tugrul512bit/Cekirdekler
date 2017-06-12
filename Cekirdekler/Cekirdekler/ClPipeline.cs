@@ -3634,7 +3634,7 @@ namespace Cekirdekler
                         {
                             if (counter < taskList.Count && counter >= 0)
                             {
-                                next = taskList[counter];
+                                next = taskList[counter].duplicate();
                                 counter++;
                             }
                             else
@@ -3768,6 +3768,7 @@ namespace Cekirdekler
                 List<ClMessageQueue>  privatePipe {get;set;}
                 List<ClMessageQueue> privateFeedbackPipe { get;set;}
                 List<int> privateMessageStates { get; set; }
+                List<int> privateMessageStates2 { get; set; }
                 bool hasDisabledEnqueueMode { get; set; }
                 int currentPoolId { get; set; }
                 bool incrementLock { get; set; }
@@ -3799,6 +3800,7 @@ namespace Cekirdekler
                     lock (syncObj)
                     {
                         privateMessageStates = new  List<int>();
+                        privateMessageStates2 = new  List<int>();
                         privatePipe = new List<ClMessageQueue>();
                         privateFeedbackPipe = new List<ClMessageQueue>();
                         smoothedSpeeds = new List<float[]>();
@@ -3891,42 +3893,54 @@ namespace Cekirdekler
                                     if (newTask != null)
                                     {
                                         newTask.id = currentPoolId;
+                                        Console.WriteLine("task issued: "+newTask.computeId);
 
-                                        if((newTask.type&ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST)>0)
+
+                                        
+                                        if ((newTask.type & ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST) > 0)
                                         {
-                                            Console.WriteLine("pool sync");
+                                            Console.WriteLine("pool sync start: task=" + ((newTask != null) ? (newTask.computeId) : 0));
 
                                             // use private queues per device to ensure a synchronization
                                             ClPrivateMessage msg = ClPrivateMessage.MESSAGE_SYNC | ClPrivateMessage.MESSAGE_EXECUTE_FEEDBACK;
-                                            for(int i=0;i< privatePipe.Count;i++)
+                                            for (int i = 0; i < privatePipe.Count; i++)
                                             {
                                                 privatePipe[i].push(msg);
                                             }
-                                            Console.WriteLine("pool sync 2");
 
                                             // then wait for private feedback queues before continuing
                                             for (int i = 0; i < privatePipe.Count; i++)
                                             {
                                                 privateMessageStates[i] = 0;
+                                                privateMessageStates2[i] = 0;
                                             }
+                                            Stopwatch sw0 = new Stopwatch();
+                                            sw0.Start();
                                             bool feedbackSuccessful = false;
-                                            while(!feedbackSuccessful)
+                                            while (!feedbackSuccessful)
                                             {
                                                 feedbackSuccessful = true;
                                                 for (int i = 0; i < privatePipe.Count; i++)
                                                 {
-                                                    ClPrivateMessage feedback= privateFeedbackPipe[i].pop();
+                                                    ClPrivateMessage feedback = privateFeedbackPipe[i].pop();
                                                     if (privateMessageStates[i] == 0)
                                                     {
                                                         privateMessageStates[i] += (((feedback & ClPrivateMessage.FEEDBACK_SUCCESS) > 0) ? 1 : 0);
                                                     }
-                                                    feedbackSuccessful &= (privateMessageStates[i]!=0);
+                                                    if (privateMessageStates2[i] == 0)
+                                                    {
+                                                        privateMessageStates2[i] += ((devices[i].remainingTasks() == 0) ? 1 : 0);
+                                                    }
+                                                    feedbackSuccessful &= ((privateMessageStates[i] != 0)&&(privateMessageStates2[i] != 0));
                                                     devices[i].pulse();
                                                 }
-                                            }
-                                            Console.WriteLine("pool sync 3");
+                                                feedbackSuccessful &= (pipe.size() == 0);
 
+                                            }
+                                            sw0.Stop();
                                             // synchronization done
+                                            Console.WriteLine("pool sync end: task=" + ((newTask != null) ? (newTask.computeId) : 0)+" elapsed time="+sw0.ElapsedMilliseconds);
+
                                         }
                                         // sends to common queue that all devices consume
                                         pipe.push(newTask);
@@ -3982,6 +3996,7 @@ namespace Cekirdekler
                         ClMessageQueue newPrivateFeedbackQueue = new ClMessageQueue();
                         privateFeedbackPipe.Add(newPrivateFeedbackQueue);
                         privateMessageStates.Add(0);
+                        privateMessageStates2.Add(0);
                         if (devicesParameter.Length > 1)
                         {
                             ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter[0], kernelCode,false,16);
@@ -4392,37 +4407,7 @@ namespace Cekirdekler
                             
                         }
 
-                        if ((command&ClPrivateMessage.MESSAGE_SYNC)>0)
-                        {
-                            Console.WriteLine("device sync");
 
-                            // synchronize
-                            // non-fine grain mode does not need synchronization as each command synchronizes
-                            // only fine grained needs for now
-                            if (fineGrainedControl)
-                            {
-                                Console.WriteLine("device sync 2");
-                                if(numberCruncher.enqueueMode)
-                                {
-                                    Console.WriteLine("device sync 3");
-                                    numberCruncher.enqueueMode = false; // synchronizes
-                                    numberCruncher.enqueueMode = true; // re-enable it
-                                }
-                                else
-                                {
-                                    // no need to sync since enqueue mode is not active
-                                }
-                            }
-
-                            if ((command & ClPrivateMessage.MESSAGE_EXECUTE_FEEDBACK) > 0)
-                            {
-                                Console.WriteLine("device sync 4");
-                                // reporting back to pool after message is processed
-                                ClPrivateMessage feedback = ClPrivateMessage.FEEDBACK_SUCCESS;
-                                privateFeedbackPipe.push(feedback);
-                                
-                            }
-                        }
 
                         if (newTask != null)
                         {
@@ -4450,6 +4435,7 @@ namespace Cekirdekler
                                 }
 
                             }
+
                             if (fineGrainedControl)
                             {
                                 // to do: more GPUs mean less probability. Needs remaining tasks compared to max, not taskCounter
@@ -4468,7 +4454,9 @@ namespace Cekirdekler
                                     }
                                 }
                             }
+
                             newTask.compute(numberCruncher);
+                            Console.WriteLine("device last computed task: "+newTask.computeId);
                             if (fineGrainedControl)
                                 numberCruncher.flush();
                         }
@@ -4481,7 +4469,7 @@ namespace Cekirdekler
                             }
                         }
 
-
+                        
 
 
                         lock (syncObj)
@@ -4495,7 +4483,27 @@ namespace Cekirdekler
                             }
                         }
 
+                        if ((command & ClPrivateMessage.MESSAGE_SYNC) > 0)
+                        {
 
+                            // synchronize
+                            // non-fine grain mode does not need synchronization as each command synchronizes
+                            // only fine grained needs for now
+                            if (fineGrainedControl)
+                            {
+                                numberCruncher.enqueueMode = false; // synchronizes
+                                Console.WriteLine("device sync: task=" + ((newTask != null) ? (newTask.computeId) : 0)+" remaining tasks: "+ ((newTask != null) ? (newTask.remainingTasks) : 0));
+                                numberCruncher.enqueueMode = true; // re-enable it
+                                
+                            }
+
+                        }
+                        if ((command & ClPrivateMessage.MESSAGE_EXECUTE_FEEDBACK) > 0)
+                        {
+                            // reporting back to pool after message is processed
+                            ClPrivateMessage feedback = ClPrivateMessage.FEEDBACK_SUCCESS;
+                            privateFeedbackPipe.push(feedback);
+                        }
                     }
                 }
 
