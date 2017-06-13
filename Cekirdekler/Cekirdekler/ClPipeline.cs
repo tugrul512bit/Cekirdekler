@@ -3612,12 +3612,52 @@ namespace Cekirdekler
                     {
                         ClTask newTask = task.duplicate();
                         taskList.Add(newTask);
-                        int total = taskList.Count;
-                        for(int i=0;i<total;i++)
+                
+
+                    }
+                }
+
+                
+                internal void prepareForScheduling()
+                {
+                    int total = taskList.Count;
+                    int totalCounter = 0;
+                    int remainingCounter = 0;
+                    List<int> syncPointIndexList = new List<int>();
+                    List<int> syncPointTotalList = new List<int>();
+                    for (int i = 0; i < total; i++)
+                    {
+
+                        totalCounter++;
+                        remainingCounter--;
+                        if (((taskList[i].type & (ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST | ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST)) > 0) ||
+                            (i == (total - 1)))
                         {
-                            taskList[i].remainingTasks = (total - i) - 1;
-                            taskList[i].totalTasks = total;
+                            remainingCounter = 0;
+                            syncPointIndexList.Add(i);
+                            syncPointTotalList.Add(totalCounter);
+                            totalCounter = 0;
                         }
+                        taskList[i].remainingTasks = remainingCounter;
+
+                        //taskList[i].remainingTasks = (total - i) - 1;
+                        //taskList[i].totalTasks = total;
+                    }
+
+                    int[] indices = syncPointIndexList.ToArray();
+                    int[] totals = syncPointTotalList.ToArray();
+                    int startInd = 0;
+                    for (int i = 0; i < indices.Length - 1; i++)
+                    {
+                        int endInd = indices[i];
+                        totalCounter = totals[i];
+                        for (int j = startInd; j < endInd; j++)
+                        {
+                            taskList[j].remainingTasks += totalCounter;
+                            taskList[j].totalTasks = totalCounter;
+                            Console.WriteLine("remaining: " + taskList[j].remainingTasks + " total:" + taskList[j].totalTasks);
+                        }
+                        startInd = endInd;
                     }
                 }
 
@@ -3634,7 +3674,8 @@ namespace Cekirdekler
                         {
                             if (counter < taskList.Count && counter >= 0)
                             {
-                                next = taskList[counter].duplicate();
+                                //next = taskList[counter].duplicate();
+                                next = taskList[counter];
                                 counter++;
                             }
                             else
@@ -4064,7 +4105,9 @@ namespace Cekirdekler
                 {
                     lock (syncObj)
                     {
-                        taskPoolQueue.Enqueue(taskPoolParameter.duplicate());
+                        ClTaskPool newTaskPool = taskPoolParameter.duplicate();
+                        newTaskPool.prepareForScheduling();
+                        taskPoolQueue.Enqueue(newTaskPool);
                         Monitor.PulseAll(syncObj);
                     }
                 }
@@ -4452,7 +4495,7 @@ namespace Cekirdekler
                                 {
                                     float probability = (((float)(data.task.totalTasks- data.task.remainingTasks)) / ((float)(data.task.totalTasks + 1)));
                                     float testing = (float)rand.NextDouble();
-                                    if ((testing < (probability*probability)) || ((data.task.totalTasks - data.task.remainingTasks) > (data.task.totalTasks - 3)))
+                                    if ((testing < (probability*probability)) /*|| ((data.task.totalTasks - data.task.remainingTasks) > (data.task.totalTasks - 3))*/)
                                     {
                                         numberCruncher.fineGrainedQueueControl = true;
                                     }
