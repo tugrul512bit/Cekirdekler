@@ -3639,15 +3639,12 @@ namespace Cekirdekler
                             totalCounter = 0;
                         }
                         taskList[i].remainingTasks = remainingCounter;
-
-                        //taskList[i].remainingTasks = (total - i) - 1;
-                        //taskList[i].totalTasks = total;
                     }
 
                     int[] indices = syncPointIndexList.ToArray();
                     int[] totals = syncPointTotalList.ToArray();
                     int startInd = 0;
-                    for (int i = 0; i < indices.Length - 1; i++)
+                    for (int i = 0; i < indices.Length; i++)
                     {
                         int endInd = indices[i];
                         totalCounter = totals[i];
@@ -3655,7 +3652,6 @@ namespace Cekirdekler
                         {
                             taskList[j].remainingTasks += totalCounter;
                             taskList[j].totalTasks = totalCounter;
-                            Console.WriteLine("remaining: " + taskList[j].remainingTasks + " total:" + taskList[j].totalTasks);
                         }
                         startInd = endInd;
                     }
