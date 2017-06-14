@@ -3871,12 +3871,12 @@ namespace Cekirdekler
                     currentPoolId = 0;
                     hasDisabledEnqueueMode = true;
                     multiQueueEnabled = multiQueueEnabledParameter;
-                    fineGrainedQueueControl = fineGrainedQueueControlParameter;
                     type = poolType;
                     kernelCode = kernelCodeToCompile;
                     syncObj = new object();
                     lock (syncObj)
                     {
+                        fineGrainedQueueControl = fineGrainedQueueControlParameter;
                         privateMessageStates = new  List<int>();
                         privateMessageStates2 = new  List<int>();
                         privatePipe = new List<ClMessageQueue>();
@@ -3983,7 +3983,28 @@ namespace Cekirdekler
                         feedbackSuccessful &= (pipe.size() == 0);
                     }
                 }
+
+
+
                 internal const int MULTI_DEVICE_MODE = -1;
+
+                internal void setDeviceQueueLimit(int newVal)
+                {
+                    lock (syncObj)
+                    {
+                        deviceQueueLimiter = newVal;
+                    }
+                }
+
+                internal int getDeviceQueueLimit()
+                {
+                    int result = 0;
+                    lock (syncObj)
+                    {
+                        result = deviceQueueLimiter;
+                    }
+                    return result;
+                }
 
                 /// <summary>
                 /// producer-consumer work flow's producer part that distributes tasks
@@ -4039,10 +4060,10 @@ namespace Cekirdekler
                                 setCurrentTaskPool(taskPoolQueue.pop());
                                 currentTaskPoolTmp = getCurrentTaskPool();
                                 int rem = currentTaskPoolTmp.remainingTaskGroupsOrTasks();
-                                deviceQueueLimiter = 1 + rem / 40;
+                                setDeviceQueueLimit(1 + rem / 40);
                                 for (int i = 0; i < numDevices; i++)
                                 {
-                                    devices[i].changeDeviceQueueLimit(deviceQueueLimiter);
+                                    devices[i].changeDeviceQueueLimit(getDeviceQueueLimit());
                                 }
 
                                 lock (syncObj)
@@ -4132,6 +4153,16 @@ namespace Cekirdekler
                     }
                 }
 
+                internal bool getFineGrainedQueueControl()
+                {
+                    bool result = false;
+                    lock(syncObj)
+                    {
+                        result = fineGrainedQueueControl;
+                    }
+                    return result;
+                }
+
                 /// <summary>
                 /// <para>add a device to pool</para>
                 /// <para>can add in the middle of computation of a task pool</para>
@@ -4153,12 +4184,12 @@ namespace Cekirdekler
                         if (devicesParameter.Length > 1)
                         {
                             ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter[0], kernelCode,false,16);
-                            cruncherNew.fineGrainedQueueControl = fineGrainedQueueControl;
+                            cruncherNew.fineGrainedQueueControl = getFineGrainedQueueControl();
                             var newDevice = new DevicePoolThread(this,
-                                cruncherNew, 
-                                deviceQueueLimiter, 
+                                cruncherNew,
+                                getDeviceQueueLimit(), 
                                 multiQueueEnabled, 
-                                fineGrainedQueueControl,
+                                getFineGrainedQueueControl(),
                                 type,
                                 pipe,
                                 newPrivateQueue,
@@ -4170,12 +4201,12 @@ namespace Cekirdekler
                         else if(devicesParameter.Length==1)
                         {
                             ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter, kernelCode,false,16);
-                            cruncherNew.fineGrainedQueueControl = fineGrainedQueueControl;
+                            cruncherNew.fineGrainedQueueControl = getFineGrainedQueueControl();
                             var newDevice = new DevicePoolThread(this,
                                 cruncherNew, 
-                                deviceQueueLimiter,
-                                multiQueueEnabled, 
-                                fineGrainedQueueControl,
+                                getDeviceQueueLimit(),
+                                multiQueueEnabled,
+                                getFineGrainedQueueControl(),
                                 type,
                                 pipe,
                                 newPrivateQueue,
@@ -4248,13 +4279,13 @@ namespace Cekirdekler
                             lock (syncObj)
                             {
                                 remainingWork = 0;
-
+                               
                                 // add remaining consumer-side tasks
                                 for (int i = 0; i < devices.Count; i++)
                                 {
                                     // remaining synchronized tasks
                                     remainingWork += devices[i].remainingTasks();
-                                    if(fineGrainedQueueControl)
+                                    if(getFineGrainedQueueControl())
                                         remainingWork += devices[i].markersRemaining();
 
                                     // remaining fine grained markers
@@ -4525,6 +4556,16 @@ namespace Cekirdekler
                     }
                 }
 
+                public int getDeviceQueueLimit()
+                {
+                    int result = 0;
+                    lock(syncObj)
+                    {
+                        result = deviceQueueLimiter;
+                    }
+                    return result;
+                }
+
 
                 public float markerReachSpeed()
                 {
@@ -4598,8 +4639,8 @@ namespace Cekirdekler
 
                         
                         bool tasksForThisDeviceExist = true;
-                        bool singleDeviceModeHasBeenEnabled = false;
-                        while(tasksForThisDeviceExist || singleDeviceModeHasBeenEnabled)
+                        int tmpCtr = 0;
+                        while(tasksForThisDeviceExist || tmpCtr<10)
                         {
                             tasksForThisDeviceExist = false;
                             ClPoolTaskIdPair newCacheData = pipe.lookForDeviceIdThenPop(deviceIndex);
@@ -4608,15 +4649,15 @@ namespace Cekirdekler
                                 cachePipe.push(newCacheData);
                                 if(newCacheData.deviceIndex==deviceIndex)
                                 {
-                                    singleDeviceModeHasBeenEnabled = true;
                                     // this is single device mode enabled series of tasks
                                     tasksForThisDeviceExist = true;
                                 }
                                 else
                                 {
-                                    singleDeviceModeHasBeenEnabled = false;
+
                                 }
                             }
+                            tmpCtr++;
                         }
 
                         // if single device mode is enabled and if this device is selected or if multi device mode is enabled
@@ -4642,7 +4683,7 @@ namespace Cekirdekler
                                 bool markersComplete = false;
                                 while(!markersComplete)
                                 {
-                                    markersComplete = (markersRemaining()<deviceQueueLimiter);
+                                    markersComplete = (markersRemaining()< getDeviceQueueLimit());
                                 }
                             }
 
