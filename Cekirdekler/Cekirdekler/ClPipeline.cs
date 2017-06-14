@@ -3253,15 +3253,20 @@ namespace Cekirdekler
 
                 /// <summary>
                 /// <para>not implemeneted</para>
-                /// <para>enables single device mode for the following tasks until SELECT_END is reached.</para>
+                /// <para>enables single device mode and selects a device for the following tasks until SELECT_END is reached.</para>
                 /// <para>if SELECT_END is quickly enqueued on device, remaining tasks can be enqueued to other devices concurrently</para>
+                /// <para>multiple select groups can run on different devices</para>
+                /// <para>SELECT_END must exist between two SELECT_BEGIN. Multiple begin-end ranges must not overlap</para>
+                /// <para>For every select-begin, there must be a select-end</para>
                 /// </summary>
                 TASK_MESSAGE_DEVICE_SELECT_BEGIN = 1,
 
                 /// <summary>
                 /// <para>not implemeneted</para>
-                /// <para>disables single device mode if it is enabled</para>
+                /// <para>deselects device of single device mode if it is enabled</para>
                 /// <para>this does not ensure any synchronization between devices. Other devices can compute other groups of tasks</para>
+                /// <para>SELECT_END must exist between two SELECT_BEGIN. Multiple begin-end ranges must not overlap</para>
+                /// <para>For every select-begin, there must be a select-end</para>
                 /// </summary>
                 TASK_MESSAGE_DEVICE_SELECT_END = 2,
 
@@ -3309,6 +3314,7 @@ namespace Cekirdekler
 
                 // to keep enqueue mode data
                 internal int id { get; set; }
+
 
                 // data to compute (single array or ClParameterGroup)
                 internal ICanCompute data { get; set; }
@@ -3360,7 +3366,6 @@ namespace Cekirdekler
                 {
 
                     data = dataParameter;
-
                     computeId = computeIdParameter;
                     kernelNamesString = new StringBuilder( kernelNamesStringParameter).ToString();
                     globalRange = globalRangeParameter;
@@ -3615,7 +3620,13 @@ namespace Cekirdekler
 
                         totalCounter++;
                         remainingCounter--;
-                        if (((taskList[i].type & (ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST | ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST)) > 0) ||
+                        if (((taskList[i].type & 
+                            (
+                            ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST | 
+                            ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST  //|
+                            //ClTaskType.TASK_MESSAGE_DEVICE_SELECT_BEGIN          |
+                            //ClTaskType.TASK_MESSAGE_DEVICE_SELECT_END
+                            )) > 0) ||
                             (i == (total - 1)))
                         {
                             remainingCounter = 0;
@@ -3795,6 +3806,8 @@ namespace Cekirdekler
                 int currentPoolId { get; set; }
                 bool incrementLock { get; set; }
                 bool waitForDisableStateFeedback { get; set; }
+                internal int selectedSingleDeviceModeIndex { get; set; }
+
                 /// <summary>
                 /// <para>creates a worker pool with a type</para>
                 /// <para>any ClNumberCruncher instance added to this pool will work accordingly with the type algorithm</para>
@@ -3858,9 +3871,9 @@ namespace Cekirdekler
 
                 }
 
-                void handleGlobalSyncLast(ClTask newTask)
+                void handleGlobalSyncLast(ClTaskType newTaskType)
                 {
-                    if ((newTask.type & ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST) > 0)
+                    if ((newTaskType & ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST) > 0)
                     {
                         // use private queues per device to ensure a synchronization
                         sendSyncedFeedbackCommand();
@@ -3870,9 +3883,9 @@ namespace Cekirdekler
                     }
                 }
 
-                void handleGlobalSyncFirst(ClTask newTask)
+                void handleGlobalSyncFirst(ClTaskType newTaskType)
                 {
-                    if ((newTask.type & ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST) > 0)
+                    if ((newTaskType & ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST) > 0)
                     {
                         // use private queues per device to ensure a synchronization
                         sendSyncedFeedbackCommand();
@@ -3885,6 +3898,15 @@ namespace Cekirdekler
                 void sendSyncedFeedbackCommand()
                 {
                     ClPrivateMessage msg = ClPrivateMessage.MESSAGE_SYNC | ClPrivateMessage.MESSAGE_EXECUTE_FEEDBACK;
+                    for (int i = 0; i < privatePipe.Count; i++)
+                    {
+                        privatePipe[i].push(msg);
+                    }
+                }
+
+                void wakeDevices()
+                {
+                    ClPrivateMessage msg = ClPrivateMessage.MESSAGE_NULL;
                     for (int i = 0; i < privatePipe.Count; i++)
                     {
                         privatePipe[i].push(msg);
@@ -3918,6 +3940,7 @@ namespace Cekirdekler
                         feedbackSuccessful &= (pipe.size() == 0);
                     }
                 }
+                internal const int MULTI_DEVICE_MODE = -1;
 
                 /// <summary>
                 /// producer-consumer work flow's producer part that distributes tasks
@@ -3927,6 +3950,8 @@ namespace Cekirdekler
 
                     bool tmp = true;
                     running = true;
+
+                    selectedSingleDeviceModeIndex = MULTI_DEVICE_MODE;
                     while (tmp)
                     {
                         int numDevices = 0;
@@ -3974,16 +3999,49 @@ namespace Cekirdekler
                                     ClPoolTaskIdPair data = new ClPoolTaskIdPair();
                                     data.task = currentTaskPool.nextTask();
                                     data.id = -1;
+                                    data.deviceIndex = MULTI_DEVICE_MODE;
                                     if (data.task != null)
                                     {
                                         data.id = currentPoolId;
+                                        ClTaskType newDataType = data.task.type;
 
 
-                                        handleGlobalSyncFirst(data.task);
+                                        handleGlobalSyncFirst(newDataType);
+
+                                        // if single device mode range has started, select the less busy device
+                                        if((data.task.type & ClTaskType.TASK_MESSAGE_DEVICE_SELECT_BEGIN) >0)
+                                        {
+                                            
+                                            if (selectedSingleDeviceModeIndex == MULTI_DEVICE_MODE)
+                                            {
+                                                int freeDeviceIndex = 0;
+                                                int minTasksLeft = 1000000000;
+                                                for (int i = 0; i < devices.Count; i++)
+                                                {
+                                                    int selectedMinTasks = (devices[i].remainingTasks() + devices[i].markersRemaining());
+                                                    if (minTasksLeft > selectedMinTasks)
+                                                    {
+                                                        minTasksLeft = selectedMinTasks;
+                                                        freeDeviceIndex = i;
+                                                    }
+                                                }
+
+                                                selectedSingleDeviceModeIndex = freeDeviceIndex;
+                                            }
+                                        }
+                                        
+                                        data.deviceIndex = selectedSingleDeviceModeIndex;
+                                        
+                                        if ((data.task.type & ClTaskType.TASK_MESSAGE_DEVICE_SELECT_END) > 0)
+                                        {
+                                            selectedSingleDeviceModeIndex = MULTI_DEVICE_MODE;
+                                            wakeDevices();
+                                        }
+
                                         // sends to common queue that all devices consume
                                         pipe.push(data);
 
-                                        handleGlobalSyncLast(data.task);
+                                        handleGlobalSyncLast(newDataType);
 
                                         incrementLock = false;
                                     }
@@ -4046,7 +4104,8 @@ namespace Cekirdekler
                                 type,
                                 pipe,
                                 newPrivateQueue,
-                                newPrivateFeedbackQueue);
+                                newPrivateFeedbackQueue,
+                                devices.Count);
                             
                             devices.Add(newDevice);
                         }
@@ -4062,7 +4121,8 @@ namespace Cekirdekler
                                 type,
                                 pipe,
                                 newPrivateQueue,
-                                newPrivateFeedbackQueue);
+                                newPrivateFeedbackQueue, 
+                                devices.Count);
                             devices.Add(newDevice);
                         }
                         else
@@ -4211,6 +4271,9 @@ namespace Cekirdekler
             {
                 public ClTask task { get; set; }
                 public int id { get; set; }
+
+                // if device selection is active, this is its index in device array
+                internal int deviceIndex { get; set; }
             }
 
             /// <summary>
@@ -4273,10 +4336,32 @@ namespace Cekirdekler
                             return null;
                     }
                 }
+
+                public ClPoolTaskIdPair lookForDeviceIdThenPop(int deviceId)
+                {
+                    lock (syncObj)
+                    {
+                        if (queue.Count > 0)
+                        {
+                            ClPoolTaskIdPair dataView = queue.Peek();
+                            if ((dataView != null) && ((dataView.deviceIndex == deviceId) || (dataView.deviceIndex == ClDevicePool.MULTI_DEVICE_MODE)))
+                            {
+                                return queue.Dequeue();
+                            }
+                            else
+                            {
+                                return null;
+                            }
+                        }
+                        else
+                            return null;
+                    }
+                }
             }
 
             class DevicePoolThread
             {
+                internal int deviceIndex { get; set; }
                 ClDevicePool pool { get; set; }
                 Thread t { get; set; }
                 object syncObj { get; set; }
@@ -4301,6 +4386,7 @@ namespace Cekirdekler
                 int lastTaskId { get; set; }
                 bool disableFeedback { get; set; }
                 Random rand { get; set; }
+
                 public DevicePoolThread(ClDevicePool poolParameter,
                     ClNumberCruncher numberCruncherParameter,
                     int deviceQueueLimiterParameter,
@@ -4309,8 +4395,10 @@ namespace Cekirdekler
                     ClDevicePoolType poolTypeParameter,
                     ClPoolTaskQueue poolQueue,
                     ClMessageQueue privatePipeParameter/* messaging between pool and device*/,
-                    ClMessageQueue privateFeedbackPipeParameter/* messaging between pool and device*/)
+                    ClMessageQueue privateFeedbackPipeParameter/* messaging between pool and device*/,
+                    int deviceIndexParameter)
                 {
+                    deviceIndex = deviceIndexParameter;
                     pool = poolParameter;
                     privatePipe = privatePipeParameter;
                     privateFeedbackPipe = privateFeedbackPipeParameter;
@@ -4428,7 +4516,10 @@ namespace Cekirdekler
                             computeComplete = false;
                         }
 
-                        data = pipe.pop();
+
+
+                        // if single device mode is enabled and if this device is selected or if multi device mode is enabled
+                        data = pipe.lookForDeviceIdThenPop(deviceIndex);
 
                         ClPrivateMessage command = privatePipe.pop();
 
@@ -4531,7 +4622,7 @@ namespace Cekirdekler
                             if (fineGrainedControl)
                             {
                                 numberCruncher.enqueueMode = false; // synchronizes
-                                numberCruncher.enqueueMode = true; // re-enable it
+                                numberCruncher.enqueueMode = true; // re-enables 
                                 
                             }
 
