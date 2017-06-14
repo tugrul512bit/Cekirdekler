@@ -4271,12 +4271,8 @@ namespace Cekirdekler
                     if (type == ClDevicePoolType.DEVICE_COMPUTE_AT_WILL)
                     {
                         int remainingWork = 1000000000;
-
-
-
                         while (remainingWork > 0)
                         {
-                            lock (syncObj)
                             {
                                 remainingWork = 0;
                                
@@ -4285,6 +4281,8 @@ namespace Cekirdekler
                                 {
                                     // remaining synchronized tasks
                                     remainingWork += devices[i].remainingTasks();
+
+                                    // remaining non-synced tasks in queues
                                     if(getFineGrainedQueueControl())
                                         remainingWork += devices[i].markersRemaining();
 
@@ -4300,8 +4298,11 @@ namespace Cekirdekler
                                 remainingWork += taskPoolQueue.size();
                                 if (remainingWork > 0)
                                 {
-                                    Monitor.PulseAll(syncObj);
-                                    Monitor.Wait(syncObj);
+                                    lock (syncObj)
+                                    {
+                                        Monitor.PulseAll(syncObj);
+                                        Monitor.Wait(syncObj);
+                                    }
                                 }
                             }
                         }
