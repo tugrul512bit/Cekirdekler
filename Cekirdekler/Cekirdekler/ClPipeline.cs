@@ -3247,27 +3247,30 @@ namespace Cekirdekler
             public enum ClTaskType:int
             {
                 /// <summary>
-                /// does not do anything special
+                /// <para>does not do anything special</para>
                 /// </summary>
-                TASK_MESSAGE_DEFAULT=0,
+                TASK_MESSAGE_DEFAULT = 0,
 
                 /// <summary>
-                /// synchronizes a single device which consumes this task before running this task
+                /// <para>not implemeneted</para>
+                /// <para>synchronizes a single device which consumes this task before running this task</para>
                 /// </summary>
-                TASK_MESSAGE_DEVICE_SYNCHRONIZATION_FIRST=1,
+                TASK_MESSAGE_DEVICE_SYNCHRONIZATION_FIRST = 1,
 
                 /// <summary>
-                /// synchronizes a single device which consumes this task after running this task
+                /// <para>not implemeneted</para>
+                /// <para>synchronizes a single device which consumes this task after running this task</para>
                 /// </summary>
                 TASK_MESSAGE_DEVICE_SYNCHRONIZATION_LAST = 2,
 
                 /// <summary>
-                /// synchronizes a pool of devices which intercepts this task before passing it to a device
+                /// <para>synchronizes a pool of devices which intercepts this task before passing it to a device</para>
+                /// <para>if pool contains kernels from 1 to 10 and if 5 is synced, kernels from 1 to 4 are ensured to finish before 5 to 10 starts</para>
                 /// </summary>
                 TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST = 4,
 
                 /// <summary>
-                /// synchronizes a pool of devices after a device consumes this task
+                /// <para>synchronizes a pool of devices after a device consumes this task</para>
                 /// </summary>
                 TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST = 8,
 
@@ -3277,32 +3280,38 @@ namespace Cekirdekler
                 TASK_MESSAGE_BROADCAST_WORK = 16,
 
                 /// <summary>
-                /// any device consuming this task stops working after executing the task
+                /// <para>not implemeneted</para>
+                /// <para>any device consuming this task stops working after executing the task</para>
                 /// </summary>
                 TASK_MESSAGE_SHUT_DOWN_LAST = 32,
 
                 /// <summary>
-                /// any device consuming this task stops working (task's operation is not executed)
+                /// <para>not implemeneted</para>
+                /// <para>any device consuming this task stops working (task's operation is not executed)</para>
                 /// </summary>
                 TASK_MESSAGE_SHUT_DOWN = 64,
 
                 /// <summary>
-                /// when pool intercepts this message, all devices enable multiple command queues to compute(before computing this task)
+                /// <para>not implemeneted</para>
+                /// <para>hen pool intercepts this message, all devices enable multiple command queues to compute(before computing this task)</para>
                 /// </summary>
                 TASK_MESSAGE_ENABLE_MULTI_QUEUE_FIRST = 128,
 
                 /// <summary>
-                /// when pool intercepts this message, all devices enable multiple command queues to compute(after computing this task)
+                /// <para>not implemeneted</para>
+                /// <para>when pool intercepts this message, all devices enable multiple command queues to compute(after computing this task)</para>
                 /// </summary>
                 TASK_MESSAGE_ENABLE_MULTI_QUEUE_LAST = 256,
 
                 /// <summary>
-                /// when pool intercepts this message, all devices disable multiple command queues to compute(before computing this task)
+                /// <para>not implemeneted</para>
+                /// <para>when pool intercepts this message, all devices disable multiple command queues to compute(before computing this task)</para>
                 /// </summary>
                 TASK_MESSAGE_DISABLE_MULTI_QUEUE_FIRST = 512,
 
                 /// <summary>
-                /// when pool intercepts this message, all devices disable multiple command queues to compute(after computing this task)
+                /// <para>not implemeneted</para>
+                /// <para>when pool intercepts this message, all devices disable multiple command queues to compute(after computing this task)</para>
                 /// </summary>
                 TASK_MESSAGE_DISABLE_MULTI_QUEUE_LAST = 1024,
             }
@@ -3411,6 +3420,7 @@ namespace Cekirdekler
                     result.id = id;
                     result.kernelNamesString = new StringBuilder(kernelNamesString).ToString();
                     /*
+                     * todo: uncomment these when they are implemented and NotImplemented exception is lifted
                     if (kernelRepeatName == null)
                     {
                         result.kernelRepeatName = null;
@@ -4503,7 +4513,14 @@ namespace Cekirdekler
                                 }
                             }
 
+                            if(fineGrainedControl)
+                                numberCruncher.enqueueModeAsyncEnable = true;
+
                             data.task.compute(numberCruncher);
+
+                            if (fineGrainedControl)
+                                numberCruncher.enqueueModeAsyncEnable = true;
+
                             if (fineGrainedControl)
                                 numberCruncher.flush();
                         }
