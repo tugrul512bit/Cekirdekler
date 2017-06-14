@@ -3253,15 +3253,17 @@ namespace Cekirdekler
 
                 /// <summary>
                 /// <para>not implemeneted</para>
-                /// <para>synchronizes a single device which consumes this task before running this task</para>
+                /// <para>enables single device mode for the following tasks until SELECT_END is reached.</para>
+                /// <para>if SELECT_END is quickly enqueued on device, remaining tasks can be enqueued to other devices concurrently</para>
                 /// </summary>
-                TASK_MESSAGE_DEVICE_SYNCHRONIZATION_FIRST = 1,
+                TASK_MESSAGE_DEVICE_SELECT_BEGIN = 1,
 
                 /// <summary>
                 /// <para>not implemeneted</para>
-                /// <para>synchronizes a single device which consumes this task after running this task</para>
+                /// <para>disables single device mode if it is enabled</para>
+                /// <para>this does not ensure any synchronization between devices. Other devices can compute other groups of tasks</para>
                 /// </summary>
-                TASK_MESSAGE_DEVICE_SYNCHRONIZATION_LAST = 2,
+                TASK_MESSAGE_DEVICE_SELECT_END = 2,
 
                 /// <summary>
                 /// <para>synchronizes a pool of devices which intercepts this task before passing it to a device</para>
@@ -3275,45 +3277,18 @@ namespace Cekirdekler
                 TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST = 8,
 
                 /// <summary>
-                /// runs this task on all devices when device pool intercepts this
+                /// <para>not implemeneted</para>
+                /// <para>runs this task on all devices when device pool intercepts this(writing results to host should be done by only 1 device)</para>
                 /// </summary>
-                TASK_MESSAGE_BROADCAST_WORK = 16,
+                TASK_MESSAGE_BROADCAST = 16,
 
                 /// <summary>
                 /// <para>not implemeneted</para>
-                /// <para>any device consuming this task stops working after executing the task</para>
+                /// <para>only device-host buffer copies will be enqueued</para>
                 /// </summary>
-                TASK_MESSAGE_SHUT_DOWN_LAST = 32,
+                TASK_MESSAGE_NO_COMPUTE = 32,
 
-                /// <summary>
-                /// <para>not implemeneted</para>
-                /// <para>any device consuming this task stops working (task's operation is not executed)</para>
-                /// </summary>
-                TASK_MESSAGE_SHUT_DOWN = 64,
 
-                /// <summary>
-                /// <para>not implemeneted</para>
-                /// <para>hen pool intercepts this message, all devices enable multiple command queues to compute(before computing this task)</para>
-                /// </summary>
-                TASK_MESSAGE_ENABLE_MULTI_QUEUE_FIRST = 128,
-
-                /// <summary>
-                /// <para>not implemeneted</para>
-                /// <para>when pool intercepts this message, all devices enable multiple command queues to compute(after computing this task)</para>
-                /// </summary>
-                TASK_MESSAGE_ENABLE_MULTI_QUEUE_LAST = 256,
-
-                /// <summary>
-                /// <para>not implemeneted</para>
-                /// <para>when pool intercepts this message, all devices disable multiple command queues to compute(before computing this task)</para>
-                /// </summary>
-                TASK_MESSAGE_DISABLE_MULTI_QUEUE_FIRST = 512,
-
-                /// <summary>
-                /// <para>not implemeneted</para>
-                /// <para>when pool intercepts this message, all devices disable multiple command queues to compute(after computing this task)</para>
-                /// </summary>
-                TASK_MESSAGE_DISABLE_MULTI_QUEUE_LAST = 1024,
             }
 
             /// <summary>
