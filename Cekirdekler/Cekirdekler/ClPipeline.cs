@@ -3775,6 +3775,49 @@ namespace Cekirdekler
             //       kernel + queue2 = instance 2  --uses instance
             //       kernel + queue3 = instance 3  --uses instance
 
+
+            
+            class ClTaskPoolQueue
+            {
+                object syncObj { get; set; }
+                Queue<ClTaskPool> queue { get; set; }
+                public ClTaskPoolQueue()
+                {
+                    syncObj = new object();
+                    queue = new Queue<ClTaskPool>();
+                }
+
+                public void push(ClTaskPool newPool)
+                {
+                    lock(syncObj)
+                    {
+                        queue.Enqueue(newPool);
+                    }
+                }
+
+                public int size()
+                {
+                    int result = 0;
+                    lock(syncObj)
+                    {
+                        result = queue.Count;
+                    }
+                    return result;
+                }
+
+                public ClTaskPool pop()
+                {
+                    ClTaskPool result = null;
+                    lock (syncObj)
+                    {
+                        if(queue.Count>0)
+                            result = queue.Dequeue();
+                    }
+                    return result;
+                }
+            }
+
+
             /// <summary>
             /// <para>instead of working for same workload (as in ClNumberCruncher class)</para>
             /// <para>this container specializes to distribute work independently to differend devices</para>
@@ -3786,7 +3829,7 @@ namespace Cekirdekler
                 ClDevicePoolType type { get; set; }
                 List<DevicePoolThread> devices { get; set; }
                 string kernelCode { get; set; }
-                Queue<ClTaskPool> taskPoolQueue { get; set; }
+                ClTaskPoolQueue taskPoolQueue { get; set; }
                 ClTaskPool currentTaskPool { get; set; }
                 bool running { get; set; }
                 int taskPoolCounter { get; set; }
@@ -3840,7 +3883,7 @@ namespace Cekirdekler
                         privateFeedbackPipe = new List<ClMessageQueue>();
                         smoothedSpeeds = new List<float[]>();
                         devices = new List<DevicePoolThread>();
-                        taskPoolQueue = new Queue<ClTaskPool>();
+                        taskPoolQueue = new ClTaskPoolQueue();
                         Monitor.PulseAll(syncObj);
                         currentTaskPool = null;
                         running = true;
@@ -3949,117 +3992,132 @@ namespace Cekirdekler
                 {
 
                     bool tmp = true;
-                    running = true;
-
+                    lock (syncObj)
+                    {
+                        running = true;
+                    }
                     selectedSingleDeviceModeIndex = MULTI_DEVICE_MODE;
                     while (tmp)
                     {
                         int numDevices = 0;
                         int numPools = 0;
                         int numTasks = 0;
+
+
+
                         lock (syncObj)
                         {
-
-
                             numDevices += devices.Count;
-                            numPools += taskPoolQueue.Count;
-                            if (currentTaskPool != null)
+                        }
+
+                        numPools += taskPoolQueue.size();
+                        ClTaskPool currentTaskPoolTmp = getCurrentTaskPool();
+                        if (currentTaskPoolTmp != null)
+                        {
+                            numTasks += currentTaskPoolTmp.remainingTaskGroupsOrTasks();
+
+
+                            if ((numPools > 0) && (numTasks <= 0))
                             {
-                                numTasks += currentTaskPool.remainingTaskGroupsOrTasks();
-
-
-                                if ((numPools > 0) && (numTasks <= 0))
+                                setCurrentTaskPool(null);
+                                lock (syncObj)
                                 {
-                                    currentTaskPool = null;
+                                    Monitor.PulseAll(syncObj);
+                                }
+                            }
+                        }
+                        currentTaskPoolTmp = getCurrentTaskPool();
+
+
+
+                        // if producer-side still has work and if there are consumers
+                        if (numDevices > 0)
+                        {
+
+                            if ((currentTaskPoolTmp == null) && (taskPoolQueue.size() > 0))
+                            {
+                                setCurrentTaskPool(taskPoolQueue.pop());
+                                currentTaskPoolTmp = getCurrentTaskPool();
+                                int rem = currentTaskPoolTmp.remainingTaskGroupsOrTasks();
+                                deviceQueueLimiter = 1 + rem / 40;
+                                for (int i = 0; i < numDevices; i++)
+                                {
+                                    devices[i].changeDeviceQueueLimit(deviceQueueLimiter);
+                                }
+
+                                lock (syncObj)
+                                {
                                     Monitor.PulseAll(syncObj);
                                 }
                             }
 
-
-
-
-                            // if producer-side still has work and if there are consumers
-                            if (numDevices > 0)
+                            if (currentTaskPoolTmp != null)
                             {
-                                
-                                if ((currentTaskPool == null) && (taskPoolQueue.Count > 0))
+                                ClPoolTaskIdPair data = new ClPoolTaskIdPair();
+                                data.task = currentTaskPoolTmp.nextTask();
+                                data.id = -1;
+                                data.deviceIndex = MULTI_DEVICE_MODE;
+                                if (data.task != null)
                                 {
-                                    currentTaskPool = taskPoolQueue.Dequeue();
-                                    int rem = currentTaskPool.remainingTaskGroupsOrTasks();
-                                    deviceQueueLimiter = 1+ rem / 40;
-                                    for (int i = 0; i < devices.Count; i++)
+                                    data.id = currentPoolId;
+                                    ClTaskType newDataType = data.task.type;
+
+
+                                    handleGlobalSyncFirst(newDataType);
+
+                                    // if single device mode range has started, select the less busy device
+                                    if ((data.task.type & ClTaskType.TASK_MESSAGE_DEVICE_SELECT_BEGIN) > 0)
                                     {
-                                        devices[i].changeDeviceQueueLimit(deviceQueueLimiter);
-                                    }
-                                    Monitor.PulseAll(syncObj);
-                                }
 
-                                if (currentTaskPool != null)
-                                {
-                                    ClPoolTaskIdPair data = new ClPoolTaskIdPair();
-                                    data.task = currentTaskPool.nextTask();
-                                    data.id = -1;
-                                    data.deviceIndex = MULTI_DEVICE_MODE;
-                                    if (data.task != null)
-                                    {
-                                        data.id = currentPoolId;
-                                        ClTaskType newDataType = data.task.type;
-
-
-                                        handleGlobalSyncFirst(newDataType);
-
-                                        // if single device mode range has started, select the less busy device
-                                        if((data.task.type & ClTaskType.TASK_MESSAGE_DEVICE_SELECT_BEGIN) >0)
+                                        if (selectedSingleDeviceModeIndex == MULTI_DEVICE_MODE)
                                         {
-                                            
-                                            if (selectedSingleDeviceModeIndex == MULTI_DEVICE_MODE)
+                                            int freeDeviceIndex = 0;
+                                            int minTasksLeft = 1000000000;
+                                            for (int i = 0; i < numDevices; i++)
                                             {
-                                                int freeDeviceIndex = 0;
-                                                int minTasksLeft = 1000000000;
-                                                for (int i = 0; i < devices.Count; i++)
+                                                int selectedMinTasks = (devices[i].remainingTasks() + devices[i].markersRemaining());
+                                                if (minTasksLeft > selectedMinTasks)
                                                 {
-                                                    int selectedMinTasks = (devices[i].remainingTasks() + devices[i].markersRemaining());
-                                                    if (minTasksLeft > selectedMinTasks)
-                                                    {
-                                                        minTasksLeft = selectedMinTasks;
-                                                        freeDeviceIndex = i;
-                                                    }
+                                                    minTasksLeft = selectedMinTasks;
+                                                    freeDeviceIndex = i;
                                                 }
-
-                                                selectedSingleDeviceModeIndex = freeDeviceIndex;
                                             }
+
+                                            selectedSingleDeviceModeIndex = freeDeviceIndex;
                                         }
-                                        
-                                        data.deviceIndex = selectedSingleDeviceModeIndex;
-                                        
-                                        if ((data.task.type & ClTaskType.TASK_MESSAGE_DEVICE_SELECT_END) > 0)
-                                        {
-                                            selectedSingleDeviceModeIndex = MULTI_DEVICE_MODE;
-                                            wakeDevices();
-                                        }
-
-                                        // sends to common queue that all devices consume
-                                        pipe.push(data);
-
-                                        handleGlobalSyncLast(newDataType);
-
-                                        incrementLock = false;
                                     }
-                                    else
+
+                                    data.deviceIndex = selectedSingleDeviceModeIndex;
+
+                                    if ((data.task.type & ClTaskType.TASK_MESSAGE_DEVICE_SELECT_END) > 0)
                                     {
-                                        if (!incrementLock)
-                                        {
-                                            currentPoolId++;
-                                            incrementLock = true;
-                                        }
-
+                                        selectedSingleDeviceModeIndex = MULTI_DEVICE_MODE;
                                     }
+
+                                    // sends to common queue that all devices consume
+                                    pipe.push(data);
+                                    wakeDevices();
+
+                                    handleGlobalSyncLast(newDataType);
+
+                                    incrementLock = false;
+                                }
+                                else
+                                {
+                                    if (!incrementLock)
+                                    {
+                                        currentPoolId++;
+                                        incrementLock = true;
+                                    }
+
                                 }
                             }
+                        }
 
+                        lock (syncObj)
+                        {
                             tmp = running;
                             Monitor.PulseAll(syncObj);
-
                         }
                     }
 
@@ -4144,13 +4202,31 @@ namespace Cekirdekler
                 /// <param name="taskPoolParameter"></param>
                 public void enqueueTaskPool(ClTaskPool taskPoolParameter)
                 {
+                    ClTaskPool newTaskPool = taskPoolParameter.duplicate();
+                    newTaskPool.prepareForScheduling();
+                    taskPoolQueue.push(newTaskPool);
                     lock (syncObj)
                     {
-                        ClTaskPool newTaskPool = taskPoolParameter.duplicate();
-                        newTaskPool.prepareForScheduling();
-                        taskPoolQueue.Enqueue(newTaskPool);
                         Monitor.PulseAll(syncObj);
                     }
+                }
+
+                internal void setCurrentTaskPool(ClTaskPool newCur)
+                {
+                    lock(syncObj)
+                    {
+                        currentTaskPool = newCur;
+                    }
+                }
+                
+                internal ClTaskPool getCurrentTaskPool()
+                {
+                    ClTaskPool result = null;
+                    lock (syncObj)
+                    {
+                        result=currentTaskPool;
+                    }
+                    return result;
                 }
 
                 /// <summary>
@@ -4186,11 +4262,11 @@ namespace Cekirdekler
 
                                 // add remaining producer-side tasks
                                 remainingWork += pipe.size();
+                                ClTaskPool curTask = getCurrentTaskPool();
+                                if (curTask != null)
+                                    remainingWork += curTask.remainingTaskGroupsOrTasks();
 
-                                if (currentTaskPool != null)
-                                    remainingWork += currentTaskPool.remainingTaskGroupsOrTasks();
-
-                                remainingWork += taskPoolQueue.Count;
+                                remainingWork += taskPoolQueue.size();
                                 if (remainingWork > 0)
                                 {
                                     Monitor.PulseAll(syncObj);
@@ -4372,7 +4448,7 @@ namespace Cekirdekler
                 bool computeComplete { get; set; }
                 bool running { get; set; }
                 bool paused { get; set; }
-                private Queue<bool> queueModeChange { get; set; }
+                ClPoolTaskQueue cachePipe { get; set; }
                 private bool numberCruncherEnqueueMode { get; set; }
                 int lastMarkersReached { get; set; }
                 Stopwatch swThread { get; set; }
@@ -4420,7 +4496,7 @@ namespace Cekirdekler
                     markerSpeedHistory = new float[15];
                     numberCruncherEnqueueMode = false;
                     markerSpeedCounter = 0;
-                    queueModeChange = new Queue<bool>();
+                    cachePipe = new ClPoolTaskQueue();
                     ThreadStart ts = null;
                     if (poolType == ClDevicePoolType.DEVICE_COMPUTE_AT_WILL)
                     {
@@ -4496,7 +4572,7 @@ namespace Cekirdekler
                     int count = 0;
                     lock (syncObj)
                     {
-                        count = (computeComplete?0:1);
+                        count = (computeComplete?0:1)+cachePipe.size();
                         Monitor.PulseAll(syncObj);
                     }
                     return count;
@@ -4506,6 +4582,9 @@ namespace Cekirdekler
                 void consumeTasksComputeAtWill()
                 {
                     bool working = true;
+
+                    // if single device mode is activated and it is this device
+
                     while (working)
                     {
                         ClPoolTaskIdPair data = null;
@@ -4517,9 +4596,32 @@ namespace Cekirdekler
                         }
 
 
+                        
+                        bool tasksForThisDeviceExist = true;
+                        bool singleDeviceModeHasBeenEnabled = false;
+                        while(tasksForThisDeviceExist || singleDeviceModeHasBeenEnabled)
+                        {
+                            tasksForThisDeviceExist = false;
+                            ClPoolTaskIdPair newCacheData = pipe.lookForDeviceIdThenPop(deviceIndex);
+                            if (newCacheData != null)
+                            {
+                                cachePipe.push(newCacheData);
+                                if(newCacheData.deviceIndex==deviceIndex)
+                                {
+                                    singleDeviceModeHasBeenEnabled = true;
+                                    // this is single device mode enabled series of tasks
+                                    tasksForThisDeviceExist = true;
+                                }
+                                else
+                                {
+                                    singleDeviceModeHasBeenEnabled = false;
+                                }
+                            }
+                        }
 
                         // if single device mode is enabled and if this device is selected or if multi device mode is enabled
-                        data = pipe.lookForDeviceIdThenPop(deviceIndex);
+                        data = cachePipe.lookForDeviceIdThenPop(deviceIndex);
+
 
                         ClPrivateMessage command = privatePipe.pop();
 
