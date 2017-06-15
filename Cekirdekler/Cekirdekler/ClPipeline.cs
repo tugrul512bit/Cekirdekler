@@ -3293,6 +3293,25 @@ namespace Cekirdekler
                 /// </summary>
                 TASK_MESSAGE_NO_COMPUTE = 32,
 
+                /// <summary>
+                /// <para>same as DEVICE_SELECT_BEGIN but selects a queue too</para>
+                /// <para>runs all tasks one after another in-order in same queue in same device</para>
+                /// <para>must not overlap any other BEGIN-END range</para>
+                /// <para>does not need DEVICE_SELECT_BEGIN</para>
+                /// <para>only fine grained control mode needs this</para>
+                /// </summary>
+                TASK_MESSAGE_SERIAL_MODE_BEGIN = 64,
+
+
+                /// <summary>
+                /// <para>same as DEVICE_SELECT_END but selects a queue too</para>
+                /// <para>runs all tasks one after another in-order in same queue in same device</para>
+                /// <para>must not overlap any other BEGIN-END range</para>
+                /// <para>does not need DEVICE_SELECT_END</para>
+                /// <para>only fine grained control mode needs this</para>
+                /// </summary>
+                TASK_MESSAGE_SERIAL_MODE_END = 128,
+
 
             }
 
@@ -3624,7 +3643,7 @@ namespace Cekirdekler
                             (
                             ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST | 
                             ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST  //|
-                            //ClTaskType.TASK_MESSAGE_DEVICE_SELECT_BEGIN          |
+                            //ClTaskType.TASK_MESSAGE_DEVICE_SELECT_BEGIN          | // selecting a device does not sync. other device can continue
                             //ClTaskType.TASK_MESSAGE_DEVICE_SELECT_END
                             )) > 0) ||
                             (i == (total - 1)))
@@ -3850,6 +3869,7 @@ namespace Cekirdekler
                 bool incrementLock { get; set; }
                 bool waitForDisableStateFeedback { get; set; }
                 internal int selectedSingleDeviceModeIndex { get; set; }
+                internal bool selectedSingleQueueMode { get; set; }
 
                 /// <summary>
                 /// <para>creates a worker pool with a type</para>
@@ -4006,6 +4026,47 @@ namespace Cekirdekler
                     return result;
                 }
 
+                void handleSingleDeviceModeEnd(ClTaskType taskType)
+                {
+                    if ((taskType & (ClTaskType.TASK_MESSAGE_DEVICE_SELECT_END | ClTaskType.TASK_MESSAGE_SERIAL_MODE_END)) > 0)
+                    {
+                        selectedSingleDeviceModeIndex = MULTI_DEVICE_MODE;
+                        if ((taskType & (ClTaskType.TASK_MESSAGE_SERIAL_MODE_END)) > 0)
+                        {
+                            selectedSingleQueueMode = false;
+                        }
+                    }
+                }
+
+                void handleSingleDeviceModeBegin(ClTaskType taskType, int numDevices)
+                {
+                    if ((taskType & (ClTaskType.TASK_MESSAGE_DEVICE_SELECT_BEGIN | ClTaskType.TASK_MESSAGE_SERIAL_MODE_BEGIN)) > 0)
+                    {
+
+                        if (selectedSingleDeviceModeIndex == MULTI_DEVICE_MODE)
+                        {
+                            int freeDeviceIndex = 0;
+                            int minTasksLeft = 1000000000;
+                            for (int i = 0; i < numDevices; i++)
+                            {
+                                int selectedMinTasks = (devices[i].remainingTasks() + devices[i].markersRemaining());
+                                if (minTasksLeft > selectedMinTasks)
+                                {
+                                    minTasksLeft = selectedMinTasks;
+                                    freeDeviceIndex = i;
+                                }
+                            }
+
+                            selectedSingleDeviceModeIndex = freeDeviceIndex;
+
+                            if ((taskType & (ClTaskType.TASK_MESSAGE_SERIAL_MODE_BEGIN)) > 0)
+                            {
+                                selectedSingleQueueMode = true;
+                            }
+                        }
+                    }
+                }
+
                 /// <summary>
                 /// producer-consumer work flow's producer part that distributes tasks
                 /// </summary>
@@ -4078,47 +4139,31 @@ namespace Cekirdekler
                                 data.task = currentTaskPoolTmp.nextTask();
                                 data.id = -1;
                                 data.deviceIndex = MULTI_DEVICE_MODE;
+                                data.serialMode = false;
                                 if (data.task != null)
                                 {
                                     data.id = currentPoolId;
                                     ClTaskType newDataType = data.task.type;
 
-
+                                    // if global synchronization_first is taken
                                     handleGlobalSyncFirst(newDataType);
 
                                     // if single device mode range has started, select the less busy device
-                                    if ((data.task.type & ClTaskType.TASK_MESSAGE_DEVICE_SELECT_BEGIN) > 0)
-                                    {
+                                    handleSingleDeviceModeBegin(data.task.type,numDevices);
 
-                                        if (selectedSingleDeviceModeIndex == MULTI_DEVICE_MODE)
-                                        {
-                                            int freeDeviceIndex = 0;
-                                            int minTasksLeft = 1000000000;
-                                            for (int i = 0; i < numDevices; i++)
-                                            {
-                                                int selectedMinTasks = (devices[i].remainingTasks() + devices[i].markersRemaining());
-                                                if (minTasksLeft > selectedMinTasks)
-                                                {
-                                                    minTasksLeft = selectedMinTasks;
-                                                    freeDeviceIndex = i;
-                                                }
-                                            }
-
-                                            selectedSingleDeviceModeIndex = freeDeviceIndex;
-                                        }
-                                    }
-
+                                    // add info about serial mode and single device mode
                                     data.deviceIndex = selectedSingleDeviceModeIndex;
+                                    data.serialMode = selectedSingleQueueMode;
 
-                                    if ((data.task.type & ClTaskType.TASK_MESSAGE_DEVICE_SELECT_END) > 0)
-                                    {
-                                        selectedSingleDeviceModeIndex = MULTI_DEVICE_MODE;
-                                    }
+                                    // if single device mode has ended
+                                    handleSingleDeviceModeEnd(data.task.type);
+
 
                                     // sends to common queue that all devices consume
                                     pipe.push(data);
                                     wakeDevices();
 
+                                    // if global synchronization_last is taken
                                     handleGlobalSyncLast(newDataType);
 
                                     incrementLock = false;
@@ -4141,7 +4186,6 @@ namespace Cekirdekler
                             Monitor.PulseAll(syncObj);
                         }
                     }
-
 
                 }
 
@@ -4382,6 +4426,9 @@ namespace Cekirdekler
 
                 // if device selection is active, this is its index in device array
                 internal int deviceIndex { get; set; }
+
+                // if serial enqueue mode (single queue mode) is active
+                internal bool serialMode { get; set; }
             }
 
             /// <summary>
@@ -4706,7 +4753,7 @@ namespace Cekirdekler
 
                             if (fineGrainedControl)
                             {
-                                // to do: more GPUs mean less probability. Needs remaining tasks compared to max, not taskCounter
+
                                 if (data.task != null)
                                 {
                                     float probability = (((float)(data.task.totalTasks- data.task.remainingTasks)) / ((float)(data.task.totalTasks + 1)));
@@ -4723,13 +4770,19 @@ namespace Cekirdekler
                                 }
                             }
 
-                            if(fineGrainedControl)
-                                numberCruncher.enqueueModeAsyncEnable = true;
+                            if (fineGrainedControl)
+                            {
+                                if(!data.serialMode)
+                                    numberCruncher.enqueueModeAsyncEnable = true;
+                            }
 
                             data.task.compute(numberCruncher);
 
                             if (fineGrainedControl)
-                                numberCruncher.enqueueModeAsyncEnable = true;
+                            {
+                                if(!data.serialMode)
+                                    numberCruncher.enqueueModeAsyncEnable = true;
+                            }
 
                             if (fineGrainedControl)
                                 numberCruncher.flush();
