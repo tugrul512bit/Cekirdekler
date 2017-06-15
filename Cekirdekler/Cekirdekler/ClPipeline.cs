@@ -4641,7 +4641,7 @@ namespace Cekirdekler
                         
                         bool tasksForThisDeviceExist = true;
                         int tmpCtr = 0;
-                        while(tasksForThisDeviceExist || tmpCtr<10)
+                        while(tasksForThisDeviceExist && tmpCtr<20)
                         {
                             tasksForThisDeviceExist = false;
                             ClPoolTaskIdPair newCacheData = pipe.lookForDeviceIdThenPop(deviceIndex);
