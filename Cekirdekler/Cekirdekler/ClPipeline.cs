@@ -4335,8 +4335,12 @@ namespace Cekirdekler
                     if (type == ClDevicePoolType.DEVICE_COMPUTE_AT_WILL)
                     {
                         int remainingWork = 1000000000;
-                        while (remainingWork > 0)
+                        int remainingCounter = 0;
+                        while ((remainingWork > 0) || (remainingCounter<10))
                         {
+                            if (remainingWork == 0)
+                                remainingCounter++;
+
                             {
                                 remainingWork = 0;
                                
