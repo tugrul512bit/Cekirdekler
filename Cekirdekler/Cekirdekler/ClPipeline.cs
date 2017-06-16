@@ -3314,7 +3314,10 @@ namespace Cekirdekler
                 /// </summary>
                 TASK_MESSAGE_SERIAL_MODE_END = 128,
 
-
+                /// <summary>
+                /// only for internal work, don't use
+                /// </summary>
+                TASK_MESSAGE_LAST = 256
             }
 
             /// <summary>
@@ -3672,6 +3675,9 @@ namespace Cekirdekler
                         }
                         startInd = endInd;
                     }
+                    //ClTask lastTask = new ClTask();
+                    //lastTask.type = ClTaskType.TASK_MESSAGE_LAST | ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST;
+                    //taskList.Add(lastTask);
                 }
 
                 /// <summary>
@@ -3975,6 +3981,20 @@ namespace Cekirdekler
                     for (int i = 0; i < privatePipe.Count; i++)
                     {
                         privatePipe[i].push(msg);
+                        devices[i].pulse();
+                    }
+                }
+
+                void pulseDevices()
+                {
+                    int numDevices1 = 0;
+                    lock(syncObj)
+                    {
+                        numDevices1 = devices.Count;
+                    }
+                    for(int i=0;i<numDevices1;i++)
+                    {
+                        devices[i].pulse();
                     }
                 }
 
@@ -4200,6 +4220,8 @@ namespace Cekirdekler
                             }
                         }
 
+                        pulseDevices();
+
                         lock (syncObj)
                         {
                             tmp = running;
@@ -4332,47 +4354,87 @@ namespace Cekirdekler
                 {
                     Stopwatch sw = new Stopwatch();
                     sw.Start();
+                    lock (syncObj)
+                    {
+                        Monitor.PulseAll(syncObj);
+                        Monitor.Wait(syncObj);
+                    }
                     if (type == ClDevicePoolType.DEVICE_COMPUTE_AT_WILL)
                     {
-                        int remainingWork = 1000000000;
-                        int remainingCounter = 0;
-                        while ((remainingWork > 0) || (remainingCounter<10))
+                        for (int j = 0; j < 5; j++)
                         {
-                            if (remainingWork == 0)
-                                remainingCounter++;
-
+                            int remainingWork = 1000000000;
+                            while (remainingWork > 0)
                             {
-                                remainingWork = 0;
-                               
-                                // add remaining consumer-side tasks
-                                for (int i = 0; i < devices.Count; i++)
+                                remainingWork = taskPoolQueue.size();
+                                lock (syncObj)
                                 {
-                                    // remaining synchronized tasks
-                                    remainingWork += devices[i].remainingTasks();
-
-                                    // remaining non-synced tasks in queues
-                                    if(getFineGrainedQueueControl())
-                                        remainingWork += devices[i].markersRemaining();
-
-                                    // remaining fine grained markers
-                                }
-
-                                // add remaining producer-side tasks
-                                remainingWork += pipe.size();
-                                ClTaskPool curTask = getCurrentTaskPool();
-                                if (curTask != null)
-                                    remainingWork += curTask.remainingTaskGroupsOrTasks();
-
-                                remainingWork += taskPoolQueue.size();
-                                if (remainingWork > 0)
-                                {
-                                    lock (syncObj)
+                                    Monitor.PulseAll(syncObj);
+                                    if (remainingWork > 0)
                                     {
-                                        Monitor.PulseAll(syncObj);
                                         Monitor.Wait(syncObj);
                                     }
                                 }
                             }
+                            
+                            remainingWork = 1000000000;
+                            while (remainingWork > 0)
+                            {
+                                remainingWork = pipe.size();
+                                lock (syncObj)
+                                {
+                                    Monitor.PulseAll(syncObj);
+                                    if (remainingWork > 0)
+                                    {
+                                        Monitor.Wait(syncObj);
+                                    }
+                                }
+                            }
+                            
+                            remainingWork = 1000000000;
+                            while (remainingWork > 0)
+                            {
+                                ClTaskPool curTask = getCurrentTaskPool();
+                                if (curTask != null)
+                                    remainingWork = curTask.remainingTaskGroupsOrTasks();
+                                else
+                                    remainingWork = 0;
+
+                                lock (syncObj)
+                                {
+                                    Monitor.PulseAll(syncObj);
+                                    if (remainingWork > 0)
+                                    {
+                                        Monitor.Wait(syncObj);
+                                    }
+                                }
+                            }
+                            
+                            remainingWork = 1000000000;
+                            while (remainingWork > 0)
+                            {
+                                remainingWork = 0;
+                                for (int i = 0; i < devices.Count; i++)
+                                {
+                                    // remaining synchronized tasks
+                                    remainingWork += devices[i].remainingTasks()/*+devices[i].privateFeedbackPipe.size()+devices[i].privatePipe.size()*/;
+
+                                    // remaining non-synced tasks in queues
+                                    if (getFineGrainedQueueControl())
+                                        remainingWork += devices[i].markersRemaining(); 
+
+                                    // remaining fine grained markers
+                                }
+                                lock (syncObj)
+                                {
+                                    Monitor.PulseAll(syncObj);
+                                    if (remainingWork > 0)
+                                    {
+                                        Monitor.Wait(syncObj);
+                                    }
+                                }
+                            }
+                            
                         }
                     }
                     sw.Stop();
@@ -4546,8 +4608,8 @@ namespace Cekirdekler
                 object syncObj { get; set; }
                 ClNumberCruncher numberCruncher { get; set; }
                 ClPoolTaskQueue pipe { get; set; }
-                ClMessageQueue privatePipe { get; set; }
-                ClMessageQueue privateFeedbackPipe { get; set; }
+                internal ClMessageQueue privatePipe { get; set; }
+                internal ClMessageQueue privateFeedbackPipe { get; set; }
                 bool computeComplete { get; set; }
                 bool running { get; set; }
                 bool paused { get; set; }
@@ -4712,14 +4774,14 @@ namespace Cekirdekler
                         // getting all tasks quickly to cache if all are prepared for this device only
                         bool tasksForThisDeviceExist = true;
                         int tmpCtr = 0;
-                        while(tasksForThisDeviceExist && tmpCtr<20)
+                        while (tasksForThisDeviceExist && tmpCtr < 20)
                         {
                             tasksForThisDeviceExist = false;
                             ClPoolTaskIdPair newCacheData = pipe.lookForDeviceIdThenPop(deviceIndex);
                             if (newCacheData != null)
                             {
                                 cachePipe.push(newCacheData);
-                                if((newCacheData.deviceIndex==deviceIndex) || (newCacheData.serialMode))
+                                if ((newCacheData.deviceIndex == deviceIndex) || (newCacheData.serialMode))
                                 {
                                     // this is single device mode enabled series of tasks
                                     tasksForThisDeviceExist = true;
@@ -4743,19 +4805,19 @@ namespace Cekirdekler
                             // reporting back to pool after message is received
                             ClPrivateMessage feedback = ClPrivateMessage.FEEDBACK_SUCCESS;
                             privateFeedbackPipe.push(feedback);
-                            
+
                         }
 
 
 
                         if (data != null)
                         {
-                            if (fineGrainedControl) 
+                            if (fineGrainedControl)
                             {
                                 bool markersComplete = false;
-                                while(!markersComplete)
+                                while (!markersComplete)
                                 {
-                                    markersComplete = (markersRemaining()< getDeviceQueueLimit());
+                                    markersComplete = (markersRemaining() < getDeviceQueueLimit());
                                 }
                             }
 
@@ -4764,7 +4826,7 @@ namespace Cekirdekler
                                 if ((lastTaskId == data.id) && (!numberCruncher.enqueueMode))
                                     numberCruncher.enqueueMode = true;
                             }
-                            if (data.id> lastTaskId)
+                            if (data.id > lastTaskId)
                             {
                                 lastTaskId = data.id;
 
@@ -4780,9 +4842,9 @@ namespace Cekirdekler
 
                                 if (data.task != null)
                                 {
-                                    float probability = (((float)(data.task.totalTasks- data.task.remainingTasks)) / ((float)(data.task.totalTasks + 1)));
+                                    float probability = (((float)(data.task.totalTasks - data.task.remainingTasks)) / ((float)(data.task.totalTasks + 1)));
                                     float testing = (float)rand.NextDouble();
-                                    if ((testing < (probability*probability) || (data.task.remainingTasks <=2 )) /*|| ((data.task.totalTasks - data.task.remainingTasks) > (data.task.totalTasks - 3))*/)
+                                    if ((testing < (probability * probability) || (data.task.remainingTasks <= 2)) /*|| ((data.task.totalTasks - data.task.remainingTasks) > (data.task.totalTasks - 3))*/)
                                     {
                                         numberCruncher.fineGrainedQueueControl = true;
                                     }
@@ -4796,15 +4858,16 @@ namespace Cekirdekler
 
                             if (fineGrainedControl)
                             {
-                                if(!data.serialMode)
+                                if (!data.serialMode)
                                     numberCruncher.enqueueModeAsyncEnable = true;
                             }
 
+                            //if((data.task.type & ClTaskType.TASK_MESSAGE_LAST)==0)
                             data.task.compute(numberCruncher);
 
                             if (fineGrainedControl)
                             {
-                                if(!data.serialMode)
+                                if (!data.serialMode)
                                     numberCruncher.enqueueModeAsyncEnable = true;
                             }
 
@@ -4815,24 +4878,20 @@ namespace Cekirdekler
                         {
                             if (fineGrainedControl)
                             {
-                                if(numberCruncher.enqueueMode)
+                                if (numberCruncher.enqueueMode)
                                     numberCruncher.enqueueMode = false;
                             }
                         }
-
-                        
 
 
                         lock (syncObj)
                         {
                             computeComplete = true;
                             working = running;
-                            if ((data == null) && (running))
-                            {
-                                Monitor.PulseAll(syncObj);
-                                Monitor.Wait(syncObj);
-                            }
+                            Monitor.PulseAll(syncObj);
                         }
+
+
 
                         if ((command & ClPrivateMessage.MESSAGE_SYNC) > 0)
                         {
@@ -4844,7 +4903,7 @@ namespace Cekirdekler
                             {
                                 numberCruncher.enqueueMode = false; // synchronizes
                                 numberCruncher.enqueueMode = true; // re-enables 
-                                
+
                             }
 
                         }
@@ -4855,9 +4914,15 @@ namespace Cekirdekler
                             ClPrivateMessage feedback = ClPrivateMessage.FEEDBACK_SUCCESS;
                             privateFeedbackPipe.push(feedback);
                         }
+
+                        pool.pulse();
+
+                        lock (syncObj)
+                        {
+                            Monitor.Wait(syncObj);
+                        }
                     }
                 }
-
 
                 public void start()
                 {
