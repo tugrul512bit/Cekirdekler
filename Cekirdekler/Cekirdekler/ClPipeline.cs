@@ -1909,7 +1909,7 @@ namespace Cekirdekler
             /// </summary>
             /// <param name="p"></param>
             /// <param name="duplicate"></param>
-            public ClPipelineStageBuffer(object p,bool duplicate=true)
+            public ClPipelineStageBuffer(object p, bool duplicate = true)
             {
                 var bufAsArray = p as Array;
                 if (bufAsArray != null)
@@ -2110,7 +2110,7 @@ namespace Cekirdekler
                 }
 
                 // to do: optimize this to not create unused buffers in first place
-                if(!duplicate)
+                if (!duplicate)
                 {
                     bufByteDuplicate = null;
                     bufCharDuplicate = null;
@@ -2126,7 +2126,7 @@ namespace Cekirdekler
 
             internal void enableInput()
             {
-                if(bufDuplicate!=null)
+                if (bufDuplicate != null)
                 {
                     bufDuplicate.read = true;
                     bufDuplicate.partialRead = false;
@@ -2368,14 +2368,14 @@ namespace Cekirdekler
                 private string kernelCodesToCompile { get; set; }
                 private ClNumberCruncher cruncher { get; set; }
                 private ClDevices singleDevice { get; set; }
-                private int currentComputeQueueConcurrency{get;set;}
+                private int currentComputeQueueConcurrency { get; set; }
                 /// <summary>
                 /// N stages pipeline defined in a selected device
                 /// </summary>
                 /// <param name="selectedDevice">this can be a CPU, GPU, ...</param>
                 /// <param name="kernelCodesC99">kernel string to be compiled for all stages</param>
                 /// <param name="computeQueueConcurrency">max number of command queues to use asynchronously. max=16, min=1</param>
-                public DevicePipeline(ClDevices selectedDevice,string kernelCodesC99,int computeQueueConcurrency=16)
+                public DevicePipeline(ClDevices selectedDevice, string kernelCodesC99, int computeQueueConcurrency = 16)
                 {
                     currentComputeQueueConcurrency = computeQueueConcurrency;
                     singleDevice = selectedDevice[0];
@@ -2427,7 +2427,7 @@ namespace Cekirdekler
                     {
                         if (stages[i].hasInput)
                         {
-                            if(!stages[i].stopHostDeviceTransmission)
+                            if (!stages[i].stopHostDeviceTransmission)
                                 stages[i].copyInputDataToUnusedEntrance();
                         }
                     }
@@ -2439,7 +2439,7 @@ namespace Cekirdekler
                     {
                         if (stages[i].hasOutput)
                         {
-                            if(!stages[i].stopHostDeviceTransmission)
+                            if (!stages[i].stopHostDeviceTransmission)
                                 stages[i].copyOutputDataFromUnusedExit();
                         }
                     }
@@ -2526,7 +2526,7 @@ namespace Cekirdekler
                     //        stages[i].copyOutputDataFromUnusedExit();
                     //    }
                     //});
-                    
+
 
                     for (int i = 0; i < stages.Count; i++)
                     {
@@ -2540,7 +2540,7 @@ namespace Cekirdekler
 
                     if (cruncher == null)
                     {
-                        cruncher = new ClNumberCruncher(singleDevice, kernelCodesToCompile,false, currentComputeQueueConcurrency);
+                        cruncher = new ClNumberCruncher(singleDevice, kernelCodesToCompile, false, currentComputeQueueConcurrency);
                     }
                     if (!serialMode)
                         cruncher.enqueueMode = true;
@@ -2564,7 +2564,7 @@ namespace Cekirdekler
 
                 private void feedEnd()
                 {
-                    if(!serialMode)
+                    if (!serialMode)
                         cruncher.enqueueMode = false;
                     runCounter++;
                 }
@@ -2586,7 +2586,7 @@ namespace Cekirdekler
                         feedParallel();
                         parallelIO();
                     }
-                    
+
                     feedEnd();
                     if (serialMode)
                         serialO();
@@ -2677,7 +2677,7 @@ namespace Cekirdekler
                 /// </summary>
                 public bool stopHostDeviceTransmission
                 {
-                    get;set;
+                    get; set;
                 }
 
                 internal void debugBuffers()
@@ -2686,9 +2686,9 @@ namespace Cekirdekler
 
                     for (int i = 0; i < arrays.Count; i++)
                     {
-                        if((arrays[i].type != DevicePipelineArrayType.INPUT) && (arrays[i].type != DevicePipelineArrayType.OUTPUT))
+                        if ((arrays[i].type != DevicePipelineArrayType.INPUT) && (arrays[i].type != DevicePipelineArrayType.OUTPUT))
                         {
-                            Console.WriteLine(buffers[i].debugSwitchCount()%2);
+                            Console.WriteLine(buffers[i].debugSwitchCount() % 2);
                         }
                     }
                     Console.WriteLine("--------------------------");
@@ -2701,7 +2701,7 @@ namespace Cekirdekler
                         if (arrays[i].type == DevicePipelineArrayType.INPUT)
                         {
                             IBufferOptimization destination = null;
-                            if (ioSwitchCounter % 2 ==0)
+                            if (ioSwitchCounter % 2 == 0)
                             {
                                 destination = buffers[i].bufDuplicate;
                             }
@@ -2804,7 +2804,7 @@ namespace Cekirdekler
                     }
                 }
 
-                
+
 
                 /// <summary>
                 /// returns true if this stage has any input array
@@ -2845,8 +2845,8 @@ namespace Cekirdekler
                     {
                         if (arrays[i].type == DevicePipelineArrayType.OUTPUT)
                         {
-                                buffers[i].enableOutput();
-                                buffersIODuplicates[i].enableOutput();
+                            buffers[i].enableOutput();
+                            buffersIODuplicates[i].enableOutput();
                         }
                     }
                 }
@@ -2857,8 +2857,8 @@ namespace Cekirdekler
                     {
                         if (arrays[i].type == DevicePipelineArrayType.INPUT)
                         {
-                                buffers[i].enableInput();
-                                buffersIODuplicates[i].enableInput();
+                            buffers[i].enableInput();
+                            buffersIODuplicates[i].enableInput();
                         }
                     }
                 }
@@ -2870,8 +2870,8 @@ namespace Cekirdekler
                     {
                         if (arrays[i].type == DevicePipelineArrayType.OUTPUT)
                         {
-                                buffers[i].disableOutput();
-                                buffersIODuplicates[i].disableOutput();
+                            buffers[i].disableOutput();
+                            buffersIODuplicates[i].disableOutput();
                         }
                     }
                 }
@@ -2882,8 +2882,8 @@ namespace Cekirdekler
                     {
                         if (arrays[i].type == DevicePipelineArrayType.INPUT)
                         {
-                                buffers[i].disableInput();
-                                buffersIODuplicates[i].disableInput();
+                            buffers[i].disableInput();
+                            buffersIODuplicates[i].disableInput();
                         }
                     }
                 }
@@ -2919,7 +2919,7 @@ namespace Cekirdekler
                 /// <returns></returns>
                 internal ICanCompute regroupParameters()
                 {
-                    if(buffers.Count==1)
+                    if (buffers.Count == 1)
                     {
 
                         if (arrays[0].type == DevicePipelineArrayType.INPUT)
@@ -2930,7 +2930,7 @@ namespace Cekirdekler
                                 return (ICanCompute)(buffersIODuplicates[0].bufDuplicate);
 
                         }
-                        else if(arrays[0].type == DevicePipelineArrayType.OUTPUT)
+                        else if (arrays[0].type == DevicePipelineArrayType.OUTPUT)
                         {
                             if (ioSwitchCounter % 2 == 0)
                                 return (ICanCompute)(buffers[0].bufDuplicate);
@@ -2942,7 +2942,7 @@ namespace Cekirdekler
                             return (ICanCompute)(buffers[0].buf);
                         }
                     }
-                    else if(buffers.Count>1)
+                    else if (buffers.Count > 1)
                     {
                         ClParameterGroup gr = null;
                         if ((arrays[0].type == DevicePipelineArrayType.INPUT) || (arrays[0].type == DevicePipelineArrayType.OUTPUT))
@@ -3003,11 +3003,11 @@ namespace Cekirdekler
                             }
                         }
 
-                        for (int i=2;i<buffers.Count;i++)
+                        for (int i = 2; i < buffers.Count; i++)
                         {
                             if (arrays[i].type == DevicePipelineArrayType.INPUT)
                             {
-                                if(ioSwitchCounter%2==0)
+                                if (ioSwitchCounter % 2 == 0)
                                     gr = gr.nextParam(buffers[i].bufDuplicate);
                                 else
                                     gr = gr.nextParam(buffersIODuplicates[i].bufDuplicate);
@@ -3016,7 +3016,7 @@ namespace Cekirdekler
                             }
                             else if (arrays[i].type == DevicePipelineArrayType.OUTPUT)
                             {
-                                if(ioSwitchCounter%2==0)
+                                if (ioSwitchCounter % 2 == 0)
                                     gr = gr.nextParam(buffers[i].bufDuplicate);
                                 else
                                     gr = gr.nextParam(buffersIODuplicates[i].bufDuplicate);
@@ -3049,20 +3049,20 @@ namespace Cekirdekler
                             // switch transition and internal can't switch
                             if (buffers[i].bufDuplicate != null)
                             {
-                                    buffers[i].switchBuffers();
+                                buffers[i].switchBuffers();
                             }
                         }
                     }
 
                 }
-                
+
 
                 internal void switchIOBuffers()
                 {
-                        ioSwitchCounter++;
+                    ioSwitchCounter++;
                 }
 
-                
+
 
                 /// <summary>
                 /// <para> binds an input, output or internal array to be used by kernel</para>
@@ -3103,7 +3103,7 @@ namespace Cekirdekler
                         newArray2.bufDuplicate.write = false;
                         newArray2.bufDuplicate.writeAll = false;
                     }
-                    else if(array_.type == DevicePipelineArrayType.OUTPUT)
+                    else if (array_.type == DevicePipelineArrayType.OUTPUT)
                     {
                         newArray = new ClPipelineStageBuffer(array_.array);
                         newArray2 = new ClPipelineStageBuffer(array_.array);
@@ -3132,10 +3132,10 @@ namespace Cekirdekler
                         newArray2.bufDuplicate.write = true;
                         newArray2.bufDuplicate.writeAll = true;
                     }
-                    else if(array_.type == DevicePipelineArrayType.INTERNAL)
+                    else if (array_.type == DevicePipelineArrayType.INTERNAL)
                     {
-                        newArray = new ClPipelineStageBuffer(array_.array,false);
-                        newArray2 = new ClPipelineStageBuffer(array_.array,false);
+                        newArray = new ClPipelineStageBuffer(array_.array, false);
+                        newArray2 = new ClPipelineStageBuffer(array_.array, false);
                         newArray.buf.read = false;
                         newArray.buf.partialRead = false;
                         newArray.buf.write = false;
@@ -3149,7 +3149,7 @@ namespace Cekirdekler
                     else if (array_.type == DevicePipelineArrayType.TRANSITION)
                     {
                         newArray = new ClPipelineStageBuffer(array_.array);
-                        newArray2 = new ClPipelineStageBuffer(array_.array,false);
+                        newArray2 = new ClPipelineStageBuffer(array_.array, false);
                         newArray.buf.read = false;
                         newArray.buf.partialRead = false;
                         newArray.buf.write = false;
@@ -3244,7 +3244,7 @@ namespace Cekirdekler
             /// <para>for building data-synchronization and similar "control" related tasks</para>
             /// <para>all types can be combined (for example, 32|16 shuts all devices down)</para>
             /// </summary>
-            public enum ClTaskType:int
+            public enum ClTaskType : int
             {
                 /// <summary>
                 /// <para>does not do anything special</para>
@@ -3334,7 +3334,7 @@ namespace Cekirdekler
                 /// <summary>
                 /// additional role(or combined roles) of this task
                 /// </summary>
-                public ClTaskType type { get; set; } 
+                public ClTaskType type { get; set; }
 
                 // to keep enqueue mode data
                 internal int id { get; set; }
@@ -3386,12 +3386,12 @@ namespace Cekirdekler
                 /// </summary>
                 internal ClTask(ICanCompute dataParameter, int computeIdParameter, string kernelNamesStringParameter, int globalRangeParameter,
                                 int localRangeParameter = 256, int ofsetGlobalRangeParameter = 0, bool pipelineParameter = false,
-                                bool pipelineTypeParameter = Cores.PIPELINE_EVENT, int pipelineBlobsParameter = 4,string[] readWriteParameter=null,int[] elementsPerItemParameter=null)
+                                bool pipelineTypeParameter = Cores.PIPELINE_EVENT, int pipelineBlobsParameter = 4, string[] readWriteParameter = null, int[] elementsPerItemParameter = null)
                 {
 
                     data = dataParameter;
                     computeId = computeIdParameter;
-                    kernelNamesString = new StringBuilder( kernelNamesStringParameter).ToString();
+                    kernelNamesString = new StringBuilder(kernelNamesStringParameter).ToString();
                     globalRange = globalRangeParameter;
                     localRange = localRangeParameter;
                     ofsetGlobalRange = ofsetGlobalRangeParameter;
@@ -3447,7 +3447,7 @@ namespace Cekirdekler
                     else
                     {
                         result.readWrite = new string[readWrite.Length];
-                        for(int i=0;i<readWrite.Length;i++)
+                        for (int i = 0; i < readWrite.Length; i++)
                         {
                             result.readWrite[i] = new StringBuilder(readWrite[i]).ToString();
                         }
@@ -3495,14 +3495,14 @@ namespace Cekirdekler
             /// <summary>
             /// type of task group that defines execution behavior of all of its tasks
             /// </summary>
-            public enum ClTaskGroupType:int
+            public enum ClTaskGroupType : int
             {
                 /// <summary>
                 /// <para>all devices work for this task group until all tasks in it are completed</para>
                 /// <para>this is default value</para>
                 /// <para></para>
                 /// </summary>
-                TASK_COMPLETE=0,
+                TASK_COMPLETE = 0,
 
                 /// <summary>
                 /// <para>all devices are free to pick tasks from this task group or any other group</para>
@@ -3556,7 +3556,7 @@ namespace Cekirdekler
                 /// </summary>
                 public ClTaskGroup(ClTaskGroupType type)
                 {
-                    
+
                 }
 
                 /// <summary>
@@ -3597,7 +3597,7 @@ namespace Cekirdekler
                 internal ClTaskPool duplicate()
                 {
                     ClTaskPool result = new ClTaskPool();
-                    for(int i=0;i<taskList.Count;i++)
+                    for (int i = 0; i < taskList.Count; i++)
                     {
                         result.feed(taskList[i]);
                     }
@@ -3622,16 +3622,16 @@ namespace Cekirdekler
                 public void feed(ClTask task)
                 {
 
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         ClTask newTask = task.duplicate();
                         taskList.Add(newTask);
-                
+
 
                     }
                 }
 
-                
+
                 internal void prepareForScheduling()
                 {
                     int total = taskList.Count;
@@ -3644,12 +3644,12 @@ namespace Cekirdekler
 
                         totalCounter++;
                         remainingCounter--;
-                        if (((taskList[i].type & 
+                        if (((taskList[i].type &
                             (
-                            ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST | 
+                            ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_FIRST |
                             ClTaskType.TASK_MESSAGE_GLOBAL_SYNCHRONIZATION_LAST  //|
-                            //ClTaskType.TASK_MESSAGE_DEVICE_SELECT_BEGIN          | // selecting a device does not sync. other device can continue
-                            //ClTaskType.TASK_MESSAGE_DEVICE_SELECT_END
+                                                                                 //ClTaskType.TASK_MESSAGE_DEVICE_SELECT_BEGIN          | // selecting a device does not sync. other device can continue
+                                                                                 //ClTaskType.TASK_MESSAGE_DEVICE_SELECT_END
                             )) > 0) ||
                             (i == (total - 1)))
                         {
@@ -3725,7 +3725,7 @@ namespace Cekirdekler
                         }
                     }
                     int num = 0;
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         num = taskList.Count - counter;
                         if (num < 0)
@@ -3751,7 +3751,7 @@ namespace Cekirdekler
             /// <para>to pick a specific scheduler algorithm</para>
             /// <para>WORKER_ and WORK_ prefixed types can be combined with OR</para>
             /// </summary>
-            public enum ClDevicePoolType:int
+            public enum ClDevicePoolType : int
             {
                 /// <summary>
                 /// <para>whenever a device becomes ready after computing a task, immediately issues another task</para>
@@ -3771,25 +3771,25 @@ namespace Cekirdekler
 
             // for handling pool - device control logic
             // combinable  MESSAGE_SYNC | MESSAGE_EXECUTE_FEEDBACK = synchronize device then report back 
-            enum ClPrivateMessage :int
+            enum ClPrivateMessage : int
             {
                 // do nothing / error
-                MESSAGE_NULL=0,
+                MESSAGE_NULL = 0,
 
                 // synchronize a device
-                MESSAGE_SYNC=1,
+                MESSAGE_SYNC = 1,
 
                 // report back once message is executed at device
-                MESSAGE_EXECUTE_FEEDBACK=2,
+                MESSAGE_EXECUTE_FEEDBACK = 2,
 
                 // report back once message is received at device
-                MESSAGE_RECEIVE_FEEDBACK=4,
+                MESSAGE_RECEIVE_FEEDBACK = 4,
 
                 // answering a message was successfully executed/issued
-                FEEDBACK_SUCCESS=8,
+                FEEDBACK_SUCCESS = 8,
 
                 // message was failed to execute/issue
-                FEEDBACK_FAIL=16
+                FEEDBACK_FAIL = 16
 
             }
 
@@ -3803,7 +3803,7 @@ namespace Cekirdekler
             //       kernel + queue3 = instance 3  --uses instance
 
 
-            
+
             class ClTaskPoolQueue
             {
                 object syncObj { get; set; }
@@ -3816,7 +3816,7 @@ namespace Cekirdekler
 
                 public void push(ClTaskPool newPool)
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         queue.Enqueue(newPool);
                     }
@@ -3825,7 +3825,7 @@ namespace Cekirdekler
                 public int size()
                 {
                     int result = 0;
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         result = queue.Count;
                     }
@@ -3837,7 +3837,7 @@ namespace Cekirdekler
                     ClTaskPool result = null;
                     lock (syncObj)
                     {
-                        if(queue.Count>0)
+                        if (queue.Count > 0)
                             result = queue.Dequeue();
                     }
                     return result;
@@ -3868,8 +3868,8 @@ namespace Cekirdekler
                 bool multiQueueEnabled { get; set; }
                 List<float[]> smoothedSpeeds { get; set; }
                 ClPoolTaskQueue pipe { get; set; }
-                List<ClMessageQueue>  privatePipe {get;set;}
-                List<ClMessageQueue> privateFeedbackPipe { get;set;}
+                List<ClMessageQueue> privatePipe { get; set; }
+                List<ClMessageQueue> privateFeedbackPipe { get; set; }
                 List<int> privateMessageStates { get; set; }
                 List<int> privateMessageStates2 { get; set; }
                 bool hasDisabledEnqueueMode { get; set; }
@@ -3892,7 +3892,7 @@ namespace Cekirdekler
                 /// <para>false: every task is synchronized on host, better balancing between devices, low "many-task" performance</para>
                 /// </param>
                 /// <param name="multiQueueEnabledParameter">enables multiple command queues per device to compute tasks(default:false)</param>
-                public ClDevicePool(ClDevicePoolType poolType, string kernelCodeToCompile,bool fineGrainedQueueControlParameter=false, bool multiQueueEnabledParameter=false)
+                public ClDevicePool(ClDevicePoolType poolType, string kernelCodeToCompile, bool fineGrainedQueueControlParameter = false, bool multiQueueEnabledParameter = false)
                 {
                     waitForDisableStateFeedback = false;
                     incrementLock = false;
@@ -3905,8 +3905,8 @@ namespace Cekirdekler
                     lock (syncObj)
                     {
                         fineGrainedQueueControl = fineGrainedQueueControlParameter;
-                        privateMessageStates = new  List<int>();
-                        privateMessageStates2 = new  List<int>();
+                        privateMessageStates = new List<int>();
+                        privateMessageStates2 = new List<int>();
                         privatePipe = new List<ClMessageQueue>();
                         privateFeedbackPipe = new List<ClMessageQueue>();
                         smoothedSpeeds = new List<float[]>();
@@ -3929,7 +3929,7 @@ namespace Cekirdekler
                         {
                             deviceQueueLimiter = 25;
                             if (multiQueueEnabledParameter)
-                                deviceQueueLimiter *=16;
+                                deviceQueueLimiter *= 16;
                         }
                     }
                     ThreadStart ts = null;
@@ -3988,11 +3988,11 @@ namespace Cekirdekler
                 void pulseDevices()
                 {
                     int numDevices1 = 0;
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         numDevices1 = devices.Count;
                     }
-                    for(int i=0;i<numDevices1;i++)
+                    for (int i = 0; i < numDevices1; i++)
                     {
                         devices[i].pulse();
                     }
@@ -4171,7 +4171,7 @@ namespace Cekirdekler
                                     handleGlobalSyncFirst(newDataType);
 
                                     // if single device mode range has started, select the less busy device
-                                    handleSingleDeviceModeBegin(data.task.type,numDevices);
+                                    handleSingleDeviceModeBegin(data.task.type, numDevices);
 
                                     // add info about serial mode and single device mode
                                     data.deviceIndex = selectedSingleDeviceModeIndex;
@@ -4233,7 +4233,7 @@ namespace Cekirdekler
 
                 internal void pulse()
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         Monitor.PulseAll(syncObj);
                     }
@@ -4242,7 +4242,7 @@ namespace Cekirdekler
                 internal bool getFineGrainedQueueControl()
                 {
                     bool result = false;
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         result = fineGrainedQueueControl;
                     }
@@ -4269,34 +4269,34 @@ namespace Cekirdekler
                         privateMessageStates2.Add(0);
                         if (devicesParameter.Length > 1)
                         {
-                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter[0], kernelCode,false,16);
+                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter[0], kernelCode, false, 16);
                             cruncherNew.fineGrainedQueueControl = getFineGrainedQueueControl();
                             var newDevice = new DevicePoolThread(this,
                                 cruncherNew,
-                                getDeviceQueueLimit(), 
-                                multiQueueEnabled, 
-                                getFineGrainedQueueControl(),
-                                type,
-                                pipe,
-                                newPrivateQueue,
-                                newPrivateFeedbackQueue,
-                                devices.Count);
-                            
-                            devices.Add(newDevice);
-                        }
-                        else if(devicesParameter.Length==1)
-                        {
-                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter, kernelCode,false,16);
-                            cruncherNew.fineGrainedQueueControl = getFineGrainedQueueControl();
-                            var newDevice = new DevicePoolThread(this,
-                                cruncherNew, 
                                 getDeviceQueueLimit(),
                                 multiQueueEnabled,
                                 getFineGrainedQueueControl(),
                                 type,
                                 pipe,
                                 newPrivateQueue,
-                                newPrivateFeedbackQueue, 
+                                newPrivateFeedbackQueue,
+                                devices.Count);
+
+                            devices.Add(newDevice);
+                        }
+                        else if (devicesParameter.Length == 1)
+                        {
+                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter, kernelCode, false, 16);
+                            cruncherNew.fineGrainedQueueControl = getFineGrainedQueueControl();
+                            var newDevice = new DevicePoolThread(this,
+                                cruncherNew,
+                                getDeviceQueueLimit(),
+                                multiQueueEnabled,
+                                getFineGrainedQueueControl(),
+                                type,
+                                pipe,
+                                newPrivateQueue,
+                                newPrivateFeedbackQueue,
                                 devices.Count);
                             devices.Add(newDevice);
                         }
@@ -4330,18 +4330,18 @@ namespace Cekirdekler
 
                 internal void setCurrentTaskPool(ClTaskPool newCur)
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         currentTaskPool = newCur;
                     }
                 }
-                
+
                 internal ClTaskPool getCurrentTaskPool()
                 {
                     ClTaskPool result = null;
                     lock (syncObj)
                     {
-                        result=currentTaskPool;
+                        result = currentTaskPool;
                     }
                     return result;
                 }
@@ -4376,7 +4376,7 @@ namespace Cekirdekler
                                     }
                                 }
                             }
-                            
+
                             remainingWork = 1000000000;
                             while (remainingWork > 0)
                             {
@@ -4390,7 +4390,7 @@ namespace Cekirdekler
                                     }
                                 }
                             }
-                            
+
                             remainingWork = 1000000000;
                             while (remainingWork > 0)
                             {
@@ -4409,7 +4409,7 @@ namespace Cekirdekler
                                     }
                                 }
                             }
-                            
+
                             remainingWork = 1000000000;
                             while (remainingWork > 0)
                             {
@@ -4421,7 +4421,7 @@ namespace Cekirdekler
 
                                     // remaining non-synced tasks in queues
                                     if (getFineGrainedQueueControl())
-                                        remainingWork += devices[i].markersRemaining(); 
+                                        remainingWork += devices[i].markersRemaining();
 
                                     // remaining fine grained markers
                                 }
@@ -4434,7 +4434,7 @@ namespace Cekirdekler
                                     }
                                 }
                             }
-                            
+
                         }
                     }
                     sw.Stop();
@@ -4446,7 +4446,7 @@ namespace Cekirdekler
                 /// </summary>
                 public void dispose()
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         running = false;
                         Monitor.PulseAll(syncObj);
@@ -4477,16 +4477,16 @@ namespace Cekirdekler
                 public int size()
                 {
                     int result = 0;
-                    lock(syncObj)
+                    lock (syncObj)
                     {
-                        result= queue.Count();
+                        result = queue.Count();
                     }
                     return result;
                 }
 
                 public void push(ClPrivateMessage msg)
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         queue.Enqueue(msg);
                     }
@@ -4494,10 +4494,10 @@ namespace Cekirdekler
 
                 public ClPrivateMessage pop()
                 {
-                    ClPrivateMessage result= ClPrivateMessage.MESSAGE_NULL;
+                    ClPrivateMessage result = ClPrivateMessage.MESSAGE_NULL;
                     lock (syncObj)
                     {
-                        if(queue.Count>0)
+                        if (queue.Count > 0)
                             result = queue.Dequeue();
                     }
                     return result;
@@ -4534,7 +4534,7 @@ namespace Cekirdekler
 
                 public int size()
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         return queue.Count();
                     }
@@ -4542,7 +4542,7 @@ namespace Cekirdekler
 
                 public void disable()
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         shutDown = true;
                     }
@@ -4550,7 +4550,7 @@ namespace Cekirdekler
 
                 public void enable()
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         shutDown = false;
                     }
@@ -4569,7 +4569,7 @@ namespace Cekirdekler
 
                 public ClPoolTaskIdPair pop()
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         if (queue.Count > 0)
                             return queue.Dequeue();
@@ -4632,7 +4632,7 @@ namespace Cekirdekler
                     ClNumberCruncher numberCruncherParameter,
                     int deviceQueueLimiterParameter,
                     bool multiQueueEnabledParameter,
-                    bool fineGrainedControlParameter, 
+                    bool fineGrainedControlParameter,
                     ClDevicePoolType poolTypeParameter,
                     ClPoolTaskQueue poolQueue,
                     ClMessageQueue privatePipeParameter/* messaging between pool and device*/,
@@ -4673,7 +4673,7 @@ namespace Cekirdekler
 
                 public void pulse()
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         Monitor.PulseAll(syncObj);
                     }
@@ -4682,7 +4682,7 @@ namespace Cekirdekler
 
                 public void changeDeviceQueueLimit(int newValue)
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         deviceQueueLimiter = newValue;
                         if (multiQueueEnabled)
@@ -4693,7 +4693,7 @@ namespace Cekirdekler
                 public int getDeviceQueueLimit()
                 {
                     int result = 0;
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         result = deviceQueueLimiter;
                     }
@@ -4710,7 +4710,7 @@ namespace Cekirdekler
                         float time = 0;
 
                         int currentReached = numberCruncher.countMarkersReached();
-                        if ((swThread != null) && ((currentReached- lastMarkersReached)>0))
+                        if ((swThread != null) && ((currentReached - lastMarkersReached) > 0))
                         {
                             swThread.Stop();
                             time = (float)swThread.Elapsed.TotalMilliseconds;
@@ -4729,15 +4729,15 @@ namespace Cekirdekler
                             smoothedSpeed /= 15.0f;
                         }
                     }
-                    return smoothedSpeed+0.001f;
+                    return smoothedSpeed + 0.001f;
                 }
 
                 public int markersRemaining()
                 {
                     int count = 0;
-                    lock(syncObj)
+                    lock (syncObj)
                     {
-                        count += numberCruncher.countMarkersRemaining(); 
+                        count += numberCruncher.countMarkersRemaining();
                     }
                     return count;
                 }
@@ -4747,7 +4747,7 @@ namespace Cekirdekler
                     int count = 0;
                     lock (syncObj)
                     {
-                        count = (computeComplete?0:1)+cachePipe.size();
+                        count = (computeComplete ? 0 : 1) + cachePipe.size();
                         Monitor.PulseAll(syncObj);
                     }
                     return count;
@@ -4884,12 +4884,7 @@ namespace Cekirdekler
                         }
 
 
-                        lock (syncObj)
-                        {
-                            computeComplete = true;
-                            working = running;
-                            Monitor.PulseAll(syncObj);
-                        }
+
 
 
 
@@ -4914,7 +4909,12 @@ namespace Cekirdekler
                             ClPrivateMessage feedback = ClPrivateMessage.FEEDBACK_SUCCESS;
                             privateFeedbackPipe.push(feedback);
                         }
-
+                        lock (syncObj)
+                        {
+                            computeComplete = true;
+                            working = running;
+                            Monitor.PulseAll(syncObj);
+                        }
                         pool.pulse();
 
                         lock (syncObj)
@@ -4926,7 +4926,7 @@ namespace Cekirdekler
 
                 public void start()
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         paused = false;
                         Monitor.PulseAll(syncObj);
@@ -4935,7 +4935,7 @@ namespace Cekirdekler
 
                 public void pause()
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         paused = true;
                         Monitor.PulseAll(syncObj);
@@ -4945,7 +4945,7 @@ namespace Cekirdekler
 
                 public void dispose()
                 {
-                    lock(syncObj)
+                    lock (syncObj)
                     {
                         running = false;
                         paused = false;

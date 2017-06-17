@@ -937,7 +937,7 @@ namespace Cekirdekler
                                     {
                                         workers[0].lastUsedCQ.addMarkerForCounting();
                                     }
-                                    else
+                                    else if (enqueueModeAsyncEnable)
                                     {
                                         workers[0].commandQueue.addMarkerForCounting();
                                     }
