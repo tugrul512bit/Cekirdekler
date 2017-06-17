@@ -3373,6 +3373,13 @@ namespace Cekirdekler
                 public string kernelRepeatName { get { throw new NotImplementedException(); } set { throw new NotImplementedException(); } }
 
                 /// <summary>
+                /// function to run after task is complete
+                /// </summary>
+                internal Delegate callbackFunctionToRun { get; set; }
+
+                internal bool callbackRun { get; set; }
+
+                /// <summary>
                 /// computes this task using the given number cruncher
                 /// </summary>
                 /// <param name="numberCruncher"></param>
@@ -3440,6 +3447,8 @@ namespace Cekirdekler
                     result.pipeline = pipeline;
                     result.pipelineBlobs = pipelineBlobs;
                     result.pipelineType = pipelineType;
+                    result.callbackFunctionToRun = callbackFunctionToRun;
+                    result.callbackRun = callbackRun;
                     if (readWrite == null)
                     {
                         result.readWrite = null;
@@ -3463,6 +3472,25 @@ namespace Cekirdekler
                 internal ClTask()
                 {
 
+                }
+
+
+                /// <summary>
+                /// runs a given function after task is completed
+                /// </summary>
+                public void setCallBack(Delegate del)
+                {
+                    callbackFunctionToRun = del;
+                    callbackRun = false;
+                }
+
+                internal void runCallBack()
+                {
+                    if (!callbackRun)
+                    {
+                        callbackFunctionToRun.DynamicInvoke();
+                        callbackRun = true;
+                    }
                 }
 
                 /// <summary>
@@ -3878,7 +3906,7 @@ namespace Cekirdekler
                 bool waitForDisableStateFeedback { get; set; }
                 internal int selectedSingleDeviceModeIndex { get; set; }
                 internal bool selectedSingleQueueMode { get; set; }
-
+                int maxQueuesPerDevice { get; set; }
                 /// <summary>
                 /// <para>creates a worker pool with a type</para>
                 /// <para>any ClNumberCruncher instance added to this pool will work accordingly with the type algorithm</para>
@@ -3891,19 +3919,22 @@ namespace Cekirdekler
                 /// <para>default:false</para>
                 /// <para>false: every task is synchronized on host, better balancing between devices, low "many-task" performance</para>
                 /// </param>
-                /// <param name="multiQueueEnabledParameter">enables multiple command queues per device to compute tasks(default:false)</param>
-                public ClDevicePool(ClDevicePoolType poolType, string kernelCodeToCompile, bool fineGrainedQueueControlParameter = false, bool multiQueueEnabledParameter = false)
+                /// <param name="maxQueuesPerDevice">limits number of queues per device. must be between 1 and 16 inclusive</param>
+                public ClDevicePool(ClDevicePoolType poolType, string kernelCodeToCompile, bool fineGrainedQueueControlParameter = false, int maxQueuesPerDeviceParameter=3)
                 {
                     waitForDisableStateFeedback = false;
                     incrementLock = false;
                     currentPoolId = 0;
                     hasDisabledEnqueueMode = true;
-                    multiQueueEnabled = multiQueueEnabledParameter;
+                    maxQueuesPerDevice = maxQueuesPerDeviceParameter;
+                    maxQueuesPerDevice = Math.Max(maxQueuesPerDevice, 1);
+                    maxQueuesPerDevice = Math.Min(maxQueuesPerDevice, 16);
                     type = poolType;
                     kernelCode = kernelCodeToCompile;
                     syncObj = new object();
                     lock (syncObj)
                     {
+
                         fineGrainedQueueControl = fineGrainedQueueControlParameter;
                         privateMessageStates = new List<int>();
                         privateMessageStates2 = new List<int>();
@@ -3921,15 +3952,11 @@ namespace Cekirdekler
                         pipe = new ClPoolTaskQueue();
                         if (poolType == ClDevicePoolType.DEVICE_COMPUTE_AT_WILL)
                         {
-                            deviceQueueLimiter = 2;
-                            if (multiQueueEnabledParameter)
-                                deviceQueueLimiter *= 16;
+                            deviceQueueLimiter = 2* maxQueuesPerDeviceParameter;
                         }
                         else
                         {
-                            deviceQueueLimiter = 25;
-                            if (multiQueueEnabledParameter)
-                                deviceQueueLimiter *= 16;
+                            deviceQueueLimiter = 25* maxQueuesPerDeviceParameter;
                         }
                     }
                     ThreadStart ts = null;
@@ -4143,7 +4170,12 @@ namespace Cekirdekler
                                 setCurrentTaskPool(taskPoolQueue.pop());
                                 currentTaskPoolTmp = getCurrentTaskPool();
                                 int rem = currentTaskPoolTmp.remainingTaskGroupsOrTasks();
-                                setDeviceQueueLimit(1 + rem / 40);
+                                int maxQueueNum = 0;
+                                lock(syncObj)
+                                {
+                                    maxQueueNum = maxQueuesPerDevice;
+                                }
+                                setDeviceQueueLimit((1 /* + rem / 40*/)/* *maxQueueNum */);
                                 for (int i = 0; i < numDevices; i++)
                                 {
                                     devices[i].changeDeviceQueueLimit(getDeviceQueueLimit());
@@ -4269,7 +4301,7 @@ namespace Cekirdekler
                         privateMessageStates2.Add(0);
                         if (devicesParameter.Length > 1)
                         {
-                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter[0], kernelCode, false, 16);
+                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter[0], kernelCode, false, maxQueuesPerDevice);
                             cruncherNew.fineGrainedQueueControl = getFineGrainedQueueControl();
                             var newDevice = new DevicePoolThread(this,
                                 cruncherNew,
@@ -4286,7 +4318,7 @@ namespace Cekirdekler
                         }
                         else if (devicesParameter.Length == 1)
                         {
-                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter, kernelCode, false, 16);
+                            ClNumberCruncher cruncherNew = new ClNumberCruncher(devicesParameter, kernelCode, false, maxQueuesPerDevice);
                             cruncherNew.fineGrainedQueueControl = getFineGrainedQueueControl();
                             var newDevice = new DevicePoolThread(this,
                                 cruncherNew,
@@ -4685,8 +4717,7 @@ namespace Cekirdekler
                     lock (syncObj)
                     {
                         deviceQueueLimiter = newValue;
-                        if (multiQueueEnabled)
-                            deviceQueueLimiter *= 16;
+
                     }
                 }
 
@@ -4774,7 +4805,7 @@ namespace Cekirdekler
                         // getting all tasks quickly to cache if all are prepared for this device only
                         bool tasksForThisDeviceExist = true;
                         int tmpCtr = 0;
-                        while (tasksForThisDeviceExist && tmpCtr < 20)
+                        while (tasksForThisDeviceExist && (tmpCtr < 20))
                         {
                             tasksForThisDeviceExist = false;
                             ClPoolTaskIdPair newCacheData = pipe.lookForDeviceIdThenPop(deviceIndex);
@@ -4815,9 +4846,12 @@ namespace Cekirdekler
                             if (fineGrainedControl)
                             {
                                 bool markersComplete = false;
+                                int whileCtr = 0;
                                 while (!markersComplete)
                                 {
-                                    markersComplete = (markersRemaining() < getDeviceQueueLimit());
+                                    if((whileCtr&127)==0)
+                                        markersComplete = (markersRemaining() < getDeviceQueueLimit());
+                                    whileCtr++;
                                 }
                             }
 
@@ -4844,7 +4878,7 @@ namespace Cekirdekler
                                 {
                                     float probability = (((float)(data.task.totalTasks - data.task.remainingTasks)) / ((float)(data.task.totalTasks + 1)));
                                     float testing = (float)rand.NextDouble();
-                                    if ((testing < (probability * probability) || (data.task.remainingTasks <= 2)) /*|| ((data.task.totalTasks - data.task.remainingTasks) > (data.task.totalTasks - 3))*/)
+                                    if (true || (testing < (probability * probability) || (data.task.remainingTasks <= 2)) /*|| ((data.task.totalTasks - data.task.remainingTasks) > (data.task.totalTasks - 3))*/)
                                     {
                                         numberCruncher.fineGrainedQueueControl = true;
                                     }
@@ -4864,6 +4898,41 @@ namespace Cekirdekler
 
                             //if((data.task.type & ClTaskType.TASK_MESSAGE_LAST)==0)
                             data.task.compute(numberCruncher);
+
+                            if ((data.task.callbackFunctionToRun != null) && (!data.task.callbackRun))
+                            {
+                                if (fineGrainedControl)
+                                {
+                                    if (numberCruncher.enqueueModeAsyncEnable && numberCruncher.enqueueMode)
+                                    {
+                                        numberCruncher.enqueueModeAsyncEnable = false;
+                                        numberCruncher.enqueueMode = false;
+                                        data.task.callbackFunctionToRun.DynamicInvoke();
+                                        numberCruncher.enqueueMode = true;
+                                        numberCruncher.enqueueModeAsyncEnable = true;
+                                    }
+                                    else if ((!numberCruncher.enqueueModeAsyncEnable) && numberCruncher.enqueueMode)
+                                    {
+                                        numberCruncher.enqueueMode = false;
+                                        data.task.callbackFunctionToRun.DynamicInvoke();
+                                        numberCruncher.enqueueMode = true;
+                                    }
+                                    else
+                                    {
+                                        data.task.callbackFunctionToRun.DynamicInvoke();
+                                    }
+
+                                    if((numberCruncher.enqueueModeAsyncEnable) && (!numberCruncher.enqueueMode))
+                                    {
+                                        Console.WriteLine("warning: async enqueue is enabled but enqueue mode is disabled!");
+                                    }
+                                }
+                                else
+                                {
+                                    data.task.callbackFunctionToRun.DynamicInvoke();
+                                }
+                            }
+
 
                             if (fineGrainedControl)
                             {
