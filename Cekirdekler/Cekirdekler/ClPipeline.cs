@@ -3622,6 +3622,16 @@ namespace Cekirdekler
                     }
                 }
 
+                internal int numTasks()
+                {
+                    int result = 0;
+                    lock(syncObj)
+                    {
+                        result = taskList.Count;
+                    }
+                    return result;
+                }
+
                 internal ClTaskPool duplicate()
                 {
                     ClTaskPool result = new ClTaskPool();
@@ -4175,7 +4185,45 @@ namespace Cekirdekler
                                 {
                                     maxQueueNum = maxQueuesPerDevice;
                                 }
-                                setDeviceQueueLimit((1 /* + rem / 40*/)/* *maxQueueNum */);
+                                int resultQueueLength = 1;
+                                int numTasksTmp = currentTaskPoolTmp.numTasks();
+                                int sub = numTasksTmp - rem;
+                                if (rem < 3)
+                                {
+                                    resultQueueLength = 1;
+                                }
+                                else
+                                {
+                                    if (sub < (numTasksTmp / 10))
+                                    {
+                                        resultQueueLength = numTasksTmp / 10;
+                                    }
+                                    else if (sub < (numTasksTmp / 5))
+                                    {
+                                        resultQueueLength = numTasksTmp / 20;
+                                    }
+                                    else if (sub < (numTasksTmp / 3))
+                                    {
+                                        resultQueueLength = numTasksTmp / 33;
+                                    }
+                                    else if (sub < (numTasksTmp / 2))
+                                    {
+                                        resultQueueLength = numTasksTmp / 50;
+                                    }
+                                    else if (sub < ((numTasksTmp * 3) / 2))
+                                    {
+                                        resultQueueLength = 2;
+                                    }
+                                    else
+                                    {
+                                        resultQueueLength = 1;
+                                    }
+                                }
+
+                                resultQueueLength /= numDevices;
+                                resultQueueLength = ((resultQueueLength <= 0) ? 1 : resultQueueLength);
+
+                                setDeviceQueueLimit((resultQueueLength  /*1*/ /* + rem / 40*/)/* *maxQueueNum */);
                                 for (int i = 0; i < numDevices; i++)
                                 {
                                     devices[i].changeDeviceQueueLimit(getDeviceQueueLimit());
@@ -4849,7 +4897,7 @@ namespace Cekirdekler
                                 int whileCtr = 0;
                                 while (!markersComplete)
                                 {
-                                    if((whileCtr&127)==0)
+                                    if((whileCtr&63)==0)
                                         markersComplete = (markersRemaining() < getDeviceQueueLimit());
                                     whileCtr++;
                                 }
