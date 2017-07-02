@@ -187,6 +187,9 @@ namespace Cekirdekler
                             int numberofCPUCoresToUseAsDeviceFission = -1,
                             int numberOfGPUsToUse = -1, bool stream = true, bool noPipelining=false)
         {
+            bool defaultQueue = false;
+            if (kernelString.Contains("enqueue_kernel("))
+                defaultQueue = true;
             repeatCount = 1;
             numberOfErrorsHappened = 0;
             StringBuilder cpuGpu_ = new StringBuilder("");
@@ -216,7 +219,7 @@ namespace Cekirdekler
                 errorNotification = 1;
                 return;
             }
-            numberCruncher = new Cores(cpuGpu_.ToString(), kernelString, kernelNames_.ToArray(), 256,
+            numberCruncher = new Cores(cpuGpu_.ToString(), kernelString, kernelNames_.ToArray(), defaultQueue, 256,
                 numberOfGPUsToUse, stream, numberofCPUCoresToUseAsDeviceFission, noPipelining);
             if (numberCruncher.errorCode() != 0)
             {
@@ -296,6 +299,9 @@ namespace Cekirdekler
         /// <param name="computeQueueConcurrency">max number of command queues to send commands asynchronously, max=16, min=1</param>
         public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,bool noPipelining=false,int computeQueueConcurrency=16)
         {
+            bool defaultQueue = false;
+            if (kernelString.Contains("enqueue_kernel("))
+                defaultQueue = true;
             repeatCount = 1;
             numberOfErrorsHappened = 0;
             List<string> kernelNames_ = new List<string>();
@@ -317,7 +323,7 @@ namespace Cekirdekler
                 errorNotification = 1;
                 return;
             }
-            numberCruncher = new Cores(devicesForGPGPU, kernelString, kernelNames_.ToArray(), computeQueueConcurrency, noPipelining);
+            numberCruncher = new Cores(devicesForGPGPU, kernelString, kernelNames_.ToArray(), defaultQueue, computeQueueConcurrency, noPipelining);
             if (numberCruncher.errorCode() != 0)
             {
                 errorMessage_ = numberCruncher.errorMessage();

@@ -147,12 +147,13 @@ namespace Cekirdekler
         /// <param name="deviceTypesToUse">"cpu" "gpu" "cpu gpu" "gpu acc" ...</param>
         /// <param name="kernelFileString"></param>
         /// <param name="kernelFunctionNamesInKernelFileString"></param>
+        /// <param name="defaultQueue">OpenCL dynamic parallelism queue</param>
         /// <param name="localRangeDeprecated"></param>
         /// <param name="numGPUToUse">if pc has 4 gpu, can set this to 4</param>
         /// <param name="MAX_CPU">-1 = MAX - 1, max( min(MAX_CPU,MAX-1),1) </param>
         /// <param name="GPU_STREAM">default is true: map - unmap instead of extra read-write for all devices</param>
         /// <param name="noPipelining">disables allocation of abundant command queues(can't enable driver-driver pipelining later)</param>
-        public Cores(string deviceTypesToUse, string kernelFileString, string[] kernelFunctionNamesInKernelFileString,
+        public Cores(string deviceTypesToUse, string kernelFileString, string[] kernelFunctionNamesInKernelFileString,bool defaultQueue,
                             int localRangeDeprecated = 256, int numGPUToUse = -1, bool GPU_STREAM = true, int MAX_CPU = -1, bool noPipelining=false)
         {
             localRange = localRangeDeprecated;
@@ -256,7 +257,7 @@ namespace Cekirdekler
             {
                 numberOfWorkers = selectedDevicesForGPGPU[platforms[i]].Count;
                 for (int j = 0; j < numberOfWorkers; j++)
-                    tmp.Add(new Worker(selectedDevicesForGPGPU[platforms[i]][j], kernels, kernelNames,16, noPipelining));
+                    tmp.Add(new Worker(selectedDevicesForGPGPU[platforms[i]][j], kernels, kernelNames, defaultQueue,16, noPipelining));
             }
             workers = tmp.ToArray();
             workerThreads = new Thread[workers.Length];
@@ -283,13 +284,10 @@ namespace Cekirdekler
         /// <param name="devicesForGPGPU">device or a group of devices to use in gpgpu calculations</param>
         /// <param name="kernelFileString"></param>
         /// <param name="kernelFunctionNamesInKernelFileString"></param>
-        /// <param name="localRangeDeprecated"></param>
-        /// <param name="numGPUToUse">if pc has 4 gpu, can set this to 4</param>
-        /// <param name="MAX_CPU">-1 = MAX - 1, max( min(MAX_CPU,MAX-1),1) </param>
-        /// <param name="GPU_STREAM">default is true: map - unmap instead of extra read-write for all devices</param>
+        /// <param name="defaultQueue">OpenCL 2.0 dynamic parallelism queue</param>
         /// <param name="noPipelining">disables allocation of abundant command queues(can't enable driver-driver pipelining later)</param>
         /// <param name="computeQueueConcurrency">max number of command queues to send commands asynchronously(max=16,min=1)</param>
-        public Cores(ClDevices devicesForGPGPU, string kernelFileString, string[] kernelFunctionNamesInKernelFileString, int computeQueueConcurrency = 16, bool noPipelining=false)
+        public Cores(ClDevices devicesForGPGPU, string kernelFileString, string[] kernelFunctionNamesInKernelFileString, bool defaultQueue, int computeQueueConcurrency = 16, bool noPipelining=false)
         {
             localRange = 256;
             Dictionary<ClPlatform, List<ClDevice>> selectedDevicesForGPGPU = new Dictionary<ClPlatform, List<ClDevice>>();
@@ -330,7 +328,7 @@ namespace Cekirdekler
             {
                 numberOfWorkers = selectedDevicesForGPGPU[platforms[i]].Count;
                 for (int j = 0; j < numberOfWorkers; j++)
-                    tmp.Add(new Worker(selectedDevicesForGPGPU[platforms[i]][j], kernels, kernelNames, computeQueueConcurrency, noPipelining));
+                    tmp.Add(new Worker(selectedDevicesForGPGPU[platforms[i]][j], kernels, kernelNames, defaultQueue, computeQueueConcurrency, noPipelining));
             }
             workers = tmp.ToArray();
             workerThreads = new Thread[workers.Length];

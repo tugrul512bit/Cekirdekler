@@ -122,7 +122,7 @@ namespace ClCluster
                     int MAX_CPU = ((int[])arrays[6].backingArray)[0];
                     openclSystemToCrunchNumbers = new Cores(
                             deviceTypes, kernelsString,
-                            kernelNamesStringArray, localRAnge,
+                            kernelNamesStringArray,false, localRAnge,
                             numberOfGPUsToUse, GPU_STREAM,
                             MAX_CPU);
                     if(openclSystemToCrunchNumbers.errorCode()!=0)

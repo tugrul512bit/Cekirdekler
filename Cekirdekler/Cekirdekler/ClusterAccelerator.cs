@@ -377,7 +377,7 @@ namespace ClCluster
             else if (deviceTypes.Contains("node0_c"))
                 mainframeDevices = "cpu";
             int mainframeNumberOfGPUs = 1;
-            mainframeComputer = new Cores(mainframeDevices, kernelsString, kernelNamesStringArray,
+            mainframeComputer = new Cores(mainframeDevices, kernelsString, kernelNamesStringArray,false,
                            localRangeValue, mainframeNumberOfGPUs, GPU_STREAM, MAX_CPU);
             List<int>ports=new List<int>();
             if(deviceTypes.Contains("cluster:"))

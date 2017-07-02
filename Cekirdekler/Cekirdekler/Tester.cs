@@ -7821,7 +7821,7 @@ namespace Cekirdekler
                 {
                     int i=get_global_id(0);
                     c[i]=a[i]+b[i];
-                }", new string[] { "vectorAdd" });
+                }", new string[] { "vectorAdd" },false);
 
             for (int i = 0; i < 10; i++)
             {

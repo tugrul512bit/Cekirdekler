@@ -32,6 +32,9 @@ namespace ClObject
         private static extern IntPtr createCommandQueue(IntPtr hContext, IntPtr hDevice, int async);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr createCommandQueue2(IntPtr hContext, IntPtr hDevice, int async,bool defaultQueue);
+
+        [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
         private static extern void addMarkerToCommandQueue(IntPtr hCommandQueue);
 
         [DllImport("KutuphaneCL", CallingConvention = CallingConvention.Cdecl)]
@@ -51,12 +54,32 @@ namespace ClObject
         /// creates a command queue in a context
         /// </summary>
         /// <param name="context"></param>
+        /// <param name="defaultQueue">OpenCL 2.0 dynamic parallelism queue</param>
         /// <param name="async">async!=0 means out-of-order command queue</param>
-        public ClCommandQueue(ClContext context, int async=0)
+        public ClCommandQueue(ClContext context, bool defaultQueue, int async=0)
         {
             hContext = context.h();
             hDevice = context.hd();
-            hCommandQueue = createCommandQueue(hContext, hDevice,async);
+            if (defaultQueue)
+            {
+                try
+                {
+                    hCommandQueue = createCommandQueue2(hContext, hDevice, async, defaultQueue);
+                }
+                catch(EntryPointNotFoundException epnfe)
+                {
+                    Console.WriteLine("Error: KutuphaneCL.dll's OpenCL2.0 dynamic parallelism support(needs v1.4.1+) not found.");
+                    Console.WriteLine(epnfe.Message);
+                }
+                finally
+                {
+
+                }
+            }
+            else
+            {
+                hCommandQueue = createCommandQueue(hContext, hDevice, async);
+            }
             addedMarkers = 0;
         }
 

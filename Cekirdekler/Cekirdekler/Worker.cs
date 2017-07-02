@@ -174,6 +174,8 @@ namespace ClObject
         /// </summary>
         public ClCommandQueue commandQueue16 = null;
 
+        // OpenCL 2.0 dynamic parallelism support 
+        public ClCommandQueue commandQueueDynamicParallelismDefault = null;
 
         private ClString kernelStrings = null;
         private ClString[] kernelNames = null;
@@ -198,7 +200,7 @@ namespace ClObject
         public string deviceName;
         private int programAndKernelErrorCode = 0;
         private string allWorkerErrorsString="";
-        
+
         /// <summary>
         /// <para>creates a worker for a device for a kernel string contains many kernel definitions and names of kernels given explicity</para>
         /// <para>(Cekirdekler API usage style-2 doesn't need kernel names explicitly)</para>
@@ -206,8 +208,11 @@ namespace ClObject
         /// <param name="device_">opencl device wrapper</param>
         /// <param name="kernels_">string wrapper containing all kernels</param>
         /// <param name="kernelNames_">names of kernels to be compiled on this device</param>
+        /// <param name="computeQueueConcurrencyParameter">max queues to use</param>
+        /// <param name="defaultQueue">OpenCL 2.0 dynamic parallelism default queue</param>
         /// <param name="noPipelining">if enabled, does not allocate multiple command queues(driver-driven pipelining can't be enabled). Useful for device-to-device pipelining with many stages(to overcome abundant resource usages)</param>
-        public Worker(ClDevice device_, ClString kernels_, ClString[] kernelNames_, int computeQueueConcurrencyParameter=16, bool noPipelining = false)
+        public Worker(ClDevice device_, ClString kernels_, ClString[] kernelNames_, bool defaultQueue = false,
+            int computeQueueConcurrencyParameter=16, bool noPipelining = false)
         {
             computeQueueConcurrency = computeQueueConcurrencyParameter;
             {
@@ -216,37 +221,42 @@ namespace ClObject
                 deviceName = device.name();
                 context = new ClContext(device);
 
+                if(defaultQueue)
+                {
+                    commandQueueDynamicParallelismDefault = new ClCommandQueue(context, true);
+                }
+
                 // for event+driver driven pipelines and no-pipeline executions
-                commandQueue = new ClCommandQueue(context);
+                commandQueue = new ClCommandQueue(context, false);
 
                 // for event driven pipelines
-                commandQueueRead = new ClCommandQueue(context);
+                commandQueueRead = new ClCommandQueue(context, false);
 
                 // for event driven pipelines
-                commandQueueWrite = new ClCommandQueue(context);
+                commandQueueWrite = new ClCommandQueue(context, false);
 
                 // for driver-driven pipelines
                 if (!noPipelining)
                 {
-                    commandQueue2 = new ClCommandQueue(context);
-                    commandQueue3 = new ClCommandQueue(context);
-                    commandQueue4 = new ClCommandQueue(context);
-                    commandQueue5 = new ClCommandQueue(context);
-                    commandQueue6 = new ClCommandQueue(context);
-                    commandQueue7 = new ClCommandQueue(context);
-                    commandQueue8 = new ClCommandQueue(context);
-                    commandQueue9 = new ClCommandQueue(context);
-                    commandQueue10 = new ClCommandQueue(context);
-                    commandQueue11 = new ClCommandQueue(context);
-                    commandQueue12 = new ClCommandQueue(context);
-                    commandQueue13 = new ClCommandQueue(context);
-                    commandQueue14 = new ClCommandQueue(context);
-                    commandQueue15 = new ClCommandQueue(context);
-                    commandQueue16 = new ClCommandQueue(context);
+                    commandQueue2 = new ClCommandQueue(context, false);
+                    commandQueue3 = new ClCommandQueue(context, false);
+                    commandQueue4 = new ClCommandQueue(context, false);
+                    commandQueue5 = new ClCommandQueue(context, false);
+                    commandQueue6 = new ClCommandQueue(context, false);
+                    commandQueue7 = new ClCommandQueue(context, false);
+                    commandQueue8 = new ClCommandQueue(context, false);
+                    commandQueue9 = new ClCommandQueue(context, false);
+                    commandQueue10 = new ClCommandQueue(context, false);
+                    commandQueue11 = new ClCommandQueue(context, false);
+                    commandQueue12 = new ClCommandQueue(context, false);
+                    commandQueue13 = new ClCommandQueue(context, false);
+                    commandQueue14 = new ClCommandQueue(context, false);
+                    commandQueue15 = new ClCommandQueue(context, false);
+                    commandQueue16 = new ClCommandQueue(context, false);
                 }
                 // for event driven pipelines
-                commandQueueRead2 = new ClCommandQueue(context);
-                commandQueueWrite2 = new ClCommandQueue(context);
+                commandQueueRead2 = new ClCommandQueue(context, false);
+                commandQueueWrite2 = new ClCommandQueue(context, false);
 
 
 
@@ -1695,6 +1705,11 @@ namespace ClObject
                 if (commandQueue16 != null)
                     commandQueue16.dispose();
                 commandQueue16 = null;
+
+                if (commandQueueDynamicParallelismDefault != null)
+                    commandQueueDynamicParallelismDefault.dispose();
+                commandQueueDynamicParallelismDefault = null;
+
 
                 if (commandQueueRead2 != null)
                     commandQueueRead2.dispose();
