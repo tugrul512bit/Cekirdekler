@@ -920,6 +920,7 @@ namespace Cekirdekler
                     {
                         if (selectedGlobalRanges[0] > 0)
                         {
+
                             workers[0].readFromBuffer(arrs, selectedGlobalReferences[0], selectedGlobalRanges[0], computeId, readWrite, elementsPerWorkItem,0,1, enqueueMode, (enqueueMode && enqueueModeAsyncEnable)?workers[0].nextComputeQueue(enqueueModeAsyncQueueIndex):null);
 
                             if (!enqueueMode)

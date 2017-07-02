@@ -409,6 +409,10 @@ namespace ClObject
                     }
                 }
             }
+            //if (commandQueueDynamicParallelismDefault != null)
+            //{
+            //    finishList.Add(commandQueueDynamicParallelismDefault.h());
+            //}
             // });
             //return;
             IntPtr[] hCommandQueueToWaitArray = finishList.ToArray();
