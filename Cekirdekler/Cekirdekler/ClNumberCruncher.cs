@@ -300,7 +300,7 @@ namespace Cekirdekler
         public ClNumberCruncher(ClDevices devicesForGPGPU, string kernelString,bool noPipelining=false,int computeQueueConcurrency=16)
         {
             bool defaultQueue = false;
-            if (kernelString.Contains("enqueue_kernel("))
+            if (kernelString.Contains("enqueue_kernel"))
                 defaultQueue = true;
             repeatCount = 1;
             numberOfErrorsHappened = 0;
