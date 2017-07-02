@@ -28,7 +28,8 @@ This project is being enhanced using ZenHub: <a href="https://zenhub.com"><img s
 <li><b>Automatic buffer copy optimizations for devices:</b> If a device shares RAM with CPU, it uses map/unmap commands to reduce number of array copies(instead of read/write). If also that device is given a C++ wrapper array(such as ClArray&lt;float&gt;), it also uses cl_use_host_ptr flag on buffer for a <b>zero-copy</b> access aka" streaming". By default, all devices have their own buffers.</li>
 <li><b>Two different usage types: </b>First one lets the developer choose all kernel parameters as arrays more explicitly for a more explicitly readable execution, second one creates same thing using a much shorter definition to complete in less code lines and change only the necessary flags instead of all.</li>
 <li><b>Automatic resource dispose:</b> When C++ array wrappers are finalized(out-of-scope, garbage collected), they release resources. Also dispose method can be called explicitly by developer.</li>
-<li><b>Uses OpenCL 1.2:</b> <a href="https://www.khronos.org/">C++ bindings from  Khronos.org</a> for its base. Developers are expected to know C99 and its OpenCL kernel constraints to write their own genuine GPGPU kernels.</li>
+<li><b>Uses OpenCL 1.2:</b> <a href="https://www.khronos.org/">C++ bindings from  Khronos.org</a> for its base. Developers are expected to know C99 and its OpenCL kernel constraints to write their own genuine GPGPU kernels. CekirdeklerCPP project produces OpenCL 1.2 backend dll file.</li>
+<li><b>Uses OpenCL 2.0:</b> <a href="https://www.khronos.org/">C++ bindings from  Khronos.org</a> for its base. Developers are expected to know C99 and its OpenCL kernel constraints to write their own genuine GPGPU kernels. CekirdeklerCPP2 project produces OpenCL 2.0 backend dll file.(needs to be renamed to KutuphaneCL.dll)</li>
 </ul>
 <hr></hr>
 <h2>Documentation</h2>
