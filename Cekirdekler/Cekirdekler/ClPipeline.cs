@@ -4526,19 +4526,24 @@ namespace Cekirdekler
                 /// </summary>
                 public void dispose()
                 {
-                    lock (syncObj)
-                    {
-                        running = false;
-                        Monitor.PulseAll(syncObj);
-
-                    }
-                    for (int i = 0; i < devices.Count; i++)
+                    for (int j = 0; j < 10; j++)
                     {
                         lock (syncObj)
                         {
-                            devices[i].dispose();
+                            running = false;
                             Monitor.PulseAll(syncObj);
+
                         }
+                        for (int i = 0; i < devices.Count; i++)
+                        {
+                            lock (syncObj)
+                            {
+                                devices[i].dispose();
+                                Monitor.PulseAll(syncObj);
+                            }
+                        }
+
+                        finish();
                     }
                 }
             }
