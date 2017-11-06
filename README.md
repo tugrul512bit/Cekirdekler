@@ -1,5 +1,5 @@
 # Cekirdekler
-Very simple C# Multi-device GPGPU(OpenCL) compute API with an iterative interdevice-loadbalancing feature using multiple pipelining on read/write/compute operations for developers' custom opencl kernels. Main idea is to treat N devices as a single device when possible.
+C# Multi-device GPGPU(OpenCL) compute API with an iterative interdevice-loadbalancing feature using multiple pipelining on read/write/compute operations for developers' custom opencl kernels. Main idea is to treat N devices as a single device when possible, taking advantage of entire platform, easily, through shared-distributed memory model under the hood.
 
 64-bit only. "project settings -> build -> platform target -> x64"
 Also configuration manager needs to look like this:
