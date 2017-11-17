@@ -93,6 +93,19 @@ namespace Cekirdekler
         }
 
         /// <summary>
+        /// for a more fine-grained host control with enqueue mode, 
+        /// this can be used as a forced command issue to device
+        /// that flushes last used command queue
+        /// </summary>
+        public void flushLastUsedCommandQueue()
+        {
+            if (numberCruncher != null)
+            {
+                ClObject.Worker.flush(numberCruncher.lastUsedCommandQueueOfFirstDevice().h());
+            }
+        }
+
+        /// <summary>
         /// <para>only for single gpu(or device to device pipeline stages)</para>
         /// <para>used by enqueueMode to distribute each compute job to a different queue or not</para>
         /// <para>true=distribute each compute to a different queue</para>
