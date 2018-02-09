@@ -63,3 +63,5 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
             // GPU2 computes 5 groups and another GPU computes 3 groups. Global id values are continuous through all global workitems,
             // local id values are also safe to use. 
             // faster GPUs get more work share over iterations. Performance aware over repeatations of a work.
+            
+            // no need to dispose anything at the end. they do it themselves when out of scope or gc.  
