@@ -52,6 +52,7 @@ You can see details and tutorial <a href="https://github.com/tugrul512bit/Cekird
                 Cekirdekler.AcceleratorType.GPU, @"
                     __kernel void hello(__global char * arr)
                     {
+                        int threadId=get_global_id(0);
                         printf(""hello world"");
                     }
                 ");
